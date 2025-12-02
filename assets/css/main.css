@@ -49,10 +49,7 @@ body::before {
   margin: 0 auto;
   padding: 2rem;
   border: 1px solid #00ff00;
-  box-shadow: 
-    0 0 10px rgba(0, 255, 0, 0.5),
-    inset 0 0 10px rgba(0, 255, 0, 0.1);
-  background: rgba(0, 0, 0, 0.8);
+  background: #000000;
   position: relative;
 }
 
@@ -63,6 +60,7 @@ body::before {
   margin-bottom: 2rem;
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .content-wrapper {
@@ -74,13 +72,15 @@ body::before {
 }
 
 .hologirl {
-  width: 300px;
+  width: 150px;
   height: auto;
   max-width: 100%;
   image-rendering: pixelated;
-  opacity: 0.9;
+  opacity: 1;
   animation: glitch 3s infinite;
   position: relative;
+  display: block;
+  margin: 0 auto;
 }
 
 .hologirl::before {
@@ -157,27 +157,6 @@ body::before {
   }
 }
 
-.w::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #00ff00, #00cc00, #00ff00);
-  z-index: -1;
-  opacity: 0.3;
-  animation: borderGlow 3s ease-in-out infinite;
-}
-
-@keyframes borderGlow {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
 
 header {
   margin-bottom: 2rem;
@@ -186,10 +165,6 @@ header {
 h1 {
   font-size: 2.5rem;
   color: #00ff00;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 0, 0.8),
-    0 0 20px rgba(0, 255, 0, 0.6),
-    0 0 30px rgba(0, 255, 0, 0.4);
   margin-bottom: 1rem;
   letter-spacing: 2px;
   animation: textFlicker 3s infinite;
@@ -208,15 +183,11 @@ p {
   color: #00ff00;
   font-size: 1rem;
   line-height: 1.8;
-  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 
 .matrix-text {
   color: #00ff00;
   font-size: 1.2em;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 0, 0.8),
-    0 0 20px rgba(0, 255, 0, 0.6);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -232,7 +203,6 @@ p {
 .matrix-symbol {
   color: #00ff00;
   font-size: 1.5em;
-  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
   margin: 0 0.5rem;
 }
 
@@ -250,14 +220,10 @@ ul ul {
 li {
   margin: 0.5rem 0;
   color: #00ff00;
-  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 
 b {
   color: #00ff00;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 0, 0.8),
-    0 0 20px rgba(0, 255, 0, 0.6);
   font-weight: bold;
 }
 
@@ -266,34 +232,12 @@ a.matrix-link {
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: all 0.3s ease;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
   position: relative;
 }
 
 a.matrix-link:hover {
   color: #ffffff;
-  text-shadow: 
-    0 0 10px rgba(255, 255, 255, 1),
-    0 0 20px rgba(255, 255, 255, 0.8),
-    0 0 30px rgba(255, 255, 255, 0.6);
   border-bottom: 1px solid #ffffff;
-  animation: linkGlow 0.5s ease-in-out;
-}
-
-@keyframes linkGlow {
-  0% {
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-  }
-  50% {
-    text-shadow: 
-      0 0 15px rgba(255, 255, 255, 1),
-      0 0 25px rgba(255, 255, 255, 0.9);
-  }
-  100% {
-    text-shadow: 
-      0 0 10px rgba(255, 255, 255, 1),
-      0 0 20px rgba(255, 255, 255, 0.8);
-  }
 }
 
 a.matrix-link::after {
@@ -304,7 +248,6 @@ a.matrix-link::after {
   width: 0;
   height: 1px;
   background: #ffffff;
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
   transition: width 0.3s ease;
 }
 
@@ -324,7 +267,7 @@ a.matrix-link:hover::after {
   }
   
   .hologirl {
-    width: 200px;
+    width: 100px;
   }
   
   h1 {
