@@ -72,7 +72,7 @@ body::before {
 }
 
 .hologirl {
-  width: 150px;
+  width: 120px;
   height: auto;
   max-width: 100%;
   image-rendering: pixelated;
@@ -227,6 +227,13 @@ b {
   font-weight: bold;
 }
 
+.link-icon {
+  color: #00ff00;
+  margin-right: 0.5rem;
+  font-size: 0.9em;
+  display: inline-block;
+}
+
 a.matrix-link {
   color: #ffffff;
   text-decoration: none;
@@ -267,7 +274,7 @@ a.matrix-link:hover::after {
   }
   
   .hologirl {
-    width: 100px;
+    width: 80px;
   }
   
   h1 {
