@@ -29,6 +29,42 @@
   background: #000000;
 }
 
+.terminal-output {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: #00ff00 #000000;
+}
+
+.terminal-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border: 1px solid #00ff00;
+}
+
+.terminal-line {
+  color: #00ff00;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
 .terminal-text {
   color: #00ff00;
   font-family: 'Share Tech Mono', 'Courier New', monospace;

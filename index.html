@@ -23,6 +23,7 @@
   <!-- Loading Screen -->
   <div id="loading-screen" class="loading-screen">
     <div class="terminal">
+      <div id="terminal-output" class="terminal-output"></div>
       <div class="terminal-text">$ Initializing system...</div>
       <div class="terminal-text">$ Loading components...</div>
       <div class="progress-bar">
@@ -73,6 +74,44 @@
   </main>
 
   <script>
+    // Terminal scrolling text
+    const terminalMessages = [
+      '> Checking system requirements...',
+      '> Loading dependencies...',
+      '> Initializing matrix protocols...',
+      '> Connecting to mainframe...',
+      '> Decrypting files...',
+      '> Loading web3 modules...',
+      '> Preparing neural network...',
+      '> Syncing blockchain data...',
+      '> Configuring environment...',
+      '> Verifying credentials...',
+      '> Loading assets...',
+      '> Optimizing performance...',
+      '> Establishing secure connection...',
+      '> Finalizing setup...',
+      '> System ready.'
+    ];
+
+    const terminalOutput = document.getElementById('terminal-output');
+    let messageIndex = 0;
+
+    function addTerminalLine() {
+      if (messageIndex < terminalMessages.length) {
+        const line = document.createElement('div');
+        line.className = 'terminal-line';
+        line.textContent = terminalMessages[messageIndex];
+        terminalOutput.appendChild(line);
+        
+        // Auto scroll to bottom
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        messageIndex++;
+      }
+    }
+
+    // Add lines quickly
+    const terminalInterval = setInterval(addTerminalLine, 80);
+
     // Loading animation
     let progress = 0;
     const progressFill = document.getElementById('progress-fill');
@@ -89,6 +128,7 @@
       
       if (progress >= 100) {
         clearInterval(loadingInterval);
+        clearInterval(terminalInterval);
         setTimeout(() => {
           loadingScreen.style.opacity = '0';
           setTimeout(() => {
