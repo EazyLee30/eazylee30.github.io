@@ -377,7 +377,13 @@ a.matrix-link:hover::after {
 @media (max-width: 768px) {
   .w {
     padding: 1.5rem;
-    margin: 1rem;
+    margin: 1rem auto;
+    max-width: calc(100% - 2rem);
+  }
+  
+  .page-content {
+    padding: 1rem;
+    width: 100%;
   }
   
   .image-container {
@@ -394,10 +400,6 @@ a.matrix-link:hover::after {
   
   p {
     font-size: 0.9rem;
-  }
-  
-  .page-content {
-    padding: 1rem;
   }
 }
 
