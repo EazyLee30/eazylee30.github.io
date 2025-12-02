@@ -20,10 +20,22 @@
   <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
 <body>
-  <main class="page-content" aria-label="Content">
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="terminal">
+      <div class="terminal-text">$ 正在初始化系统...</div>
+      <div class="terminal-text">$ 正在加载组件...</div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="terminal-text" id="progress-text">0%</div>
+    </div>
+  </div>
+
+  <main class="page-content" aria-label="Content" id="main-content" style="display: none;">
     <div class="w">
       <div class="image-container">
-        <img src="/assets/eazylee.gif" alt="eazylee" class="hologirl">
+        <img src="/assets/eazylee.gif" alt="eazylee" class="holoman">
       </div>
       <div class="content-wrapper">
         <div class="text-content">
@@ -59,6 +71,37 @@
       </div>
     </div>
   </main>
+
+  <script>
+    // Loading animation
+    let progress = 0;
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const loadingScreen = document.getElementById('loading-screen');
+    const mainContent = document.getElementById('main-content');
+
+    const loadingInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress > 100) progress = 100;
+      
+      progressFill.style.width = progress + '%';
+      progressText.textContent = Math.floor(progress) + '%';
+      
+      if (progress >= 100) {
+        clearInterval(loadingInterval);
+        setTimeout(() => {
+          loadingScreen.style.opacity = '0';
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            setTimeout(() => {
+              mainContent.style.opacity = '1';
+            }, 50);
+          }, 500);
+        }, 300);
+      }
+    }, 100);
+  </script>
 </body>
 </html>
 
