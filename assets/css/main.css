@@ -233,6 +233,21 @@ b {
   display: inline-block;
 }
 
+.lang-switch {
+  font-size: 0.5em;
+  color: #00ff00;
+  text-decoration: none;
+  margin-left: 1rem;
+  border: 1px solid #00ff00;
+  padding: 0.2rem 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.lang-switch:hover {
+  background: #00ff00;
+  color: #000000;
+}
+
 a.matrix-link {
   color: #ffffff;
   text-decoration: none;
