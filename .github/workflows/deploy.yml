@@ -60,10 +60,34 @@ jobs:
           
           # Use Python for replacement (handles special characters safely)
           API_KEY="${{ secrets.GEMINI_API_KEY }}"
+          export API_KEY
           echo "Attempting replacement with Python..."
           
-          # Use Python one-liner to safely replace API key
-          python3 -c "import sys; content = open('game/gomoku/index.html', 'r', encoding='utf-8').read(); content = content.replace(\"const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';\", f\"const GEMINI_API_KEY = '{sys.argv[1]}';\"); open('game/gomoku/index.html', 'w', encoding='utf-8').write(content)" "$API_KEY"
+          # Create Python script using echo to avoid YAML heredoc issues
+          echo 'import os' > /tmp/replace_key.py
+          echo 'import sys' >> /tmp/replace_key.py
+          echo "api_key = os.environ.get('API_KEY', '')" >> /tmp/replace_key.py
+          echo 'if not api_key:' >> /tmp/replace_key.py
+          echo "    print('ERROR: API_KEY not set')" >> /tmp/replace_key.py
+          echo '    sys.exit(1)' >> /tmp/replace_key.py
+          echo '' >> /tmp/replace_key.py
+          echo "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" >> /tmp/replace_key.py
+          echo '    content = f.read()' >> /tmp/replace_key.py
+          echo '' >> /tmp/replace_key.py
+          echo 'original = "const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';"' >> /tmp/replace_key.py
+          echo "replacement = f\"const GEMINI_API_KEY = '{api_key}';\"" >> /tmp/replace_key.py
+          echo '' >> /tmp/replace_key.py
+          echo 'if original in content:' >> /tmp/replace_key.py
+          echo '    content = content.replace(original, replacement)' >> /tmp/replace_key.py
+          echo "    with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:" >> /tmp/replace_key.py
+          echo '        f.write(content)' >> /tmp/replace_key.py
+          echo "    print('Python replacement: SUCCESS')" >> /tmp/replace_key.py
+          echo '    sys.exit(0)' >> /tmp/replace_key.py
+          echo 'else:' >> /tmp/replace_key.py
+          echo "    print('ERROR: Pattern not found in file')" >> /tmp/replace_key.py
+          echo '    sys.exit(1)' >> /tmp/replace_key.py
+          
+          python3 /tmp/replace_key.py
           
           # Verify replacement worked
           if [ $? -eq 0 ]; then
