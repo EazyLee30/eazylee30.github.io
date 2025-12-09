@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pong - eazylee</title>
+  <title>Super Mario - eazylee</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
   <style>
     .game-container {
@@ -142,23 +142,24 @@
       <div class="content-wrapper">
         <div class="text-content">
           <header>
-            <h1>pong <a href="game.html" class="lang-switch">back</a></h1>
+            <h1>super mario <a href="../game.html" class="lang-switch">back</a></h1>
             <p>
               <div class="game-container">
                 <div class="game-canvas-container">
                   <canvas id="gameCanvas" width="600" height="400"></canvas>
                 </div>
                 <div class="game-info">
-                  <div>Player: <span id="playerScore">0</span> | AI: <span id="aiScore">0</span></div>
-                  <div>Best Score: <span id="bestScore">0</span></div>
+                  <div>Coins: <span id="coins">0</span></div>
+                  <div>Best Coins: <span id="bestCoins">0</span></div>
                 </div>
                 <div class="game-controls">
                   <button class="game-btn" id="startBtn">Start</button>
                   <button class="game-btn" id="resetBtn">Reset</button>
                 </div>
                 <div class="instructions">
-                  <p>Use Arrow Up/Down or W/S to move paddle</p>
-                  <p>First to 5 points wins</p>
+                  <p>Use Arrow Keys or WASD to move Mario</p>
+                  <p>Space or W to jump</p>
+                  <p>Collect coins, avoid enemies</p>
                 </div>
               </div>
             </p>
@@ -172,7 +173,7 @@
   <div class="game-over-modal" id="gameOverModal">
     <div class="game-over-content">
       <h2 class="game-over-title">GAME OVER</h2>
-      <div class="game-over-score">Your Score: <span id="finalScore">0</span></div>
+      <div class="game-over-score">You Collected: <span id="finalCoins">0</span> Coins</div>
       <label class="name-input-label" for="playerName">Who are you?</label>
       <input 
         type="text" 
@@ -190,118 +191,159 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    let player = { x: 10, y: 175, width: 10, height: 50, score: 0 };
-    let ai = { x: 580, y: 175, width: 10, height: 50, score: 0 };
-    let ball = { x: 300, y: 200, radius: 8, vx: 4, vy: 4 };
+    let mario = { x: 50, y: 300, width: 20, height: 30, vx: 0, vy: 0, onGround: false };
+    let platforms = [
+      { x: 0, y: 380, width: 600, height: 20 },
+      { x: 200, y: 300, width: 100, height: 20 },
+      { x: 400, y: 250, width: 100, height: 20 },
+      { x: 100, y: 200, width: 80, height: 20 },
+      { x: 500, y: 150, width: 100, height: 20 }
+    ];
+    let coins = [
+      { x: 220, y: 280, collected: false },
+      { x: 420, y: 230, collected: false },
+      { x: 120, y: 180, collected: false },
+      { x: 520, y: 130, collected: false },
+      { x: 300, y: 100, collected: false },
+      { x: 150, y: 50, collected: false }
+    ];
+    let enemies = [
+      { x: 250, y: 280, width: 15, height: 15, vx: -1 }
+    ];
+    let coinsCollected = 0;
     let gameRunning = false;
     let gameLoop = null;
     let keys = {};
 
+    // Draw game
     function draw() {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw center line
-      ctx.strokeStyle = '#00ff00';
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw paddles
+      // Draw platforms
       ctx.fillStyle = '#00ff00';
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-      ctx.fillRect(ai.x, ai.y, ai.width, ai.height);
+      platforms.forEach(platform => {
+        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+      });
 
-      // Draw ball
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fill();
+      // Draw coins
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          ctx.fillStyle = '#ffff00';
+          ctx.beginPath();
+          ctx.arc(coin.x, coin.y, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Draw enemies
+      ctx.fillStyle = '#ff0000';
+      enemies.forEach(enemy => {
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+      });
+
+      // Draw mario
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
     }
 
+    // Update game
     function update() {
       if (!gameRunning) return;
 
-      // Move player paddle
-      if (keys['ArrowUp'] || keys['w'] || keys['W']) {
-        player.y = Math.max(0, player.y - 5);
-      }
-      if (keys['ArrowDown'] || keys['s'] || keys['S']) {
-        player.y = Math.min(canvas.height - player.height, player.y + 5);
-      }
+      // Gravity
+      mario.vy += 0.5;
+      mario.vx *= 0.9; // Friction
 
-      // AI paddle (simple AI)
-      const aiCenter = ai.y + ai.height / 2;
-      if (ball.y < aiCenter - 10) {
-        ai.y = Math.max(0, ai.y - 4);
-      } else if (ball.y > aiCenter + 10) {
-        ai.y = Math.min(canvas.height - ai.height, ai.y + 4);
+      // Input
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+        mario.vx = -3;
       }
-
-      // Move ball
-      ball.x += ball.vx;
-      ball.y += ball.vy;
-
-      // Ball collision with top/bottom
-      if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= canvas.height) {
-        ball.vy = -ball.vy;
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+        mario.vx = 3;
+      }
+      if ((keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' ']) && mario.onGround) {
+        mario.vy = -10;
+        mario.onGround = false;
       }
 
-      // Ball collision with player paddle
-      if (ball.x - ball.radius <= player.x + player.width &&
-          ball.x - ball.radius >= player.x &&
-          ball.y >= player.y &&
-          ball.y <= player.y + player.height) {
-        ball.vx = -ball.vx;
-        ball.x = player.x + player.width + ball.radius;
-        // Add spin based on where ball hits paddle
-        const hitPos = (ball.y - player.y) / player.height;
-        ball.vy = (hitPos - 0.5) * 8;
-      }
+      // Update mario position
+      mario.x += mario.vx;
+      mario.y += mario.vy;
 
-      // Ball collision with AI paddle
-      if (ball.x + ball.radius >= ai.x &&
-          ball.x + ball.radius <= ai.x + ai.width &&
-          ball.y >= ai.y &&
-          ball.y <= ai.y + ai.height) {
-        ball.vx = -ball.vx;
-        ball.x = ai.x - ball.radius;
-        const hitPos = (ball.y - ai.y) / ai.height;
-        ball.vy = (hitPos - 0.5) * 8;
-      }
-
-      // Score
-      if (ball.x < 0) {
-        ai.score++;
-        resetBall();
-        updateScore();
-        if (ai.score >= 5) {
-          gameOver();
+      // Platform collision
+      mario.onGround = false;
+      platforms.forEach(platform => {
+        if (mario.x < platform.x + platform.width &&
+            mario.x + mario.width > platform.x &&
+            mario.y < platform.y + platform.height &&
+            mario.y + mario.height > platform.y) {
+          if (mario.vy > 0) {
+            mario.y = platform.y - mario.height;
+            mario.vy = 0;
+            mario.onGround = true;
+          }
         }
-      } else if (ball.x > canvas.width) {
-        player.score++;
-        resetBall();
-        updateScore();
-        if (player.score >= 5) {
-          gameOver();
+      });
+
+      // Boundary check
+      if (mario.x < 0) mario.x = 0;
+      if (mario.x + mario.width > canvas.width) mario.x = canvas.width - mario.width;
+      if (mario.y > canvas.height) {
+        gameOver();
+        return;
+      }
+
+      // Coin collection
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          const dx = coin.x - (mario.x + mario.width / 2);
+          const dy = coin.y - (mario.y + mario.height / 2);
+          if (Math.sqrt(dx * dx + dy * dy) < 20) {
+            coin.collected = true;
+            coinsCollected++;
+            updateScore();
+          }
         }
+      });
+
+      // Enemy collision
+      enemies.forEach(enemy => {
+        if (mario.x < enemy.x + enemy.width &&
+            mario.x + mario.width > enemy.x &&
+            mario.y < enemy.y + enemy.height &&
+            mario.y + mario.height > enemy.y) {
+          gameOver();
+          return;
+        }
+      });
+
+      // Move enemies
+      enemies.forEach(enemy => {
+        enemy.x += enemy.vx;
+        if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+          enemy.vx *= -1;
+        }
+      });
+
+      // Check win
+      if (coins.every(coin => coin.collected)) {
+        // Reset coins for next round
+        coins.forEach(coin => {
+          coin.collected = false;
+          coin.x = Math.random() * (canvas.width - 50) + 25;
+          coin.y = Math.random() * (canvas.height - 100) + 50;
+        });
       }
     }
 
-    function resetBall() {
-      ball.x = canvas.width / 2;
-      ball.y = canvas.height / 2;
-      ball.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
-      ball.vy = (Math.random() - 0.5) * 4;
-    }
-
+    // Game loop
     function gameStep() {
       update();
       draw();
     }
 
+    // Start game
     function startGame() {
       if (gameRunning) return;
       gameRunning = true;
@@ -309,73 +351,80 @@
       document.getElementById('startBtn').textContent = 'Playing...';
     }
 
+    // Reset game
     function resetGame() {
       clearInterval(gameLoop);
-      player.score = 0;
-      ai.score = 0;
+      mario = { x: 50, y: 300, width: 20, height: 30, vx: 0, vy: 0, onGround: false };
+      coinsCollected = 0;
       gameRunning = false;
-      resetBall();
+      coins.forEach(coin => {
+        coin.collected = false;
+      });
       updateScore();
       draw();
       document.getElementById('startBtn').textContent = 'Start';
     }
 
+    // Game over
     function gameOver() {
       clearInterval(gameLoop);
       gameRunning = false;
-      document.getElementById('finalScore').textContent = player.score;
+      document.getElementById('finalCoins').textContent = coinsCollected;
       document.getElementById('gameOverModal').style.display = 'flex';
       document.getElementById('playerName').focus();
     }
 
+    // Update score
     function updateScore() {
-      document.getElementById('playerScore').textContent = player.score;
-      document.getElementById('aiScore').textContent = ai.score;
-      loadBestScore();
+      document.getElementById('coins').textContent = coinsCollected;
+      loadBestCoins();
     }
 
-    function loadBestScore() {
+    function loadBestCoins() {
       const leaderboard = getLeaderboard();
       if (leaderboard.length > 0) {
-        document.getElementById('bestScore').textContent = leaderboard[0].score;
+        document.getElementById('bestCoins').textContent = leaderboard[0].score;
       }
     }
 
     function getLeaderboard() {
-      const data = localStorage.getItem('pongLeaderboard');
+      const data = localStorage.getItem('marioLeaderboard');
       if (!data) return [];
       const leaderboard = JSON.parse(data);
       return leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
     }
 
-    function saveScore(name, score) {
+    // Save score
+    function saveScore(name, coins) {
       if (!name || name.trim() === '') {
         name = 'Anonymous';
       }
       name = name.trim().substring(0, 20);
 
-      let leaderboard = JSON.parse(localStorage.getItem('pongLeaderboard') || '[]');
+      let leaderboard = JSON.parse(localStorage.getItem('marioLeaderboard') || '[]');
       leaderboard.push({
         name: name,
-        score: score,
+        score: coins,
         date: new Date().toISOString()
       });
 
       leaderboard.sort((a, b) => b.score - a.score);
       leaderboard = leaderboard.slice(0, 10);
 
-      localStorage.setItem('pongLeaderboard', JSON.stringify(leaderboard));
+      localStorage.setItem('marioLeaderboard', JSON.stringify(leaderboard));
       window.dispatchEvent(new Event('storage'));
     }
 
+    // Submit score
     function submitScore() {
       const name = document.getElementById('playerName').value;
-      saveScore(name, player.score);
+      saveScore(name, coinsCollected);
       document.getElementById('gameOverModal').style.display = 'none';
       document.getElementById('playerName').value = '';
       resetGame();
     }
 
+    // Keyboard controls
     document.addEventListener('keydown', (e) => {
       keys[e.key] = true;
       if (!gameRunning && e.key === ' ') {
@@ -397,6 +446,7 @@
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
 
+    // Initialize
     draw();
   </script>
 </body>
