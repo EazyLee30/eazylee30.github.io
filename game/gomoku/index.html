@@ -601,9 +601,8 @@ Now, analyze the board and output your move:`;
               }
             }
             
-            if (row >= 0 && col >= 0) {
-              
-              if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0) {
+            if (row >= 0 && col >= 0 && row < BOARD_SIZE && col < BOARD_SIZE) {
+              if (board[row][col] === 0) {
                 placeStone(row, col, 2);
                 aiMoves++;
                 updateMoves();
