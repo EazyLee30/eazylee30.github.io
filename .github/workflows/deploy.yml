@@ -28,10 +28,32 @@ jobs:
       
       - name: Replace API Key
         run: |
+          echo "Checking for GEMINI_API_KEY secret..."
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
-            sed -i "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '${{ secrets.GEMINI_API_KEY }}';|g" game/gomoku/index.html
+            echo "API Key found, replacing placeholder..."
+            # Use a more robust replacement that handles special characters
+            API_KEY="${{ secrets.GEMINI_API_KEY }}"
+            # Escape special characters for sed
+            ESCAPED_KEY=$(echo "$API_KEY" | sed 's/[[\.*^$()+?{|]/\\&/g')
+            sed -i "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '${ESCAPED_KEY}';|g" game/gomoku/index.html
+            echo "Verifying replacement..."
+            if grep -q "const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';" game/gomoku/index.html; then
+              echo "ERROR: Replacement failed! Placeholder still exists."
+              exit 1
+            else
+              echo "SUCCESS: API Key replaced successfully"
+              # Verify the key was set (show first few chars only)
+              if grep -q "const GEMINI_API_KEY = 'AIza" game/gomoku/index.html; then
+                echo "Verified: API Key starts with 'AIza'"
+              else
+                echo "WARNING: API Key format may be incorrect"
+              fi
+            fi
           else
-            echo "Warning: GEMINI_API_KEY secret not set. Game will use proxy or fallback."
+            echo "ERROR: GEMINI_API_KEY secret not set!"
+            echo "Please set GEMINI_API_KEY in repository secrets:"
+            echo "Settings > Secrets and variables > Actions > New repository secret"
+            exit 1
           fi
       
       - name: Setup Pages
