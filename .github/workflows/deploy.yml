@@ -60,29 +60,36 @@ jobs:
           
           # Use perl for replacement - escape the placeholder properly
           API_KEY="${{ secrets.GEMINI_API_KEY }}"
-          echo "Attempting replacement with perl..."
+          export API_KEY
+          echo "Attempting replacement with Python..."
           
           # Try multiple replacement patterns
           # Method 1: Use Python (most reliable for string replacement)
-          python3 << EOF
-import sys
-api_key = "$API_KEY"
-with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:
-    content = f.read()
-    
-original = "const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';"
-replacement = f"const GEMINI_API_KEY = '{api_key}';"
-
-if original in content:
-    content = content.replace(original, replacement)
-    with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Python replacement: SUCCESS")
-    sys.exit(0)
-else:
-    print("Python replacement: Pattern not found")
-    sys.exit(1)
-EOF
+          # Use printf to create Python script to avoid YAML heredoc parsing issues
+          printf '%s\n' \
+            'import sys' \
+            'import os' \
+            "api_key = os.environ.get('API_KEY', '')" \
+            "if not api_key:" \
+            "    print('ERROR: API_KEY environment variable not set')" \
+            '    sys.exit(1)' \
+            '' \
+            "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" \
+            '    content = f.read()' \
+            '' \
+            'original = "const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';"' \
+            "replacement = f\"const GEMINI_API_KEY = '{api_key}';\" " \
+            '' \
+            'if original in content:' \
+            '    content = content.replace(original, replacement)' \
+            "    with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:" \
+            '        f.write(content)' \
+            "    print('Python replacement: SUCCESS')" \
+            '    sys.exit(0)' \
+            'else:' \
+            "    print('Python replacement: Pattern not found')" \
+            '    sys.exit(1)' > /tmp/replace_api_key.py
+          python3 /tmp/replace_api_key.py
           if [ $? -ne 0 ]; then
             echo "Python replacement failed, trying perl..."
             # Method 2: Use perl
@@ -103,14 +110,16 @@ EOF
           if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
             echo "ERROR: Replacement failed! Placeholder still exists."
             echo "Final attempt with direct Python replacement..."
-            python3 << EOF
-api_key = "$API_KEY"
-with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:
-    content = f.read()
-content = content.replace("const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';", f"const GEMINI_API_KEY = '{api_key}';")
-with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:
-    f.write(content)
-EOF
+            printf '%s\n' \
+              'import sys' \
+              'import os' \
+              "api_key = os.environ.get('API_KEY', '')" \
+              "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" \
+              '    content = f.read()' \
+              'content = content.replace("const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';", f"const GEMINI_API_KEY = '\''{api_key}'\'';")' \
+              "with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:" \
+              '    f.write(content)' > /tmp/replace_api_key_final.py
+            python3 /tmp/replace_api_key_final.py
             AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
             if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
               echo "ERROR: All replacement methods failed!"
