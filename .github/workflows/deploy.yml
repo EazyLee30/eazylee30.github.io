@@ -28,44 +28,80 @@ jobs:
       
       - name: Replace API Key
         run: |
+          echo "=== API Key Replacement Step ==="
           echo "Checking for GEMINI_API_KEY secret..."
-          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "API Key found, replacing placeholder..."
-            # Check file exists
-            if [ ! -f "game/gomoku/index.html" ]; then
-              echo "ERROR: game/gomoku/index.html not found!"
-              exit 1
-            fi
-            # Show before replacement
-            echo "Before replacement:"
-            grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1
-            
-            # Use perl for more reliable replacement (handles special chars better)
-            API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '${API_KEY}';|g" game/gomoku/index.html
-            
-            echo "After replacement:"
-            # Verify replacement (show first 15 chars only for security)
-            if grep -q "const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';" game/gomoku/index.html; then
-              echo "ERROR: Replacement failed! Placeholder still exists."
-              exit 1
-            else
-              echo "SUCCESS: API Key replaced successfully"
-              # Verify the key was set (show first few chars only)
-              REPLACED_LINE=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
-              if echo "$REPLACED_LINE" | grep -q "const GEMINI_API_KEY = 'AIza"; then
-                echo "Verified: API Key starts with 'AIza'"
-                echo "Replaced line preview: ${REPLACED_LINE:0:50}..."
-              else
-                echo "WARNING: API Key format may be incorrect"
-                echo "Replaced line: $REPLACED_LINE"
-              fi
-            fi
-          else
-            echo "ERROR: GEMINI_API_KEY secret not set!"
-            echo "Please set GEMINI_API_KEY in repository secrets:"
-            echo "Settings > Secrets and variables > Actions > New repository secret"
+          
+          # Debug: Check if secret is accessible (without exposing it)
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "ERROR: GEMINI_API_KEY secret is empty or not accessible!"
+            echo "Please verify:"
+            echo "1. Secret name is exactly 'GEMINI_API_KEY' (case-sensitive)"
+            echo "2. Secret is set in: Settings > Secrets and variables > Actions"
+            echo "3. Secret has the correct value"
             exit 1
+          fi
+          
+          echo "Secret found (length: ${#GEMINI_API_KEY} characters)"
+          
+          # Check file exists
+          if [ ! -f "game/gomoku/index.html" ]; then
+            echo "ERROR: game/gomoku/index.html not found!"
+            echo "Current directory: $(pwd)"
+            echo "Files in game/: $(ls -la game/ 2>&1 || echo 'game/ not found')"
+            exit 1
+          fi
+          
+          echo "File found. Current file size: $(wc -c < game/gomoku/index.html) bytes"
+          
+          # Show before replacement
+          echo "Before replacement:"
+          BEFORE=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
+          echo "$BEFORE"
+          
+          # Use perl for replacement - escape the placeholder properly
+          API_KEY="${{ secrets.GEMINI_API_KEY }}"
+          echo "Attempting replacement with perl..."
+          
+          # Try multiple replacement patterns
+          perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '${API_KEY}';|g" game/gomoku/index.html || {
+            echo "Perl replacement failed, trying alternative method..."
+            # Alternative: use sed with proper escaping
+            sed -i.bak "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '${API_KEY}';|g" game/gomoku/index.html
+            rm -f game/gomoku/index.html.bak
+          }
+          
+          echo "After replacement:"
+          AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
+          echo "$AFTER"
+          
+          # Verify replacement
+          if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
+            echo "ERROR: Replacement failed! Placeholder still exists."
+            echo "Trying alternative replacement method..."
+            # Try Python as fallback
+            python3 << EOF
+import re
+with open('game/gomoku/index.html', 'r') as f:
+    content = f.read()
+content = content.replace("const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';", "const GEMINI_API_KEY = '${API_KEY}';")
+with open('game/gomoku/index.html', 'w') as f:
+    f.write(content)
+EOF
+            AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
+            if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
+              echo "ERROR: All replacement methods failed!"
+              exit 1
+            fi
+          fi
+          
+          # Final verification
+          if echo "$AFTER" | grep -q "const GEMINI_API_KEY = 'AIza"; then
+            echo "SUCCESS: API Key replaced successfully!"
+            echo "Verified: API Key starts with 'AIza'"
+          else
+            echo "WARNING: API Key format verification failed"
+            echo "Replaced line: $AFTER"
+            # Don't fail, but warn
           fi
       
       - name: Verify files before upload
