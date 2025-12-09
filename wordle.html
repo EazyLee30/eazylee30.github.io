@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wordle - eazylee</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .wordle-grid {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      gap: 0.5rem;
+      margin: 2rem auto;
+      max-width: 400px;
+    }
+
+    .wordle-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+    }
+
+    .wordle-cell {
+      aspect-ratio: 1;
+      border: 2px solid rgba(0, 255, 0, 0.3);
+      background: #000000;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+    }
+
+    .wordle-cell.filled {
+      border-color: rgba(0, 255, 0, 0.6);
+    }
+
+    .wordle-cell.correct {
+      background: #00ff00;
+      color: #000000;
+      border-color: #00ff00;
+    }
+
+    .wordle-cell.present {
+      background: rgba(255, 255, 0, 0.3);
+      border-color: rgba(255, 255, 0, 0.6);
+    }
+
+    .wordle-cell.absent {
+      background: rgba(128, 128, 128, 0.3);
+      border-color: rgba(128, 128, 128, 0.6);
+    }
+
+    .keyboard {
+      margin: 2rem auto;
+      max-width: 500px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.3rem;
+      margin: 0.3rem 0;
+    }
+
+    .key {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 1rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      min-width: 40px;
+    }
+
+    .key:hover {
+      background: rgba(0, 255, 0, 0.1);
+    }
+
+    .key.wide {
+      min-width: 80px;
+    }
+
+    .key.correct {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .key.present {
+      background: rgba(255, 255, 0, 0.3);
+    }
+
+    .key.absent {
+      background: rgba(128, 128, 128, 0.3);
+    }
+
+    .game-info {
+      text-align: center;
+      color: #00ff00;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-over-content {
+      border: 2px solid #00ff00;
+      background: #000000;
+      padding: 3rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .game-over-title {
+      font-size: 2rem;
+      color: #00ff00;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-over-score {
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+
+    .name-input-label {
+      display: block;
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #000000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .submit-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="content-wrapper">
+        <div class="text-content">
+          <header>
+            <h1>wordle <a href="game.html" class="lang-switch">back</a></h1>
+            <p>
+              <div class="game-container">
+                <div class="game-info">
+                  <div>Time: <span id="timer">0:00</span></div>
+                  <div>Attempts: <span id="attempts">0/6</span></div>
+                </div>
+                <div class="wordle-grid" id="wordleGrid"></div>
+                <div class="keyboard" id="keyboard"></div>
+              </div>
+            </p>
+          </header>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="game-over-content">
+      <h2 class="game-over-title" id="gameOverTitle">GAME OVER</h2>
+      <div class="game-over-score">Your Time: <span id="finalTime">0:00</span></div>
+      <label class="name-input-label" for="playerName">Who are you?</label>
+      <input 
+        type="text" 
+        id="playerName" 
+        class="name-input" 
+        placeholder="Enter your name..."
+        maxlength="20"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitScoreBtn">Submit Score</button>
+    </div>
+  </div>
+
+  <script>
+    const words = ['APPLE', 'BRAVE', 'CLOUD', 'DREAM', 'EARTH', 'FLAME', 'GRACE', 'HEART', 'IMAGE', 'JOKER',
+                   'KNIFE', 'LIGHT', 'MAGIC', 'NIGHT', 'OCEAN', 'PEACE', 'QUICK', 'RIVER', 'STORM', 'TRUTH',
+                   'UNITY', 'VOICE', 'WATER', 'YOUTH', 'ZEBRA', 'ALPHA', 'BETA', 'GAMMA', 'DELTA', 'OMEGA'];
+
+    let targetWord = '';
+    let currentRow = 0;
+    let currentCol = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+    let gameStarted = false;
+    let gameOver = false;
+
+    // Initialize game
+    function initGame() {
+      targetWord = words[Math.floor(Math.random() * words.length)];
+      currentRow = 0;
+      currentCol = 0;
+      elapsedSeconds = 0;
+      gameStarted = false;
+      gameOver = false;
+      updateTimer();
+      renderGrid();
+      renderKeyboard();
+    }
+
+    // Render grid
+    function renderGrid() {
+      const grid = document.getElementById('wordleGrid');
+      grid.innerHTML = '';
+      
+      for (let row = 0; row < 6; row++) {
+        const rowElement = document.createElement('div');
+        rowElement.className = 'wordle-row';
+        for (let col = 0; col < 5; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'wordle-cell';
+          cell.id = `cell-${row}-${col}`;
+          rowElement.appendChild(cell);
+        }
+        grid.appendChild(rowElement);
+      }
+    }
+
+    // Render keyboard
+    function renderKeyboard() {
+      const keyboard = document.getElementById('keyboard');
+      const layout = [
+        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+        ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACK']
+      ];
+
+      keyboard.innerHTML = '';
+      layout.forEach(row => {
+        const rowElement = document.createElement('div');
+        rowElement.className = 'keyboard-row';
+        row.forEach(key => {
+          const keyElement = document.createElement('button');
+          keyElement.className = 'key';
+          if (key === 'ENTER' || key === 'BACK') {
+            keyElement.classList.add('wide');
+          }
+          keyElement.textContent = key;
+          keyElement.dataset.key = key;
+          keyElement.addEventListener('click', () => handleKey(key));
+          rowElement.appendChild(keyElement);
+        });
+        keyboard.appendChild(rowElement);
+      });
+    }
+
+    // Handle key input
+    function handleKey(key) {
+      if (gameOver) return;
+
+      if (!gameStarted) {
+        startTimer();
+        gameStarted = true;
+      }
+
+      if (key === 'ENTER') {
+        submitGuess();
+      } else if (key === 'BACK') {
+        deleteLetter();
+      } else if (key.length === 1 && /[A-Z]/.test(key)) {
+        addLetter(key);
+      }
+    }
+
+    // Add letter
+    function addLetter(letter) {
+      if (currentCol >= 5) return;
+      const cell = document.getElementById(`cell-${currentRow}-${currentCol}`);
+      cell.textContent = letter;
+      cell.classList.add('filled');
+      currentCol++;
+    }
+
+    // Delete letter
+    function deleteLetter() {
+      if (currentCol <= 0) return;
+      currentCol--;
+      const cell = document.getElementById(`cell-${currentRow}-${currentCol}`);
+      cell.textContent = '';
+      cell.classList.remove('filled');
+    }
+
+    // Submit guess
+    function submitGuess() {
+      if (currentCol !== 5) return;
+
+      let guess = '';
+      for (let col = 0; col < 5; col++) {
+        const cell = document.getElementById(`cell-${currentRow}-${col}`);
+        guess += cell.textContent;
+      }
+
+      // Check letters
+      const targetArray = targetWord.split('');
+      const guessArray = guess.split('');
+      const result = Array(5).fill('absent');
+
+      // Mark correct positions
+      for (let i = 0; i < 5; i++) {
+        if (guessArray[i] === targetArray[i]) {
+          result[i] = 'correct';
+          targetArray[i] = null;
+          guessArray[i] = null;
+        }
+      }
+
+      // Mark present letters
+      for (let i = 0; i < 5; i++) {
+        if (guessArray[i] && result[i] !== 'correct') {
+          const index = targetArray.indexOf(guessArray[i]);
+          if (index !== -1) {
+            result[i] = 'present';
+            targetArray[index] = null;
+          }
+        }
+      }
+
+      // Update cells
+      for (let col = 0; col < 5; col++) {
+        const cell = document.getElementById(`cell-${currentRow}-${col}`);
+        cell.classList.add(result[col]);
+        
+        // Update keyboard
+        const key = document.querySelector(`[data-key="${cell.textContent}"]`);
+        if (result[col] === 'correct') {
+          key.classList.add('correct');
+        } else if (result[col] === 'present' && !key.classList.contains('correct')) {
+          key.classList.add('present');
+        } else if (result[col] === 'absent' && !key.classList.contains('correct') && !key.classList.contains('present')) {
+          key.classList.add('absent');
+        }
+      }
+
+      // Check win
+      if (guess === targetWord) {
+        stopTimer();
+        document.getElementById('gameOverTitle').textContent = 'CONGRATULATIONS!';
+        document.getElementById('attempts').textContent = `${currentRow + 1}/6`;
+        showGameOver();
+        return;
+      }
+
+      currentRow++;
+      currentCol = 0;
+
+      // Check game over
+      if (currentRow >= 6) {
+        stopTimer();
+        document.getElementById('gameOverTitle').textContent = 'GAME OVER';
+        document.getElementById('attempts').textContent = '6/6';
+        showGameOver();
+      }
+    }
+
+    // Timer functions
+    function startTimer() {
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        updateTimer();
+      }, 100);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function updateTimer() {
+      const mins = Math.floor(elapsedSeconds / 60);
+      const secs = elapsedSeconds % 60;
+      document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      document.getElementById('attempts').textContent = `${currentRow + 1}/6`;
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Game over
+    function showGameOver() {
+      gameOver = true;
+      document.getElementById('finalTime').textContent = formatTime(elapsedSeconds);
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    // Save score
+    function saveScore(name, time) {
+      if (!name || name.trim() === '') {
+        name = 'Anonymous';
+      }
+      name = name.trim().substring(0, 20);
+
+      let leaderboard = JSON.parse(localStorage.getItem('wordleLeaderboard') || '[]');
+      leaderboard.push({
+        name: name,
+        score: time,
+        date: new Date().toISOString()
+      });
+
+      leaderboard.sort((a, b) => a.score - b.score);
+      leaderboard = leaderboard.slice(0, 10);
+
+      localStorage.setItem('wordleLeaderboard', JSON.stringify(leaderboard));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    // Submit score
+    function submitScore() {
+      const name = document.getElementById('playerName').value;
+      saveScore(name, elapsedSeconds);
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      initGame();
+    }
+
+    // Keyboard input
+    document.addEventListener('keydown', (e) => {
+      if (gameOver) return;
+      const key = e.key.toUpperCase();
+      if (key === 'ENTER') {
+        handleKey('ENTER');
+      } else if (key === 'BACKSPACE') {
+        handleKey('BACK');
+      } else if (/[A-Z]/.test(key)) {
+        handleKey(key);
+      }
+    });
+
+    document.getElementById('playerName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitScore();
+      }
+    });
+
+    document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+    // Initialize
+    initGame();
+  </script>
+</body>
+</html>
+

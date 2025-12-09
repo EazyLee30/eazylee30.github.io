@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Super Mario - eazylee</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .game-canvas-container {
+      display: flex;
+      justify-content: center;
+      margin: 2rem 0;
+    }
+
+    #gameCanvas {
+      border: 2px solid #00ff00;
+      background: #000000;
+      display: block;
+    }
+
+    .game-info {
+      text-align: center;
+      color: #00ff00;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .game-controls {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .game-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.5rem 1.5rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .game-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .instructions {
+      color: #00ff00;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-over-content {
+      border: 2px solid #00ff00;
+      background: #000000;
+      padding: 3rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .game-over-title {
+      font-size: 2rem;
+      color: #00ff00;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-over-score {
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+
+    .name-input-label {
+      display: block;
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #000000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .submit-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="content-wrapper">
+        <div class="text-content">
+          <header>
+            <h1>super mario <a href="game.html" class="lang-switch">back</a></h1>
+            <p>
+              <div class="game-container">
+                <div class="game-canvas-container">
+                  <canvas id="gameCanvas" width="600" height="400"></canvas>
+                </div>
+                <div class="game-info">
+                  <div>Coins: <span id="coins">0</span></div>
+                  <div>Best Coins: <span id="bestCoins">0</span></div>
+                </div>
+                <div class="game-controls">
+                  <button class="game-btn" id="startBtn">Start</button>
+                  <button class="game-btn" id="resetBtn">Reset</button>
+                </div>
+                <div class="instructions">
+                  <p>Use Arrow Keys or WASD to move Mario</p>
+                  <p>Space or W to jump</p>
+                  <p>Collect coins, avoid enemies</p>
+                </div>
+              </div>
+            </p>
+          </header>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="game-over-content">
+      <h2 class="game-over-title">GAME OVER</h2>
+      <div class="game-over-score">You Collected: <span id="finalCoins">0</span> Coins</div>
+      <label class="name-input-label" for="playerName">Who are you?</label>
+      <input 
+        type="text" 
+        id="playerName" 
+        class="name-input" 
+        placeholder="Enter your name..."
+        maxlength="20"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitScoreBtn">Submit Score</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let mario = { x: 50, y: 300, width: 20, height: 30, vx: 0, vy: 0, onGround: false };
+    let platforms = [
+      { x: 0, y: 380, width: 600, height: 20 },
+      { x: 200, y: 300, width: 100, height: 20 },
+      { x: 400, y: 250, width: 100, height: 20 },
+      { x: 100, y: 200, width: 80, height: 20 },
+      { x: 500, y: 150, width: 100, height: 20 }
+    ];
+    let coins = [
+      { x: 220, y: 280, collected: false },
+      { x: 420, y: 230, collected: false },
+      { x: 120, y: 180, collected: false },
+      { x: 520, y: 130, collected: false },
+      { x: 300, y: 100, collected: false },
+      { x: 150, y: 50, collected: false }
+    ];
+    let enemies = [
+      { x: 250, y: 280, width: 15, height: 15, vx: -1 }
+    ];
+    let coinsCollected = 0;
+    let gameRunning = false;
+    let gameLoop = null;
+    let keys = {};
+
+    // Draw game
+    function draw() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw platforms
+      ctx.fillStyle = '#00ff00';
+      platforms.forEach(platform => {
+        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+      });
+
+      // Draw coins
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          ctx.fillStyle = '#ffff00';
+          ctx.beginPath();
+          ctx.arc(coin.x, coin.y, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Draw enemies
+      ctx.fillStyle = '#ff0000';
+      enemies.forEach(enemy => {
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+      });
+
+      // Draw mario
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
+    }
+
+    // Update game
+    function update() {
+      if (!gameRunning) return;
+
+      // Gravity
+      mario.vy += 0.5;
+      mario.vx *= 0.9; // Friction
+
+      // Input
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+        mario.vx = -3;
+      }
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+        mario.vx = 3;
+      }
+      if ((keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' ']) && mario.onGround) {
+        mario.vy = -10;
+        mario.onGround = false;
+      }
+
+      // Update mario position
+      mario.x += mario.vx;
+      mario.y += mario.vy;
+
+      // Platform collision
+      mario.onGround = false;
+      platforms.forEach(platform => {
+        if (mario.x < platform.x + platform.width &&
+            mario.x + mario.width > platform.x &&
+            mario.y < platform.y + platform.height &&
+            mario.y + mario.height > platform.y) {
+          if (mario.vy > 0) {
+            mario.y = platform.y - mario.height;
+            mario.vy = 0;
+            mario.onGround = true;
+          }
+        }
+      });
+
+      // Boundary check
+      if (mario.x < 0) mario.x = 0;
+      if (mario.x + mario.width > canvas.width) mario.x = canvas.width - mario.width;
+      if (mario.y > canvas.height) {
+        gameOver();
+        return;
+      }
+
+      // Coin collection
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          const dx = coin.x - (mario.x + mario.width / 2);
+          const dy = coin.y - (mario.y + mario.height / 2);
+          if (Math.sqrt(dx * dx + dy * dy) < 20) {
+            coin.collected = true;
+            coinsCollected++;
+            updateScore();
+          }
+        }
+      });
+
+      // Enemy collision
+      enemies.forEach(enemy => {
+        if (mario.x < enemy.x + enemy.width &&
+            mario.x + mario.width > enemy.x &&
+            mario.y < enemy.y + enemy.height &&
+            mario.y + mario.height > enemy.y) {
+          gameOver();
+          return;
+        }
+      });
+
+      // Move enemies
+      enemies.forEach(enemy => {
+        enemy.x += enemy.vx;
+        if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+          enemy.vx *= -1;
+        }
+      });
+
+      // Check win
+      if (coins.every(coin => coin.collected)) {
+        // Reset coins for next round
+        coins.forEach(coin => {
+          coin.collected = false;
+          coin.x = Math.random() * (canvas.width - 50) + 25;
+          coin.y = Math.random() * (canvas.height - 100) + 50;
+        });
+      }
+    }
+
+    // Game loop
+    function gameStep() {
+      update();
+      draw();
+    }
+
+    // Start game
+    function startGame() {
+      if (gameRunning) return;
+      gameRunning = true;
+      gameLoop = setInterval(gameStep, 16);
+      document.getElementById('startBtn').textContent = 'Playing...';
+    }
+
+    // Reset game
+    function resetGame() {
+      clearInterval(gameLoop);
+      mario = { x: 50, y: 300, width: 20, height: 30, vx: 0, vy: 0, onGround: false };
+      coinsCollected = 0;
+      gameRunning = false;
+      coins.forEach(coin => {
+        coin.collected = false;
+      });
+      updateScore();
+      draw();
+      document.getElementById('startBtn').textContent = 'Start';
+    }
+
+    // Game over
+    function gameOver() {
+      clearInterval(gameLoop);
+      gameRunning = false;
+      document.getElementById('finalCoins').textContent = coinsCollected;
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    // Update score
+    function updateScore() {
+      document.getElementById('coins').textContent = coinsCollected;
+      loadBestCoins();
+    }
+
+    function loadBestCoins() {
+      const leaderboard = getLeaderboard();
+      if (leaderboard.length > 0) {
+        document.getElementById('bestCoins').textContent = leaderboard[0].score;
+      }
+    }
+
+    function getLeaderboard() {
+      const data = localStorage.getItem('marioLeaderboard');
+      if (!data) return [];
+      const leaderboard = JSON.parse(data);
+      return leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
+    }
+
+    // Save score
+    function saveScore(name, coins) {
+      if (!name || name.trim() === '') {
+        name = 'Anonymous';
+      }
+      name = name.trim().substring(0, 20);
+
+      let leaderboard = JSON.parse(localStorage.getItem('marioLeaderboard') || '[]');
+      leaderboard.push({
+        name: name,
+        score: coins,
+        date: new Date().toISOString()
+      });
+
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+
+      localStorage.setItem('marioLeaderboard', JSON.stringify(leaderboard));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    // Submit score
+    function submitScore() {
+      const name = document.getElementById('playerName').value;
+      saveScore(name, coinsCollected);
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      resetGame();
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      if (!gameRunning && e.key === ' ') {
+        startGame();
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+    });
+
+    document.getElementById('playerName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitScore();
+      }
+    });
+
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+    // Initialize
+    draw();
+  </script>
+</body>
+</html>
+

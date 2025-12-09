@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hangman - eazylee</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .game-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .game-display {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+
+    .hangman-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      line-height: 1.5;
+      color: #00ff00;
+      white-space: pre;
+      border: 1px solid #00ff00;
+      padding: 1rem;
+      background: rgba(0, 255, 0, 0.05);
+    }
+
+    .word-display {
+      text-align: center;
+      font-size: 2rem;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5rem;
+      margin: 2rem 0;
+      min-height: 3rem;
+    }
+
+    .keyboard {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 2rem 0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .key {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 1.2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      min-width: 45px;
+    }
+
+    .key:hover:not(:disabled) {
+      background: rgba(0, 255, 0, 0.1);
+    }
+
+    .key:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .key.correct {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .key.wrong {
+      background: rgba(255, 0, 0, 0.3);
+      color: #ff0000;
+    }
+
+    .game-info {
+      text-align: center;
+      color: #00ff00;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .game-controls {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .game-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.5rem 1.5rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .game-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-over-content {
+      border: 2px solid #00ff00;
+      background: #000000;
+      padding: 3rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .game-over-title {
+      font-size: 2rem;
+      color: #00ff00;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-over-score {
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+
+    .name-input-label {
+      display: block;
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #000000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .submit-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="content-wrapper">
+        <div class="text-content">
+          <header>
+            <h1>hangman <a href="game.html" class="lang-switch">back</a></h1>
+            <p>
+              <div class="game-container">
+                <div class="game-info">
+                  <div>Score: <span id="score">0</span> | Wrong: <span id="wrong">0/6</span></div>
+                  <div>Best Score: <span id="bestScore">0</span></div>
+                </div>
+                <div class="game-display">
+                  <div class="hangman-display" id="hangmanDisplay"></div>
+                </div>
+                <div class="word-display" id="wordDisplay"></div>
+                <div class="keyboard" id="keyboard"></div>
+                <div class="game-controls">
+                  <button class="game-btn" id="newGameBtn">New Game</button>
+                  <button class="game-btn" id="resetBtn">Reset</button>
+                </div>
+              </div>
+            </p>
+          </header>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="game-over-content">
+      <h2 class="game-over-title" id="gameOverTitle">GAME OVER</h2>
+      <div class="game-over-score">Your Score: <span id="finalScore">0</span></div>
+      <label class="name-input-label" for="playerName">Who are you?</label>
+      <input 
+        type="text" 
+        id="playerName" 
+        class="name-input" 
+        placeholder="Enter your name..."
+        maxlength="20"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitScoreBtn">Submit Score</button>
+    </div>
+  </div>
+
+  <script>
+    const words = ['JAVASCRIPT', 'PROGRAMMING', 'COMPUTER', 'ALGORITHM', 'FUNCTION', 'VARIABLE',
+                   'CONSOLE', 'TERMINAL', 'KEYBOARD', 'MONITOR', 'SOFTWARE', 'HARDWARE',
+                   'NETWORK', 'INTERNET', 'BROWSER', 'DEVELOPER', 'ENGINEER', 'SYSTEM',
+                   'DATABASE', 'SERVER', 'CLIENT', 'PROTOCOL', 'SECURITY', 'ENCRYPTION'];
+
+    let currentWord = '';
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+    let score = 0;
+    let gameActive = false;
+
+    const hangmanStages = [
+      `  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+ /|\\  |
+      |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+ /|\\  |
+ /    |
+      |
+=========`,
+      `  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`
+    ];
+
+    function initGame() {
+      currentWord = words[Math.floor(Math.random() * words.length)];
+      guessedLetters = [];
+      wrongGuesses = 0;
+      gameActive = true;
+      updateDisplay();
+      updateKeyboard();
+    }
+
+    function updateDisplay() {
+      const wordDisplay = currentWord.split('').map(letter => 
+        guessedLetters.includes(letter) ? letter : '_'
+      ).join(' ');
+      document.getElementById('wordDisplay').textContent = wordDisplay;
+      document.getElementById('hangmanDisplay').textContent = hangmanStages[wrongGuesses];
+      document.getElementById('wrong').textContent = `${wrongGuesses}/6`;
+    }
+
+    function updateKeyboard() {
+      const keyboard = document.getElementById('keyboard');
+      keyboard.innerHTML = '';
+      
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      alphabet.split('').forEach(letter => {
+        const key = document.createElement('button');
+        key.className = 'key';
+        key.textContent = letter;
+        key.disabled = !gameActive || guessedLetters.includes(letter);
+        
+        if (guessedLetters.includes(letter)) {
+          if (currentWord.includes(letter)) {
+            key.classList.add('correct');
+          } else {
+            key.classList.add('wrong');
+          }
+        }
+        
+        key.addEventListener('click', () => guessLetter(letter));
+        keyboard.appendChild(key);
+      });
+    }
+
+    function guessLetter(letter) {
+      if (!gameActive || guessedLetters.includes(letter)) return;
+      
+      guessedLetters.push(letter);
+      
+      if (currentWord.includes(letter)) {
+        // Correct guess
+        updateDisplay();
+        updateKeyboard();
+        
+        // Check win
+        if (currentWord.split('').every(l => guessedLetters.includes(l))) {
+          score += 100;
+          updateScore();
+          setTimeout(() => {
+            document.getElementById('gameOverTitle').textContent = 'YOU WIN!';
+            gameOver();
+          }, 500);
+        }
+      } else {
+        // Wrong guess
+        wrongGuesses++;
+        updateDisplay();
+        updateKeyboard();
+        
+        if (wrongGuesses >= 6) {
+          gameOver();
+        }
+      }
+    }
+
+    function gameOver() {
+      gameActive = false;
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+      loadBestScore();
+    }
+
+    function loadBestScore() {
+      const leaderboard = getLeaderboard();
+      if (leaderboard.length > 0) {
+        document.getElementById('bestScore').textContent = leaderboard[0].score;
+      }
+    }
+
+    function getLeaderboard() {
+      const data = localStorage.getItem('hangmanLeaderboard');
+      if (!data) return [];
+      const leaderboard = JSON.parse(data);
+      return leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
+    }
+
+    function saveScore(name, score) {
+      if (!name || name.trim() === '') {
+        name = 'Anonymous';
+      }
+      name = name.trim().substring(0, 20);
+
+      let leaderboard = JSON.parse(localStorage.getItem('hangmanLeaderboard') || '[]');
+      leaderboard.push({
+        name: name,
+        score: score,
+        date: new Date().toISOString()
+      });
+
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+
+      localStorage.setItem('hangmanLeaderboard', JSON.stringify(leaderboard));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function submitScore() {
+      const name = document.getElementById('playerName').value;
+      saveScore(name, score);
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      score = 0;
+      updateScore();
+      initGame();
+    }
+
+    function resetGame() {
+      score = 0;
+      updateScore();
+      initGame();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      const key = e.key.toUpperCase();
+      if (/[A-Z]/.test(key) && !guessedLetters.includes(key)) {
+        guessLetter(key);
+      }
+    });
+
+    document.getElementById('playerName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitScore();
+      }
+    });
+
+    document.getElementById('newGameBtn').addEventListener('click', initGame);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+    initGame();
+  </script>
+</body>
+</html>
+

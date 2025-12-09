@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pacman - eazylee</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .game-canvas-container {
+      display: flex;
+      justify-content: center;
+      margin: 2rem 0;
+    }
+
+    #gameCanvas {
+      border: 2px solid #00ff00;
+      background: #000000;
+      display: block;
+    }
+
+    .game-info {
+      text-align: center;
+      color: #00ff00;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .game-controls {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .game-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.5rem 1.5rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .game-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .instructions {
+      color: #00ff00;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-over-content {
+      border: 2px solid #00ff00;
+      background: #000000;
+      padding: 3rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .game-over-title {
+      font-size: 2rem;
+      color: #00ff00;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-over-score {
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+
+    .name-input-label {
+      display: block;
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #000000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .submit-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="content-wrapper">
+        <div class="text-content">
+          <header>
+            <h1>pacman <a href="game.html" class="lang-switch">back</a></h1>
+            <p>
+              <div class="game-container">
+                <div class="game-canvas-container">
+                  <canvas id="gameCanvas" width="400" height="400"></canvas>
+                </div>
+                <div class="game-info">
+                  <div>Level: <span id="level">1</span></div>
+                  <div>Score: <span id="score">0</span></div>
+                  <div>Best Level: <span id="bestLevel">1</span></div>
+                </div>
+                <div class="game-controls">
+                  <button class="game-btn" id="startBtn">Start</button>
+                  <button class="game-btn" id="resetBtn">Reset</button>
+                </div>
+                <div class="instructions">
+                  <p>Use Arrow Keys or WASD to move Pacman</p>
+                  <p>Eat all dots to advance to next level</p>
+                  <p>Avoid ghosts</p>
+                </div>
+              </div>
+            </p>
+          </header>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="game-over-content">
+      <h2 class="game-over-title">GAME OVER</h2>
+      <div class="game-over-score">You Reached Level: <span id="finalLevel">1</span></div>
+      <label class="name-input-label" for="playerName">Who are you?</label>
+      <input 
+        type="text" 
+        id="playerName" 
+        class="name-input" 
+        placeholder="Enter your name..."
+        maxlength="20"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitScoreBtn">Submit Score</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const tileSize = 20;
+    const cols = 20;
+    const rows = 20;
+
+    let pacman = { x: 1, y: 1, dir: 'right', nextDir: 'right' };
+    let ghosts = [];
+    let dots = [];
+    let level = 1;
+    let score = 0;
+    let gameRunning = false;
+    let gameLoop = null;
+
+    // Simple maze (1 = wall, 0 = path, 2 = dot)
+    function generateMaze() {
+      const maze = Array(rows).fill(null).map(() => Array(cols).fill(1));
+      dots = [];
+      
+      // Create paths
+      for (let y = 1; y < rows - 1; y++) {
+        for (let x = 1; x < cols - 1; x++) {
+          if (Math.random() > 0.3) {
+            maze[y][x] = 2;
+            dots.push({ x, y });
+          } else if (Math.random() > 0.5) {
+            maze[y][x] = 0;
+          }
+        }
+      }
+
+      // Ensure start and end are clear
+      maze[1][1] = 0;
+      maze[rows - 2][cols - 2] = 0;
+      
+      // Add some dots near start
+      for (let i = 0; i < 5; i++) {
+        const x = 1 + Math.floor(Math.random() * 3);
+        const y = 1 + Math.floor(Math.random() * 3);
+        if (maze[y][x] === 0) {
+          maze[y][x] = 2;
+          dots.push({ x, y });
+        }
+      }
+
+      return maze;
+    }
+
+    let maze = generateMaze();
+
+    // Initialize ghosts
+    function initGhosts() {
+      ghosts = [];
+      const numGhosts = Math.min(level, 4);
+      for (let i = 0; i < numGhosts; i++) {
+        ghosts.push({
+          x: cols - 2 - i,
+          y: rows - 2 - i,
+          dir: ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)],
+          speed: 0.1 + level * 0.05
+        });
+      }
+    }
+
+    // Draw game
+    function draw() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw maze
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (maze[y][x] === 1) {
+            ctx.fillStyle = '#003300';
+            ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+          } else if (maze[y][x] === 2) {
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(x * tileSize + tileSize / 2, y * tileSize + tileSize / 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // Draw pacman
+      ctx.fillStyle = '#ffff00';
+      ctx.beginPath();
+      ctx.arc(
+        pacman.x * tileSize + tileSize / 2,
+        pacman.y * tileSize + tileSize / 2,
+        tileSize / 2 - 2,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      // Draw ghosts
+      ghosts.forEach(ghost => {
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(
+          ghost.x * tileSize + 2,
+          ghost.y * tileSize + 2,
+          tileSize - 4,
+          tileSize - 4
+        );
+      });
+    }
+
+    // Move pacman
+    function movePacman() {
+      const directions = {
+        up: { x: 0, y: -1 },
+        down: { x: 0, y: 1 },
+        left: { x: -1, y: 0 },
+        right: { x: 1, y: 0 }
+      };
+
+      // Try to change direction
+      if (pacman.nextDir !== pacman.dir) {
+        const next = directions[pacman.nextDir];
+        const newX = Math.floor(pacman.x) + next.x;
+        const newY = Math.floor(pacman.y) + next.y;
+        if (newX >= 0 && newX < cols && newY >= 0 && newY < rows && maze[newY][newX] !== 1) {
+          pacman.dir = pacman.nextDir;
+        }
+      }
+
+      const dir = directions[pacman.dir];
+      const newX = pacman.x + dir.x * 0.2;
+      const newY = pacman.y + dir.y * 0.2;
+
+      const gridX = Math.floor(newX);
+      const gridY = Math.floor(newY);
+
+      if (gridX >= 0 && gridX < cols && gridY >= 0 && gridY < rows && maze[gridY][gridX] !== 1) {
+        pacman.x = newX;
+        pacman.y = newY;
+
+        // Check dot collection
+        if (maze[gridY][gridX] === 2) {
+          maze[gridY][gridX] = 0;
+          score += 10;
+          dots = dots.filter(d => !(d.x === gridX && d.y === gridY));
+          updateScore();
+
+          // Check level complete
+          if (dots.length === 0) {
+            levelComplete();
+          }
+        }
+      }
+    }
+
+    // Move ghosts
+    function moveGhosts() {
+      ghosts.forEach(ghost => {
+        const directions = ['up', 'down', 'left', 'right'];
+        const dirs = {
+          up: { x: 0, y: -1 },
+          down: { x: 0, y: 1 },
+          left: { x: -1, y: 0 },
+          right: { x: 1, y: 0 }
+        };
+
+        // Simple AI: move towards pacman
+        const dx = Math.floor(pacman.x) - Math.floor(ghost.x);
+        const dy = Math.floor(pacman.y) - Math.floor(ghost.y);
+
+        let preferredDirs = [];
+        if (Math.abs(dx) > Math.abs(dy)) {
+          preferredDirs = dx > 0 ? ['right', 'up', 'down', 'left'] : ['left', 'up', 'down', 'right'];
+        } else {
+          preferredDirs = dy > 0 ? ['down', 'left', 'right', 'up'] : ['up', 'left', 'right', 'down'];
+        }
+
+        for (const dir of preferredDirs) {
+          const move = dirs[dir];
+          const newX = Math.floor(ghost.x) + move.x;
+          const newY = Math.floor(ghost.y) + move.y;
+          if (newX >= 0 && newX < cols && newY >= 0 && newY < rows && maze[newY][newX] !== 1) {
+            ghost.dir = dir;
+            break;
+          }
+        }
+
+        const move = dirs[ghost.dir];
+        const newX = ghost.x + move.x * ghost.speed;
+        const newY = ghost.y + move.y * ghost.speed;
+
+        const gridX = Math.floor(newX);
+        const gridY = Math.floor(newY);
+
+        if (gridX >= 0 && gridX < cols && gridY >= 0 && gridY < rows && maze[gridY][gridX] !== 1) {
+          ghost.x = newX;
+          ghost.y = newY;
+        } else {
+          // Change direction if blocked
+          const availableDirs = directions.filter(dir => {
+            const m = dirs[dir];
+            const nx = Math.floor(ghost.x) + m.x;
+            const ny = Math.floor(ghost.y) + m.y;
+            return nx >= 0 && nx < cols && ny >= 0 && ny < rows && maze[ny][nx] !== 1;
+          });
+          if (availableDirs.length > 0) {
+            ghost.dir = availableDirs[Math.floor(Math.random() * availableDirs.length)];
+          }
+        }
+
+        // Check collision
+        if (Math.abs(ghost.x - pacman.x) < 0.5 && Math.abs(ghost.y - pacman.y) < 0.5) {
+          gameOver();
+        }
+      });
+    }
+
+    // Level complete
+    function levelComplete() {
+      level++;
+      maze = generateMaze();
+      pacman = { x: 1, y: 1, dir: 'right', nextDir: 'right' };
+      initGhosts();
+      updateScore();
+    }
+
+    // Game loop
+    function gameStep() {
+      if (!gameRunning) return;
+      movePacman();
+      moveGhosts();
+      draw();
+    }
+
+    // Start game
+    function startGame() {
+      if (gameRunning) return;
+      gameRunning = true;
+      gameLoop = setInterval(gameStep, 50);
+      document.getElementById('startBtn').textContent = 'Playing...';
+    }
+
+    // Reset game
+    function resetGame() {
+      clearInterval(gameLoop);
+      level = 1;
+      score = 0;
+      gameRunning = false;
+      maze = generateMaze();
+      pacman = { x: 1, y: 1, dir: 'right', nextDir: 'right' };
+      initGhosts();
+      updateScore();
+      draw();
+      document.getElementById('startBtn').textContent = 'Start';
+    }
+
+    // Game over
+    function gameOver() {
+      clearInterval(gameLoop);
+      gameRunning = false;
+      document.getElementById('finalLevel').textContent = level;
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    // Update score
+    function updateScore() {
+      document.getElementById('level').textContent = level;
+      document.getElementById('score').textContent = score;
+      loadBestLevel();
+    }
+
+    function loadBestLevel() {
+      const leaderboard = getLeaderboard();
+      if (leaderboard.length > 0) {
+        document.getElementById('bestLevel').textContent = leaderboard[0].score;
+      }
+    }
+
+    function getLeaderboard() {
+      const data = localStorage.getItem('pacmanLeaderboard');
+      if (!data) return [];
+      const leaderboard = JSON.parse(data);
+      return leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
+    }
+
+    // Save score
+    function saveScore(name, level) {
+      if (!name || name.trim() === '') {
+        name = 'Anonymous';
+      }
+      name = name.trim().substring(0, 20);
+
+      let leaderboard = JSON.parse(localStorage.getItem('pacmanLeaderboard') || '[]');
+      leaderboard.push({
+        name: name,
+        score: level,
+        date: new Date().toISOString()
+      });
+
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+
+      localStorage.setItem('pacmanLeaderboard', JSON.stringify(leaderboard));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    // Submit score
+    function submitScore() {
+      const name = document.getElementById('playerName').value;
+      saveScore(name, level);
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      resetGame();
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) {
+        if (e.key === ' ') {
+          startGame();
+        }
+        return;
+      }
+
+      switch(e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          pacman.nextDir = 'up';
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          pacman.nextDir = 'down';
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          pacman.nextDir = 'left';
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          pacman.nextDir = 'right';
+          break;
+      }
+    });
+
+    document.getElementById('playerName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitScore();
+      }
+    });
+
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+    // Initialize
+    initGhosts();
+    draw();
+  </script>
+</body>
+</html>
+
