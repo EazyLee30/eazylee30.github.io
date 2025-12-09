@@ -58,48 +58,19 @@ jobs:
           BEFORE=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
           echo "$BEFORE"
           
-          # Use perl for replacement - escape the placeholder properly
+          # Use Python for replacement (handles special characters safely)
           API_KEY="${{ secrets.GEMINI_API_KEY }}"
-          export API_KEY
           echo "Attempting replacement with Python..."
           
-          # Try multiple replacement patterns
-          # Method 1: Use Python (most reliable for string replacement)
-          # Use printf to create Python script to avoid YAML heredoc parsing issues
-          printf '%s\n' \
-            'import sys' \
-            'import os' \
-            "api_key = os.environ.get('API_KEY', '')" \
-            "if not api_key:" \
-            "    print('ERROR: API_KEY environment variable not set')" \
-            '    sys.exit(1)' \
-            '' \
-            "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" \
-            '    content = f.read()' \
-            '' \
-            'original = "const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';"' \
-            "replacement = f\"const GEMINI_API_KEY = '{api_key}';\" " \
-            '' \
-            'if original in content:' \
-            '    content = content.replace(original, replacement)' \
-            "    with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:" \
-            '        f.write(content)' \
-            "    print('Python replacement: SUCCESS')" \
-            '    sys.exit(0)' \
-            'else:' \
-            "    print('Python replacement: Pattern not found')" \
-            '    sys.exit(1)' > /tmp/replace_api_key.py
-          python3 /tmp/replace_api_key.py
-          if [ $? -ne 0 ]; then
-            echo "Python replacement failed, trying perl..."
-            # Method 2: Use perl
-            perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '$API_KEY';|g" game/gomoku/index.html
-            if [ $? -ne 0 ]; then
-              echo "Perl replacement failed, trying sed..."
-              # Method 3: Use sed
-              sed -i.bak "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '$API_KEY';|g" game/gomoku/index.html
-              rm -f game/gomoku/index.html.bak
-            fi
+          # Use Python one-liner to safely replace API key
+          python3 -c "import sys; content = open('game/gomoku/index.html', 'r', encoding='utf-8').read(); content = content.replace(\"const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';\", f\"const GEMINI_API_KEY = '{sys.argv[1]}';\"); open('game/gomoku/index.html', 'w', encoding='utf-8').write(content)" "$API_KEY"
+          
+          # Verify replacement worked
+          if [ $? -eq 0 ]; then
+            echo "Python replacement: SUCCESS"
+          else
+            echo "Python replacement: FAILED"
+            exit 1
           fi
           
           echo "After replacement:"
@@ -109,24 +80,9 @@ jobs:
           # Verify replacement
           if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
             echo "ERROR: Replacement failed! Placeholder still exists."
-            echo "Final attempt with direct Python replacement..."
-            printf '%s\n' \
-              'import sys' \
-              'import os' \
-              "api_key = os.environ.get('API_KEY', '')" \
-              "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" \
-              '    content = f.read()' \
-              'content = content.replace("const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';", f"const GEMINI_API_KEY = '\''{api_key}'\'';")' \
-              "with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:" \
-              '    f.write(content)' > /tmp/replace_api_key_final.py
-            python3 /tmp/replace_api_key_final.py
-            AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
-            if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
-              echo "ERROR: All replacement methods failed!"
-              echo "Final check - file content around API key:"
-              grep -A 2 -B 2 "GEMINI_API_KEY" game/gomoku/index.html | head -10
-              exit 1
-            fi
+            echo "Final check - file content around API key:"
+            grep -A 2 -B 2 "GEMINI_API_KEY" game/gomoku/index.html | head -10
+            exit 1
           fi
           
           # Final verification
