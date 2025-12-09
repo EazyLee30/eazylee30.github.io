@@ -64,9 +64,9 @@ jobs:
           
           # Try multiple replacement patterns
           # Method 1: Use Python (most reliable for string replacement)
-          python3 << 'PYTHON_SCRIPT'
+          python3 << EOF
 import sys
-api_key = sys.argv[1]
+api_key = "$API_KEY"
 with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:
     content = f.read()
     
@@ -82,17 +82,18 @@ if original in content:
 else:
     print("Python replacement: Pattern not found")
     sys.exit(1)
-PYTHON_SCRIPT
-          "$API_KEY" || {
+EOF
+          if [ $? -ne 0 ]; then
             echo "Python replacement failed, trying perl..."
             # Method 2: Use perl
-            perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '$API_KEY';|g" game/gomoku/index.html || {
+            perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '$API_KEY';|g" game/gomoku/index.html
+            if [ $? -ne 0 ]; then
               echo "Perl replacement failed, trying sed..."
               # Method 3: Use sed
               sed -i.bak "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '$API_KEY';|g" game/gomoku/index.html
               rm -f game/gomoku/index.html.bak
-            }
-          }
+            fi
+          fi
           
           echo "After replacement:"
           AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
@@ -101,19 +102,20 @@ PYTHON_SCRIPT
           # Verify replacement
           if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
             echo "ERROR: Replacement failed! Placeholder still exists."
-            echo "Trying alternative replacement method..."
-            # Try Python as fallback
+            echo "Final attempt with direct Python replacement..."
             python3 << EOF
-import re
-with open('game/gomoku/index.html', 'r') as f:
+api_key = "$API_KEY"
+with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:
     content = f.read()
-content = content.replace("const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';", "const GEMINI_API_KEY = '${API_KEY}';")
-with open('game/gomoku/index.html', 'w') as f:
+content = content.replace("const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';", f"const GEMINI_API_KEY = '{api_key}';")
+with open('game/gomoku/index.html', 'w', encoding='utf-8') as f:
     f.write(content)
 EOF
             AFTER=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
             if echo "$AFTER" | grep -q "{{GEMINI_API_KEY}}"; then
               echo "ERROR: All replacement methods failed!"
+              echo "Final check - file content around API key:"
+              grep -A 2 -B 2 "GEMINI_API_KEY" game/gomoku/index.html | head -10
               exit 1
             fi
           fi
