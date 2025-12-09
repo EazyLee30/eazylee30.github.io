@@ -31,22 +31,34 @@ jobs:
           echo "Checking for GEMINI_API_KEY secret..."
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
             echo "API Key found, replacing placeholder..."
-            # Use a more robust replacement that handles special characters
+            # Check file exists
+            if [ ! -f "game/gomoku/index.html" ]; then
+              echo "ERROR: game/gomoku/index.html not found!"
+              exit 1
+            fi
+            # Show before replacement
+            echo "Before replacement:"
+            grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1
+            
+            # Use perl for more reliable replacement (handles special chars better)
             API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            # Escape special characters for sed
-            ESCAPED_KEY=$(echo "$API_KEY" | sed 's/[[\.*^$()+?{|]/\\&/g')
-            sed -i "s|const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';|const GEMINI_API_KEY = '${ESCAPED_KEY}';|g" game/gomoku/index.html
-            echo "Verifying replacement..."
+            perl -i -pe "s|const GEMINI_API_KEY = '\{\{GEMINI_API_KEY\}\}';|const GEMINI_API_KEY = '${API_KEY}';|g" game/gomoku/index.html
+            
+            echo "After replacement:"
+            # Verify replacement (show first 15 chars only for security)
             if grep -q "const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';" game/gomoku/index.html; then
               echo "ERROR: Replacement failed! Placeholder still exists."
               exit 1
             else
               echo "SUCCESS: API Key replaced successfully"
               # Verify the key was set (show first few chars only)
-              if grep -q "const GEMINI_API_KEY = 'AIza" game/gomoku/index.html; then
+              REPLACED_LINE=$(grep "const GEMINI_API_KEY" game/gomoku/index.html | head -1)
+              if echo "$REPLACED_LINE" | grep -q "const GEMINI_API_KEY = 'AIza"; then
                 echo "Verified: API Key starts with 'AIza'"
+                echo "Replaced line preview: ${REPLACED_LINE:0:50}..."
               else
                 echo "WARNING: API Key format may be incorrect"
+                echo "Replaced line: $REPLACED_LINE"
               fi
             fi
           else
@@ -55,6 +67,19 @@ jobs:
             echo "Settings > Secrets and variables > Actions > New repository secret"
             exit 1
           fi
+      
+      - name: Verify files before upload
+        run: |
+          echo "Verifying game/gomoku/index.html exists and contains replaced key..."
+          if [ ! -f "game/gomoku/index.html" ]; then
+            echo "ERROR: File missing!"
+            exit 1
+          fi
+          if grep -q "{{GEMINI_API_KEY}}" game/gomoku/index.html; then
+            echo "ERROR: Placeholder still exists in file!"
+            exit 1
+          fi
+          echo "File verified successfully"
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
