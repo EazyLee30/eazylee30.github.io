@@ -292,6 +292,16 @@
                   </li>
                 </ul>
 
+                <div class="game-category">strategy games</div>
+                <ul class="games-list">
+                  <li class="game-item">
+                    <a href="gomoku/" class="game-link">
+                      <span class="link-icon">▶</span>
+                      <span>gomoku (vs gemini ai)</span>
+                    </a>
+                  </li>
+                </ul>
+
                 <div class="game-category">platform games</div>
                 <ul class="games-list">
                   <li class="game-item">
@@ -363,6 +373,11 @@
         name: '2048',
         key: 'game2048',
         scoreLabel: 'Score'
+      },
+      gomoku: {
+        name: 'Gomoku (vs Gemini AI)',
+        key: 'gomoku',
+        scoreLabel: 'Time'
       }
     };
 
@@ -419,7 +434,7 @@
         } else {
           leaderboard.forEach((entry, index) => {
             let displayScore = entry.score;
-            if (gameKey === 'sudoku' || gameKey === 'wordle') {
+            if (gameKey === 'sudoku' || gameKey === 'wordle' || gameKey === 'gomoku') {
               // Time format: minutes:seconds
               displayScore = formatTime(entry.score);
             } else if (gameKey === 'pacman') {
@@ -463,8 +478,8 @@
       if (!data) return [];
       const leaderboard = JSON.parse(data);
       
-      // For time-based games (sudoku, wordle), lower is better
-      if (gameKey === 'sudoku' || gameKey === 'wordle') {
+      // For time-based games (sudoku, wordle, gomoku), lower is better
+      if (gameKey === 'sudoku' || gameKey === 'wordle' || gameKey === 'gomoku') {
         return leaderboard.sort((a, b) => a.score - b.score).slice(0, 10);
       }
       // For other games, higher is better

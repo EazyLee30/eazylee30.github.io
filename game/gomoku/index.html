@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gomoku (Five in a Row) - eazylee</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .game-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .game-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+
+    .board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #gameCanvas {
+      border: 2px solid #00ff00;
+      background: #000000;
+      display: block;
+      cursor: pointer;
+    }
+
+    .game-info {
+      text-align: center;
+      color: #00ff00;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .info-panel {
+      border: 1px solid #00ff00;
+      padding: 1rem;
+      background: rgba(0, 255, 0, 0.05);
+      min-width: 200px;
+    }
+
+    .info-item {
+      margin: 0.5rem 0;
+      color: #00ff00;
+    }
+
+    .status-message {
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      text-align: center;
+      min-height: 2rem;
+    }
+
+    .game-controls {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .game-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.5rem 1.5rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .game-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .game-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .instructions {
+      color: #00ff00;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-over-content {
+      border: 2px solid #00ff00;
+      background: #000000;
+      padding: 3rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .game-over-title {
+      font-size: 2rem;
+      color: #00ff00;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-over-score {
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+
+    .name-input-label {
+      display: block;
+      color: #00ff00;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #000000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .submit-btn {
+      background: #000000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 0.8rem 2rem;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #00ff00;
+      color: #000000;
+    }
+
+    .loading {
+      color: #00ff00;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="content-wrapper">
+        <div class="text-content">
+          <header>
+            <h1>gomoku (five in a row) <a href="../" class="lang-switch">back</a></h1>
+            <p>
+              <div class="game-container">
+                <div class="game-info">
+                  <div class="status-message" id="statusMessage">Click on the board to place your stone</div>
+                </div>
+                <div class="game-wrapper">
+                  <div class="board-container">
+                    <canvas id="gameCanvas" width="600" height="600"></canvas>
+                  </div>
+                  <div class="info-panel">
+                    <div class="info-item">Time: <span id="timer">0:00</span></div>
+                    <div class="info-item">Your Moves: <span id="playerMoves">0</span></div>
+                    <div class="info-item">AI Moves: <span id="aiMoves">0</span></div>
+                    <div class="info-item">Best Time: <span id="bestTime">--</span></div>
+                  </div>
+                </div>
+                <div class="game-controls">
+                  <button class="game-btn" id="newGameBtn">New Game</button>
+                  <button class="game-btn" id="resetBtn">Reset</button>
+                </div>
+                <div class="instructions">
+                  <p>Play against Gemini AI - Place 5 stones in a row to win</p>
+                  <p>You are black (●), AI is white (○)</p>
+                  <p>Click on the board to make your move</p>
+                </div>
+              </div>
+            </p>
+          </header>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="game-over-content">
+      <h2 class="game-over-title" id="gameOverTitle">GAME OVER</h2>
+      <div class="game-over-score">Your Time: <span id="finalTime">0:00</span></div>
+      <label class="name-input-label" for="playerName">Who are you?</label>
+      <input 
+        type="text" 
+        id="playerName" 
+        class="name-input" 
+        placeholder="Enter your name..."
+        maxlength="20"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitScoreBtn">Submit Score</button>
+    </div>
+  </div>
+
+  <script>
+    // API configuration - will be replaced during build
+    // For local development, set GEMINI_API_KEY directly
+    // For production, use GitHub Actions to inject from secrets
+    const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';
+    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    
+    // Check if API key is placeholder (needs to be replaced)
+    const USE_PROXY = GEMINI_API_KEY === '{{GEMINI_API_KEY}}';
+    const GEMINI_PROXY_URL = '/api/gemini';
+    
+    // For local testing, you can temporarily set the API key here:
+    // const GEMINI_API_KEY = 'YOUR_API_KEY_HERE';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const BOARD_SIZE = 15;
+    const CELL_SIZE = canvas.width / BOARD_SIZE;
+    const STONE_RADIUS = CELL_SIZE * 0.4;
+
+    let board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+    let currentPlayer = 1; // 1 = player (black), 2 = AI (white)
+    let gameOver = false;
+    let winner = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+    let playerMoves = 0;
+    let aiMoves = 0;
+    let gameStarted = false;
+    let isAITurn = false;
+
+    // Initialize game
+    function initGame() {
+      board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+      currentPlayer = 1;
+      gameOver = false;
+      winner = 0;
+      elapsedSeconds = 0;
+      playerMoves = 0;
+      aiMoves = 0;
+      gameStarted = false;
+      isAITurn = false;
+      updateTimer();
+      updateMoves();
+      updateStatus('Click on the board to place your stone');
+      draw();
+    }
+
+    // Draw board
+    function draw() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        // Horizontal lines
+        ctx.beginPath();
+        ctx.moveTo(CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+        ctx.lineTo(canvas.width - CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+        ctx.stroke();
+        
+        // Vertical lines
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_SIZE + CELL_SIZE / 2, CELL_SIZE / 2);
+        ctx.lineTo(i * CELL_SIZE + CELL_SIZE / 2, canvas.height - CELL_SIZE / 2);
+        ctx.stroke();
+      }
+
+      // Draw stones
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          if (board[row][col] === 1) {
+            // Player stone (black)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(
+              col * CELL_SIZE + CELL_SIZE / 2,
+              row * CELL_SIZE + CELL_SIZE / 2,
+              STONE_RADIUS,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          } else if (board[row][col] === 2) {
+            // AI stone (white)
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath();
+            ctx.arc(
+              col * CELL_SIZE + CELL_SIZE / 2,
+              row * CELL_SIZE + CELL_SIZE / 2,
+              STONE_RADIUS,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Check win condition
+    function checkWin(row, col, player) {
+      const directions = [
+        [[0, 1], [0, -1]],   // Horizontal
+        [[1, 0], [-1, 0]],   // Vertical
+        [[1, 1], [-1, -1]],  // Diagonal \
+        [[1, -1], [-1, 1]]  // Diagonal /
+      ];
+
+      for (const dir of directions) {
+        let count = 1;
+        for (const [dx, dy] of dir) {
+          let r = row + dx;
+          let c = col + dy;
+          while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+            count++;
+            r += dx;
+            c += dy;
+          }
+        }
+        if (count >= 5) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Place stone
+    function placeStone(row, col, player) {
+      if (board[row][col] !== 0 || gameOver) return false;
+      
+      board[row][col] = player;
+      draw();
+      
+      if (checkWin(row, col, player)) {
+        gameOver = true;
+        winner = player;
+        stopTimer();
+        if (player === 1) {
+          updateStatus('You Win!');
+          setTimeout(() => showWinModal(), 500);
+        } else {
+          updateStatus('AI Wins!');
+          setTimeout(() => showGameOver(), 500);
+        }
+        return true;
+      }
+      
+      return true;
+    }
+
+    // Convert board to text representation for AI
+    function boardToText() {
+      let text = 'Gomoku board (15x15). 0=empty, 1=black (player), 2=white (AI). Current board state:\n';
+      text += '   ';
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        text += (i % 10).toString();
+      }
+      text += '\n';
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        text += (row % 10).toString() + ' ';
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          text += board[row][col].toString();
+        }
+        text += '\n';
+      }
+      text += '\nAnalyze the board and find the best move for white (2). Consider:\n';
+      text += '1. Blocking player\'s potential 5-in-a-row\n';
+      text += '2. Creating your own 4-in-a-row threats\n';
+      text += '3. Creating multiple threats simultaneously\n';
+      text += '4. Defending against player\'s 4-in-a-row threats\n';
+      text += '5. Controlling the center area\n';
+      text += 'Respond with ONLY the coordinates in format "row,col" (e.g., "7,7")';
+      return text;
+    }
+
+    // Get AI move using Gemini API
+    async function getAIMove() {
+      if (isAITurn || gameOver) return;
+      
+      isAITurn = true;
+      updateStatus('AI is thinking...');
+      
+      try {
+        const boardText = boardToText();
+        
+        let response;
+        
+        if (USE_PROXY) {
+          // Use proxy if API key is not set
+          response = await fetch(GEMINI_PROXY_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: boardText
+            })
+          });
+        } else {
+          // Use direct API if key is available
+          response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: boardText
+                }]
+              }]
+            })
+          });
+        }
+
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+          const aiResponse = data.candidates[0].content.parts[0].text.trim();
+          
+          // Extract coordinates from response
+          const match = aiResponse.match(/(\d+)[,\s]+(\d+)/);
+          if (match) {
+            const row = parseInt(match[1]);
+            const col = parseInt(match[2]);
+            
+            if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0) {
+              placeStone(row, col, 2);
+              aiMoves++;
+              updateMoves();
+              currentPlayer = 1;
+              isAITurn = false;
+              if (!gameOver) {
+                updateStatus('Your turn');
+              }
+              return;
+            }
+          }
+        }
+        
+        // Fallback: use minimax if API fails
+        const fallbackMove = getBestMove();
+        if (fallbackMove) {
+          placeStone(fallbackMove.row, fallbackMove.col, 2);
+          aiMoves++;
+          updateMoves();
+          currentPlayer = 1;
+          isAITurn = false;
+          if (!gameOver) {
+            updateStatus('Your turn');
+          }
+        }
+      } catch (error) {
+        console.error('AI move error:', error);
+        // Fallback to minimax
+        const fallbackMove = getBestMove();
+        if (fallbackMove) {
+          placeStone(fallbackMove.row, fallbackMove.col, 2);
+          aiMoves++;
+          updateMoves();
+          currentPlayer = 1;
+          isAITurn = false;
+          if (!gameOver) {
+            updateStatus('Your turn');
+          }
+        }
+      }
+      
+      isAITurn = false;
+    }
+
+    // Fallback: Advanced minimax algorithm
+    function getBestMove() {
+      let bestScore = -Infinity;
+      let bestMove = null;
+      
+      // Get all possible moves (prioritize near existing stones)
+      const moves = getPriorityMoves();
+      
+      for (const move of moves) {
+        board[move.row][move.col] = 2;
+        const score = minimax(0, false, -Infinity, Infinity, move.row, move.col);
+        board[move.row][move.col] = 0;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = move;
+        }
+      }
+      
+      return bestMove;
+    }
+
+    function getPriorityMoves() {
+      const moves = [];
+      const used = new Set();
+      
+      // First, check all empty cells near existing stones
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          if (board[row][col] !== 0) {
+            // Check surrounding cells
+            for (let dr = -2; dr <= 2; dr++) {
+              for (let dc = -2; dc <= 2; dc++) {
+                const nr = row + dr;
+                const nc = col + dc;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && 
+                    board[nr][nc] === 0) {
+                  const key = `${nr},${nc}`;
+                  if (!used.has(key)) {
+                    used.add(key);
+                    moves.push({ row: nr, col: nc });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // If no moves found, return center area
+      if (moves.length === 0) {
+        const center = Math.floor(BOARD_SIZE / 2);
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            moves.push({ row: center + dr, col: center + dc });
+          }
+        }
+      }
+      
+      return moves.slice(0, 20); // Limit to top 20 moves for performance
+    }
+
+    function minimax(depth, isMaximizing, alpha, beta, lastRow, lastCol) {
+      // Check if last move was a win
+      if (lastRow !== undefined && lastCol !== undefined) {
+        if (checkWin(lastRow, lastCol, isMaximizing ? 2 : 1)) {
+          return isMaximizing ? 10000 - depth : -10000 + depth;
+        }
+      }
+      
+      if (depth >= 3) {
+        return evaluateBoard();
+      }
+      
+      const moves = getPriorityMoves();
+      if (moves.length === 0) return 0;
+      
+      if (isMaximizing) {
+        let maxScore = -Infinity;
+        for (const move of moves) {
+          board[move.row][move.col] = 2;
+          const score = minimax(depth + 1, false, alpha, beta, move.row, move.col);
+          board[move.row][move.col] = 0;
+          maxScore = Math.max(maxScore, score);
+          alpha = Math.max(alpha, score);
+          if (beta <= alpha) break;
+        }
+        return maxScore;
+      } else {
+        let minScore = Infinity;
+        for (const move of moves) {
+          board[move.row][move.col] = 1;
+          const score = minimax(depth + 1, true, alpha, beta, move.row, move.col);
+          board[move.row][move.col] = 0;
+          minScore = Math.min(minScore, score);
+          beta = Math.min(beta, score);
+          if (beta <= alpha) break;
+        }
+        return minScore;
+      }
+    }
+
+    function evaluateBoard() {
+      let score = 0;
+      
+      // Evaluate all lines
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          if (board[row][col] !== 0) continue;
+          
+          // Check all directions
+          const directions = [
+            [[0, 1], [0, -1]],   // Horizontal
+            [[1, 0], [-1, 0]],   // Vertical
+            [[1, 1], [-1, -1]],  // Diagonal \
+            [[1, -1], [-1, 1]]   // Diagonal /
+          ];
+          
+          for (const dir of directions) {
+            let aiCount = 0;
+            let playerCount = 0;
+            
+            for (const [dx, dy] of dir) {
+              let r = row + dx;
+              let c = col + dy;
+              let count = 0;
+              let player = 0;
+              
+              while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                if (board[r][c] === 0) break;
+                if (player === 0) player = board[r][c];
+                if (board[r][c] === player) count++;
+                else break;
+                r += dx;
+                c += dy;
+              }
+              
+              if (player === 2) aiCount += count;
+              else if (player === 1) playerCount += count;
+            }
+            
+            // Score based on threats
+            if (aiCount >= 4) score += 1000;
+            else if (aiCount >= 3) score += 100;
+            else if (aiCount >= 2) score += 10;
+            
+            if (playerCount >= 4) score -= 1000;
+            else if (playerCount >= 3) score -= 100;
+            else if (playerCount >= 2) score -= 10;
+          }
+        }
+      }
+      
+      return score;
+    }
+
+    // Canvas click handler
+    canvas.addEventListener('click', (e) => {
+      if (gameOver || isAITurn || currentPlayer !== 1) return;
+      
+      if (!gameStarted) {
+        startTimer();
+        gameStarted = true;
+      }
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const col = Math.round((x - CELL_SIZE / 2) / CELL_SIZE);
+      const row = Math.round((y - CELL_SIZE / 2) / CELL_SIZE);
+      
+      if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+        if (placeStone(row, col, 1)) {
+          playerMoves++;
+          updateMoves();
+          currentPlayer = 2;
+          updateStatus('AI is thinking...');
+          
+          // AI move after a short delay
+          setTimeout(() => {
+            getAIMove();
+          }, 300);
+        }
+      }
+    });
+
+    // Timer functions
+    function startTimer() {
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        updateTimer();
+      }, 100);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function updateTimer() {
+      const mins = Math.floor(elapsedSeconds / 60);
+      const secs = elapsedSeconds % 60;
+      document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateMoves() {
+      document.getElementById('playerMoves').textContent = playerMoves;
+      document.getElementById('aiMoves').textContent = aiMoves;
+    }
+
+    function updateStatus(message) {
+      document.getElementById('statusMessage').textContent = message;
+    }
+
+    function showWinModal() {
+      document.getElementById('gameOverTitle').textContent = 'YOU WIN!';
+      document.getElementById('finalTime').textContent = formatTime(elapsedSeconds);
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    function showGameOver() {
+      document.getElementById('gameOverTitle').textContent = 'GAME OVER';
+      document.getElementById('finalTime').textContent = formatTime(elapsedSeconds);
+      document.getElementById('gameOverModal').style.display = 'flex';
+      document.getElementById('playerName').focus();
+    }
+
+    function loadBestTime() {
+      const leaderboard = getLeaderboard();
+      if (leaderboard.length > 0) {
+        const best = leaderboard[0].score;
+        document.getElementById('bestTime').textContent = formatTime(best);
+      }
+    }
+
+    function getLeaderboard() {
+      const data = localStorage.getItem('gomokuLeaderboard');
+      if (!data) return [];
+      const leaderboard = JSON.parse(data);
+      return leaderboard.sort((a, b) => a.score - b.score).slice(0, 10);
+    }
+
+    function saveScore(name, time) {
+      if (!name || name.trim() === '') {
+        name = 'Anonymous';
+      }
+      name = name.trim().substring(0, 20);
+
+      let leaderboard = JSON.parse(localStorage.getItem('gomokuLeaderboard') || '[]');
+      leaderboard.push({
+        name: name,
+        score: time,
+        date: new Date().toISOString()
+      });
+
+      leaderboard.sort((a, b) => a.score - b.score);
+      leaderboard = leaderboard.slice(0, 10);
+
+      localStorage.setItem('gomokuLeaderboard', JSON.stringify(leaderboard));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function submitScore() {
+      if (winner !== 1) {
+        // Only save if player won
+        document.getElementById('gameOverModal').style.display = 'none';
+        initGame();
+        return;
+      }
+      
+      const name = document.getElementById('playerName').value;
+      saveScore(name, elapsedSeconds);
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      initGame();
+    }
+
+    document.getElementById('playerName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitScore();
+      }
+    });
+
+    document.getElementById('newGameBtn').addEventListener('click', () => {
+      stopTimer();
+      initGame();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      stopTimer();
+      initGame();
+    });
+
+    document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+    // Initialize
+    initGame();
+    loadBestTime();
+  </script>
+</body>
+</html>
+
