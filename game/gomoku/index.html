@@ -511,10 +511,16 @@ Now, analyze the board and output your move:`;
         const boardText = boardToText();
         
         // Debug: Check API key status
-        console.log('API Key Status:', USE_PROXY ? 'Using proxy (key not set)' : 'Using direct API');
-        if (!USE_PROXY) {
-          console.log('API Key length:', GEMINI_API_KEY.length, 'First 10 chars:', GEMINI_API_KEY.substring(0, 10));
+        console.log('=== API Key Debug Info ===');
+        console.log('USE_PROXY:', USE_PROXY);
+        console.log('GEMINI_API_KEY value check:', GEMINI_API_KEY === '{{GEMINI_API_KEY}}' ? 'PLACEHOLDER (NOT REPLACED!)' : 'REPLACED');
+        console.log('API Key length:', GEMINI_API_KEY.length);
+        if (!USE_PROXY && GEMINI_API_KEY.length > 0) {
+          console.log('API Key starts with:', GEMINI_API_KEY.substring(0, 10));
+          console.log('API Key ends with:', GEMINI_API_KEY.substring(GEMINI_API_KEY.length - 5));
         }
+        console.log('API Key Status:', USE_PROXY ? 'Using proxy (key not set)' : 'Using direct API');
+        console.log('========================');
         
         let response;
         let requestBody;
