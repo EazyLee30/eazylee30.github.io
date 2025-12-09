@@ -513,11 +513,18 @@ Now, analyze the board and output your move:`;
       try {
         const boardText = boardToText();
         
+        // Debug: Check API key status
+        console.log('API Key Status:', USE_PROXY ? 'Using proxy (key not set)' : 'Using direct API');
+        if (!USE_PROXY) {
+          console.log('API Key length:', GEMINI_API_KEY.length, 'First 10 chars:', GEMINI_API_KEY.substring(0, 10));
+        }
+        
         let response;
         let requestBody;
         
         if (USE_PROXY) {
           // Use proxy if API key is not set
+          console.log('Attempting to use proxy:', GEMINI_PROXY_URL);
           requestBody = { prompt: boardText };
           response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
@@ -538,6 +545,9 @@ Now, analyze the board and output your move:`;
           };
           
           const apiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+          console.log('Calling Gemini API:', apiUrl.substring(0, 80) + '...');
+          console.log('Request body length:', JSON.stringify(requestBody).length);
+          
           response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -547,22 +557,28 @@ Now, analyze the board and output your move:`;
           });
         }
 
+        console.log('Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
           const errorText = await response.text();
           console.error('API Error:', response.status, errorText);
+          updateStatus(`API Error: ${response.status}`);
           throw new Error(`API request failed: ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
+        console.log('API Response received:', Object.keys(data));
         
         // Check for API errors in response
         if (data.error) {
           console.error('Gemini API Error:', data.error);
+          updateStatus(`API Error: ${data.error.message || 'Unknown error'}`);
           throw new Error(data.error.message || 'API returned an error');
         }
         
         // Parse response - Gemini API response structure
         if (data.candidates && data.candidates.length > 0) {
+          console.log('Found', data.candidates.length, 'candidate(s)');
           const candidate = data.candidates[0];
           
           if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
@@ -626,7 +642,8 @@ Now, analyze the board and output your move:`;
         }
         
         // Fallback: use minimax if API response cannot be parsed
-        console.log('Falling back to minimax algorithm');
+        console.warn('Falling back to minimax algorithm - API response could not be parsed');
+        console.log('Full response data:', JSON.stringify(data).substring(0, 500));
         const fallbackMove = getBestMove();
         if (fallbackMove) {
           placeStone(fallbackMove.row, fallbackMove.col, 2);
@@ -637,10 +654,14 @@ Now, analyze the board and output your move:`;
           if (!gameOver) {
             updateStatus('Your turn (using fallback AI)');
           }
+        } else {
+          console.error('Minimax also failed to find a move!');
+          updateStatus('Error: Could not find a valid move');
         }
       } catch (error) {
         console.error('AI move error:', error);
-        updateStatus('AI error, using fallback...');
+        console.error('Error stack:', error.stack);
+        updateStatus(`AI error: ${error.message.substring(0, 50)}`);
         // Fallback to minimax
         const fallbackMove = getBestMove();
         if (fallbackMove) {
@@ -652,6 +673,9 @@ Now, analyze the board and output your move:`;
           if (!gameOver) {
             updateStatus('Your turn (using fallback AI)');
           }
+        } else {
+          console.error('Minimax also failed after error!');
+          updateStatus('Error: Could not find a valid move');
         }
       }
       
