@@ -64,6 +64,7 @@ jobs:
           echo "Attempting replacement with Python..."
           
           # Create Python script using echo to avoid YAML heredoc issues
+          # Use single quotes and proper escaping for the original string
           echo 'import os' > /tmp/replace_key.py
           echo 'import sys' >> /tmp/replace_key.py
           echo "api_key = os.environ.get('API_KEY', '')" >> /tmp/replace_key.py
@@ -74,7 +75,8 @@ jobs:
           echo "with open('game/gomoku/index.html', 'r', encoding='utf-8') as f:" >> /tmp/replace_key.py
           echo '    content = f.read()' >> /tmp/replace_key.py
           echo '' >> /tmp/replace_key.py
-          echo 'original = "const GEMINI_API_KEY = '\''{{GEMINI_API_KEY}}'\'';"' >> /tmp/replace_key.py
+          # Use triple quotes to avoid quote escaping issues
+          echo "original = \"\"\"const GEMINI_API_KEY = '{{GEMINI_API_KEY}}';\"\"\"" >> /tmp/replace_key.py
           echo "replacement = f\"const GEMINI_API_KEY = '{api_key}';\"" >> /tmp/replace_key.py
           echo '' >> /tmp/replace_key.py
           echo 'if original in content:' >> /tmp/replace_key.py
