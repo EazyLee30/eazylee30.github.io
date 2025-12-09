@@ -393,28 +393,113 @@
       return true;
     }
 
-    // Convert board to text representation for AI
-    function boardToText() {
-      let text = 'Gomoku board (15x15). 0=empty, 1=black (player), 2=white (AI). Current board state:\n';
-      text += '   ';
-      for (let i = 0; i < BOARD_SIZE; i++) {
-        text += (i % 10).toString();
-      }
-      text += '\n';
+    // Convert board to ASCII representation with coordinates
+    function boardToASCII() {
+      const cols = 'ABCDEFGHIJKLMNO';
+      let ascii = '   ' + cols.split('').join(' ') + '\n';
+      
       for (let row = 0; row < BOARD_SIZE; row++) {
-        text += (row % 10).toString() + ' ';
+        const rowLabel = (row + 1).toString().padStart(2, ' ') + ' ';
+        ascii += rowLabel;
+        
         for (let col = 0; col < BOARD_SIZE; col++) {
-          text += board[row][col].toString();
+          if (board[row][col] === 0) {
+            ascii += '. ';
+          } else if (board[row][col] === 1) {
+            ascii += '● '; // Player (black)
+          } else {
+            ascii += '○ '; // AI (white)
+          }
         }
-        text += '\n';
+        ascii += '\n';
       }
-      text += '\nAnalyze the board and find the best move for white (2). Consider:\n';
-      text += '1. Blocking player\'s potential 5-in-a-row\n';
-      text += '2. Creating your own 4-in-a-row threats\n';
-      text += '3. Creating multiple threats simultaneously\n';
-      text += '4. Defending against player\'s 4-in-a-row threats\n';
-      text += '5. Controlling the center area\n';
-      text += 'Respond with ONLY the coordinates in format "row,col" (e.g., "7,7")';
+      return ascii;
+    }
+
+    // Convert board to text representation for AI with ultimate prompt
+    function boardToText() {
+      const cols = 'ABCDEFGHIJKLMNO';
+      const asciiBoard = boardToASCII();
+      
+      // Count moves
+      let playerMovesList = [];
+      let aiMovesList = [];
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          if (board[row][col] === 1) {
+            playerMovesList.push(cols[col] + (row + 1));
+          } else if (board[row][col] === 2) {
+            aiMovesList.push(cols[col] + (row + 1));
+          }
+        }
+      }
+      
+      let text = `You are "Zero", an elite Gomoku AI with AlphaZero-level strategic thinking. You are playing as WHITE (○) against a human player (BLACK ●).
+
+CURRENT BOARD STATE (15x15):
+Coordinates: Columns A-O (left to right), Rows 1-15 (top to bottom)
+
+${asciiBoard}
+
+MOVE HISTORY:
+Player (BLACK ●): ${playerMovesList.length > 0 ? playerMovesList.join(', ') : 'None'}
+You (WHITE ○): ${aiMovesList.length > 0 ? aiMovesList.join(', ') : 'None'}
+
+YOUR TASK:
+You must output your next move in the format: "MOVE: [COLUMN][ROW]" (e.g., "MOVE: H8")
+
+COGNITIVE PROCESS (Think step by step):
+
+1. STATE TRACKING:
+   - Verify the ASCII board above matches your mental model
+   - Count all stones: Player has ${playerMovesList.length} stones, You have ${aiMovesList.length} stones
+   - Identify all active threats (3-in-a-row, 4-in-a-row) for both sides
+
+2. THREAT SCAN:
+   - Scan for Player's immediate wins (4-in-a-row that can become 5)
+   - Scan for Player's forcing sequences (VCF - Victory by Continuous Four)
+   - Scan for your own winning opportunities
+   - Identify critical blocking points
+
+3. VCF/VCT CALCULATION:
+   - Calculate if Player has any VCF path (can force win in 2-4 moves)
+   - Calculate if you have any VCF path
+   - If Player has VCF, you MUST block it immediately
+   - If you have VCF, prioritize it over defense
+
+4. WEIGHTED EVALUATION:
+   For each candidate move, evaluate:
+   - Attack Value: How many threats does this create? (4-in-a-row = 1000, 3-in-a-row = 100, 2-in-a-row = 10)
+   - Defense Value: Does this block opponent's critical threat? (Block 4 = 1000, Block 3 = 100)
+   - Control Value: Does this control center or key intersections? (+50)
+   - Multi-threat: Does this create multiple simultaneous threats? (x2 multiplier)
+
+5. OPPONENT PROFILING:
+   - Analyze Player's move pattern: ${playerMovesList.length > 0 ? 'Aggressive/Defensive/Chaotic?' : 'First move'}
+   - Identify Player's weaknesses (missed blocks, poor positioning)
+   - Predict Player's likely next move based on pattern
+
+6. DECISION:
+   - Select the move with highest combined weight
+   - If multiple moves tie, prefer center control
+   - If no clear advantage, play for position
+
+OUTPUT FORMAT:
+Your response MUST be exactly:
+MOVE: [COLUMN][ROW]
+
+Example: If you want to play at column H (8th column, 0-indexed 7) and row 8:
+MOVE: H8
+
+CRITICAL RULES:
+- Use A-O for columns (A=leftmost, O=rightmost)
+- Use 1-15 for rows (1=top, 15=bottom)
+- Output ONLY the move, no explanations unless asked
+- If you see Player has 4-in-a-row, you MUST block it
+- If you can create 4-in-a-row, prioritize it
+
+Now, analyze the board and output your move:`;
+
       return text;
     }
 
@@ -429,65 +514,120 @@
         const boardText = boardToText();
         
         let response;
+        let requestBody;
         
         if (USE_PROXY) {
           // Use proxy if API key is not set
+          requestBody = { prompt: boardText };
           response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              prompt: boardText
-            })
+            body: JSON.stringify(requestBody)
           });
         } else {
           // Use direct API if key is available
-          response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          // Gemini API v1beta format
+          requestBody = {
+            contents: [{
+              parts: [{
+                text: boardText
+              }]
+            }]
+          };
+          
+          const apiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+          response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: boardText
-                }]
-              }]
-            })
+            body: JSON.stringify(requestBody)
           });
         }
 
         if (!response.ok) {
-          throw new Error('API request failed');
+          const errorText = await response.text();
+          console.error('API Error:', response.status, errorText);
+          throw new Error(`API request failed: ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
         
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-          const aiResponse = data.candidates[0].content.parts[0].text.trim();
-          
-          // Extract coordinates from response
-          const match = aiResponse.match(/(\d+)[,\s]+(\d+)/);
-          if (match) {
-            const row = parseInt(match[1]);
-            const col = parseInt(match[2]);
-            
-            if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0) {
-              placeStone(row, col, 2);
-              aiMoves++;
-              updateMoves();
-              currentPlayer = 1;
-              isAITurn = false;
-              if (!gameOver) {
-                updateStatus('Your turn');
-              }
-              return;
-            }
-          }
+        // Check for API errors in response
+        if (data.error) {
+          console.error('Gemini API Error:', data.error);
+          throw new Error(data.error.message || 'API returned an error');
         }
         
-        // Fallback: use minimax if API fails
+        // Parse response - Gemini API response structure
+        if (data.candidates && data.candidates.length > 0) {
+          const candidate = data.candidates[0];
+          
+          if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+            const aiResponse = candidate.content.parts[0].text.trim();
+            console.log('AI Response:', aiResponse);
+            
+            // Parse coordinates - support multiple formats
+            let row = -1, col = -1;
+            
+            // Try new format: MOVE: H8 (column letter + row number)
+            const moveMatch = aiResponse.match(/MOVE:\s*([A-O])(\d+)/i);
+            if (moveMatch) {
+              const colLetter = moveMatch[1].toUpperCase();
+              col = colLetter.charCodeAt(0) - 'A'.charCodeAt(0);
+              row = parseInt(moveMatch[2]) - 1; // Convert 1-15 to 0-14
+            } else {
+              // Try format: H8 (without MOVE: prefix)
+              const coordMatch = aiResponse.match(/([A-O])(\d+)/i);
+              if (coordMatch) {
+                const colLetter = coordMatch[1].toUpperCase();
+                col = colLetter.charCodeAt(0) - 'A'.charCodeAt(0);
+                row = parseInt(coordMatch[2]) - 1;
+              } else {
+                // Fallback: try old numeric formats
+                let match = aiResponse.match(/(\d+)[,\s]+(\d+)/);
+                if (!match) {
+                  match = aiResponse.match(/[\(\[\s]*(\d+)[,\s]+(\d+)[\)\]\s]*/);
+                }
+                if (!match) {
+                  match = aiResponse.match(/(\d+)\s+(\d+)/);
+                }
+                if (match) {
+                  row = parseInt(match[1]);
+                  col = parseInt(match[2]);
+                }
+              }
+            }
+            
+            if (row >= 0 && col >= 0) {
+              
+              if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0) {
+                placeStone(row, col, 2);
+                aiMoves++;
+                updateMoves();
+                currentPlayer = 1;
+                isAITurn = false;
+                if (!gameOver) {
+                  updateStatus('Your turn');
+                }
+                return;
+              } else {
+                console.warn('AI returned invalid coordinates:', row, col);
+              }
+            } else {
+              console.warn('Could not parse AI response:', aiResponse);
+            }
+          } else {
+            console.warn('Unexpected response structure:', candidate);
+          }
+        } else {
+          console.warn('No candidates in API response:', data);
+        }
+        
+        // Fallback: use minimax if API response cannot be parsed
+        console.log('Falling back to minimax algorithm');
         const fallbackMove = getBestMove();
         if (fallbackMove) {
           placeStone(fallbackMove.row, fallbackMove.col, 2);
@@ -496,11 +636,12 @@
           currentPlayer = 1;
           isAITurn = false;
           if (!gameOver) {
-            updateStatus('Your turn');
+            updateStatus('Your turn (using fallback AI)');
           }
         }
       } catch (error) {
         console.error('AI move error:', error);
+        updateStatus('AI error, using fallback...');
         // Fallback to minimax
         const fallbackMove = getBestMove();
         if (fallbackMove) {
@@ -510,7 +651,7 @@
           currentPlayer = 1;
           isAITurn = false;
           if (!gameOver) {
-            updateStatus('Your turn');
+            updateStatus('Your turn (using fallback AI)');
           }
         }
       }
