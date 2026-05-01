@@ -13,7 +13,9 @@
     .date-label { color: #00ff00; font-size: 1.1rem; }
     .date-links { margin-top: 0.3rem; }
     .date-links a { font-size: 0.85rem; margin-right: 1rem; }
-    .tag { display: inline-block; font-size: 0.7rem; border: 1px solid rgba(0,255,0,0.4); padding: 0.1rem 0.4rem; margin-left: 0.5rem; color: rgba(0,255,0,0.6); }
+    .time-list { list-style: none; margin: 0.4rem 0 0 1.2rem; }
+    .time-list li { margin: 0.2rem 0; font-size: 0.85rem; }
+    .time-list li::before { content: "› "; color: rgba(0,255,0,0.5); }
   </style>
 </head>
 <body>
@@ -29,7 +31,7 @@
       </header>
       <ul class="date-list">
         <!-- ENTRIES_START -->
-        <li class="date-item"><span class="date-label">2026-05-01</span><div class="date-links"><span class="link-icon">▶</span><a href="2026-05-01/html/当日汇总.html" class="matrix-link">HTML 报告</a> <span class="link-icon">▶</span><a href="2026-05-01/obsidian/2026-05-01.md" class="matrix-link">趋势分析</a></div></li>
+        <li class="date-item"><span class="date-label">2026-05-01</span><div class="date-links"><span class="link-icon">▶</span><a href="2026-05-01/obsidian/2026-05-01.md" class="matrix-link">趋势分析</a></div><ul class="time-list"><li><a href="2026-05-01/html/12时57分.html" class="matrix-link">12时57分</a></li><li><a href="2026-05-01/html/15时37分.html" class="matrix-link">15时37分</a></li><li><a href="2026-05-01/html/18时42分.html" class="matrix-link">18时42分</a></li><li><a href="2026-05-01/html/21时23分.html" class="matrix-link">21时23分</a></li><li><a href="2026-05-01/html/当日汇总.html" class="matrix-link">当日汇总</a></li></ul></li>
         <!-- ENTRIES_END -->
       </ul>
       <p style="margin-top:2rem;opacity:0.5;font-size:0.8rem;">Powered by TrendRadarFactory · Auto-synced via GitHub Actions</p>
