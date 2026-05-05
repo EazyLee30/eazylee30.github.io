@@ -6,6 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>归档 - eazylee</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .archive-list { margin-top: 1rem; list-style: none; }
+    .archive-list li { margin: 0; padding: 0; }
+    .archive-item {
+      display: block;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid rgba(0,255,0,0.1);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    .archive-item:hover {
+      padding-left: 0.5rem;
+      border-bottom-color: #00ff00;
+    }
+    .archive-item:last-child { border-bottom: none; }
+    .archive-title { color: #ffffff; font-size: 1rem; }
+    .archive-meta { color: #00ff00; font-size: 0.75rem; opacity: 0.5; }
+    .archive-desc { color: #00cc00; font-size: 0.85rem; margin-top: 0.2rem; }
+    .archive-tags { color: #00ff00; font-size: 0.7rem; opacity: 0.35; margin-top: 0.2rem; }
+  </style>
 </head>
 <body>
   <main class="page-content" aria-label="Content">
@@ -14,8 +34,21 @@
         <h1><a href="/cn/" class="matrix-link">← 返回</a></h1>
         <h2>归档 <a href="/archive.html" class="lang-switch">EN</a></h2>
       </header>
-      <ul>
-        <li><span class="link-icon">▶</span> <a href="/archive/trendfactory/" class="matrix-link">TrendFactory — 每日热点趋势报告 ></a></li>
+
+      <ul class="archive-list">
+        <li>
+          <a href="/archive/nas-stack-cn.html" class="archive-item matrix-link">
+            <span class="archive-title">▶ 搭建自动化媒体栈</span>
+            <span class="archive-meta">2026-05-06 &nbsp;|&nbsp; ~8 min</span>
+            <div class="archive-desc">Radarr + Prowlarr + qBittorrent + Jellyfin 全自动电影下载和串流管线</div>
+            <div class="archive-tags">#homelab #docker #self-hosted #media</div>
+          </a>
+        </li>
+        <li>
+          <a href="/archive/trendfactory/" class="archive-item matrix-link">
+            <span class="archive-title">▶ TrendFactory — 每日热点趋势报告</span>
+          </a>
+        </li>
       </ul>
     </div>
   </main>
