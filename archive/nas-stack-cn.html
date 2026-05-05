@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>搭建自动化媒体栈 - eazylee</title>
+  <meta name="description" content="使用 Radarr、Prowlarr、qBittorrent 和 Jellyfin 在 Proxmox VE 家庭服务器上搭建全自动电影下载和串流管线。" />
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .article { max-width: 800px; margin: 0 auto; padding: 2rem 0; }
+    .article h1 { font-size: 1.6rem; margin-bottom: 0.3rem; animation: none; letter-spacing: 1px; }
+    .article-meta { color: #00ff00; opacity: 0.6; font-size: 0.85rem; margin-bottom: 2rem; }
+    .article h2 { font-size: 1.15rem; color: #00ff00; margin: 2.5rem 0 0.8rem; letter-spacing: 1px; border-bottom: 1px solid rgba(0,255,0,0.15); padding-bottom: 0.4rem; }
+    .article h3 { font-size: 1rem; color: #00ff00; margin: 1.5rem 0 0.5rem; }
+    .article p { font-size: 0.9rem; margin-bottom: 1rem; color: #00cc00; line-height: 1.9; }
+    .article ul { margin: 0.5rem 0 1rem 1.2rem; list-style: none; }
+    .article li { font-size: 0.9rem; color: #00cc00; margin: 0.3rem 0; line-height: 1.7; }
+    .article li::before { content: '> '; color: #00ff00; }
+    .article pre {
+      background: rgba(0,255,0,0.04);
+      border: 1px solid rgba(0,255,0,0.15);
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #00ff00;
+      scrollbar-width: thin;
+      scrollbar-color: #00ff00 #000;
+    }
+    .article code {
+      font-family: 'Share Tech Mono', monospace;
+      background: rgba(0,255,0,0.06);
+      padding: 0.1rem 0.35rem;
+      font-size: 0.85rem;
+      color: #00ff00;
+    }
+    .article pre code { background: none; padding: 0; }
+    .article .highlight { color: #ffffff; font-weight: bold; }
+    .article .dim { opacity: 0.5; }
+    .article .section-icon { margin-right: 0.5rem; }
+    .article a { color: #ffffff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); transition: all 0.2s; }
+    .article a:hover { border-bottom-color: #ffffff; }
+    .back-link { font-size: 0.85rem; margin-bottom: 2rem; display: block; }
+    .arch-box {
+      border: 1px solid rgba(0,255,0,0.2);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      background: rgba(0,255,0,0.02);
+    }
+    .arch-box .label { color: #00ff00; font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem; }
+    .arch-flow { font-size: 0.85rem; color: #00cc00; line-height: 2; }
+    .arch-flow .arrow { color: #00ff00; }
+    .table-wrap { overflow-x: auto; margin: 1rem 0; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .table-wrap th { text-align: left; color: #00ff00; border-bottom: 1px solid rgba(0,255,0,0.3); padding: 0.5rem 0.8rem; }
+    .table-wrap td { color: #00cc00; padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(0,255,0,0.07); }
+    .lang-nav { font-size: 0.8rem; margin-bottom: 0.5rem; opacity: 0.6; }
+    .lang-nav a { margin-left: 0.8rem; border: 1px solid rgba(0,255,0,0.3); padding: 0.1rem 0.5rem; }
+    .lang-nav a:hover { background: #00ff00; color: #000; border-color: #00ff00; }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="article">
+        <a href="/archive.html" class="back-link matrix-link">cd ../archive</a>
+        <div class="lang-nav">
+          lang: <a href="/archive/nas-stack.html" style="color:#00ff00;">EN</a>
+          <a href="/archive/nas-stack-cn.html" style="color:#00ff00;">CN</a>
+        </div>
+
+        <h1>搭建自动化媒体栈</h1>
+        <div class="article-meta">
+          > 日期: 2026-05-06 &nbsp;|&nbsp; 标签: homelab, docker, self-hosted, media &nbsp;|&nbsp; 阅读时间: ~8 分钟
+        </div>
+
+        <p>
+          我想要一个系统：搜索任意一部电影，它自动找到资源、下载、重命名、归类，然后就能直接看——全程不用手动管理文件。这篇文章记录了我如何在一台 Proxmox VE 家庭服务器上，用五个 Docker 容器搭建了这套流水线。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 目标</h2>
+        <p>
+          一句话：<span class="highlight">选一部电影，它就出现在媒体库里。</span>
+        </p>
+        <p>
+          这句话背后是一条由多个服务组成的管线，分别负责索引聚合、种子搜索、下载、文件重命名和媒体播放——全部自动协调运行。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 架构</h2>
+        <div class="arch-box">
+          <div class="label">数据流</div>
+          <div class="arch-flow">
+            <span class="arrow">用户</span> 在 <span class="highlight">Radarr</span> 中搜索电影<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Radarr</span> 向 <span class="highlight">Prowlarr</span> 请求所有索引器的搜索结果<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Prowlarr</span> 搜索 YTS / Knaben / TorrentDownload（Cloudflare 站点通过 FlareSolverr 解锁）<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Radarr</span> 选择最优资源 → 将种子发送给 <span class="highlight">qBittorrent</span><br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">qBittorrent</span> 下载到 <code>/mnt/toshiba/Downloads</code><br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Radarr</span> 重命名并移动到 <code>/mnt/toshiba/Media/Movies/电影名 (年份)/</code><br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Jellyfin</span> 检测到新文件 → 自动抓取元数据 → 可以播放了
+          </div>
+        </div>
+
+        <h2><span class="section-icon">◆</span> 服务清单</h2>
+        <div class="table-wrap">
+          <table>
+            <tr><th>服务</th><th>职责</th><th>端口</th></tr>
+            <tr><td><span class="highlight">Radarr</span></td><td>电影管理与自动化</td><td>7878</td></tr>
+            <tr><td><span class="highlight">Prowlarr</span></td><td>索引器管理器（向 Radarr 提供搜索源）</td><td>9696</td></tr>
+            <tr><td><span class="highlight">qBittorrent</span></td><td>下载客户端</td><td>8080</td></tr>
+            <tr><td><span class="highlight">Jellyfin</span></td><td>媒体服务器与串流播放</td><td>8096</td></tr>
+            <tr><td><span class="highlight">FlareSolverr</span></td><td>Cloudflare 反向代理</td><td>8191</td></tr>
+          </table>
+        </div>
+
+        <h2><span class="section-icon">◆</span> 硬件环境</h2>
+        <p>
+          全部运行在一台搭载 Intel N3450、7.6 GB 内存的 <span class="highlight">Proxmox VE</span> 主机上。PVE 内部的 Debian 13 虚拟机（VM 102，IP <code>192.168.123.59</code>）运行所有五个容器。存储是一块 1.8 TB 的东芝 USB 移动硬盘，挂载在 <code>/mnt/toshiba</code>，用于存放媒体文件和下载内容。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 部署过程</h2>
+
+        <h3>1. Docker Compose 配置</h3>
+        <p>所有服务定义在 <code>/opt/arr/docker-compose.yml</code> 中：</p>
+<pre><code>services:
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Shanghai
+    volumes:
+      - /opt/arr/prowlarr:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Shanghai
+    volumes:
+      - /opt/arr/radarr:/config
+      - /mnt/toshiba/Media/Movies:/movies
+      - /mnt/toshiba/Downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=Asia/Shanghai
+    ports:
+      - 8191:8191
+    restart: unless-stopped</code></pre>
+
+        <p>
+          qBittorrent 和 Jellyfin 是之前 CasaOS 安装的，已经运行中，所以 compose 文件只包含三个新增服务。
+        </p>
+
+        <h3>2. 连接 Prowlarr ↔ Radarr</h3>
+        <p>
+          在 Prowlarr 中添加 Radarr 作为应用程序（<span class="dim">Settings → Apps → + Add</span>）。填写 <code>http://&lt;host&gt;:7878</code> 和 Radarr 的 API Key，同步级别设为 <span class="highlight">Full Sync</span>——这样在 Prowlarr 里添加的索引器会自动同步到 Radarr。
+        </p>
+
+        <h3>3. 添加索引器</h3>
+        <p>
+          Prowlarr 聚合多个种子索引源。我添加了三个无需认证的公开索引器：
+        </p>
+        <ul>
+          <li><span class="highlight">YTS</span> — 高质量电影资源（720p、1080p、2160p），文件体积小</li>
+          <li><span class="highlight">Knaben</span> — 综合 BT 元搜索引擎，聚合多个来源</li>
+          <li><span class="highlight">TorrentDownload</span> — 另一个通用公开索引器</li>
+        </ul>
+        <p>
+          Cloudflare 保护的索引器（1337x、EZTV、Kickass）配置了 <span class="highlight">FlareSolverr</span>，但我的网络路由经过软路由的 OpenClash 代理，干扰了 Cloudflare 验证码的解决。如果你没有使用透明代理，FlareSolverr 应该能正常解锁这些站点。
+        </p>
+
+        <h3>4. 配置 Radarr → qBittorrent</h3>
+        <p>
+          在 Radarr 中添加 qBittorrent 作为下载客户端（<span class="dim">Settings → Download Clients → + Add</span>）。主机地址填服务器 IP，端口 8080。将分类（Category）设为 <code>radarr</code>，这样 Radarr 只管理自己添加的下载任务，不会干扰其他种子。
+        </p>
+        <p>
+          根目录（Root Folder）设为 <code>/movies</code>（通过 Docker 卷映射对应宿主机的 <code>/mnt/toshiba/Media/Movies</code>）。
+        </p>
+
+        <h3>5. 配置 Jellyfin</h3>
+        <p>
+          在 Jellyfin 中，电影库指向 <code>/mnt/toshiba/Media/Movies</code>。当 Radarr 将文件移动到这个目录后，Jellyfin 的库扫描会自动识别，并从 TMDB 抓取元数据（片名、海报、简介、字幕）。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 路径映射——最容易出错的环节</h2>
+        <p>
+          这套栈最常见的故障原因是<span class="highlight">路径不匹配</span>。Radarr 和 qBittorrent 必须对文件路径达成一致。因为两个容器都将 <code>/mnt/toshiba</code> 挂载到相同路径，所以映射非常直观：
+        </p>
+<pre><code>宿主机: /mnt/toshiba/Downloads          → qBittorrent 在此保存下载
+宿主机: /mnt/toshiba/Media/Movies       → Radarr 将文件移到这里
+        /mnt/toshiba/Downloads          → Jellyfin 忽略此目录
+        /mnt/toshiba/Media/Movies       → Jellyfin 读取此目录</code></pre>
+        <p>
+          如果你使用不同的 Docker 卷映射，需要在 Radarr 的 <span class="dim">Settings → Download Clients</span> 中配置 Remote Path Mappings。
+        </p>
+
+        <h2><span class="section-icon">◆</span> qBittorrent 认证绕过技巧</h2>
+        <p>
+          qBittorrent 的 Web UI 需要认证登录。为了避免在容器之间传递密码，我在 <code>qBittorrent.conf</code> 中启用了本地网络认证绕过：
+        </p>
+<pre><code>WebUI\AuthSubnetWhitelistEnabled=true
+WebUI\AuthSubnetWhitelist=172.17.0.0/16,192.168.123.0/24</code></pre>
+        <p>
+          这样 Docker 容器（172.17.0.x）和局域网客户端都可以无需密码连接。如果是公网环境，建议使用正式的认证方式。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 成果</h2>
+        <p>
+          完整流程已跑通：在 Radarr 搜索 → Prowlarr 在多个索引器中找到种子 → qBittorrent 下载 → 自动重命名并移动 → Jellyfin 提供播放。整个流程在初始配置完成后完全自动化。
+        </p>
+        <p>
+          总成本：零（全部开源软件）。额外硬件：一块 ¥100 的 USB 移动硬盘。添加一部电影：在 Radarr 中搜索 10 秒钟，然后就不用管了。
+        </p>
+
+        <h2><span class="section-icon">◆</span> 后续计划</h2>
+        <ul>
+          <li>添加 <span class="highlight">Sonarr</span> 实现电视剧自动化（架构相同，分类不同）</li>
+          <li>在 Radarr 中配置质量配置文件（优先 1080p x265 以节省存储空间）</li>
+          <li>如果以后有显卡，配置 Jellyfin 硬件转码</li>
+          <li>部署 Overseerr 或 Jellyseerr 提供用户友好的影片请求界面</li>
+        </ul>
+
+        <br>
+        <p class="dim">
+          > EOF
+        </p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
