@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>零成本白嫖 GPT-5 + AI 设计神器 - eazylee</title>
+  <meta name="description" content="用印尼 GoPay 免费搞到 ChatGPT Plus，再用 CLIProxyAPI 搭建多账号 API 代理，最后接上 Open Design 实现零成本 AI 设计全流程。" />
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .article { max-width: 800px; margin: 0 auto; padding: 2rem 0; }
+    .article h1 { font-size: 1.6rem; margin-bottom: 0.3rem; animation: none; letter-spacing: 1px; }
+    .article-meta { color: #00ff00; opacity: 0.6; font-size: 0.85rem; margin-bottom: 2rem; }
+    .article h2 { font-size: 1.15rem; color: #00ff00; margin: 2.5rem 0 0.8rem; letter-spacing: 1px; border-bottom: 1px solid rgba(0,255,0,0.15); padding-bottom: 0.4rem; }
+    .article h3 { font-size: 1rem; color: #00ff00; margin: 1.5rem 0 0.5rem; }
+    .article p { font-size: 0.9rem; margin-bottom: 1rem; color: #00cc00; line-height: 1.9; }
+    .article ul, .article ol { margin: 0.5rem 0 1rem 1.2rem; list-style: none; }
+    .article li { font-size: 0.9rem; color: #00cc00; margin: 0.3rem 0; line-height: 1.7; }
+    .article li::before { content: '> '; color: #00ff00; }
+    .article pre {
+      background: rgba(0,255,0,0.04);
+      border: 1px solid rgba(0,255,0,0.15);
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #00ff00;
+      scrollbar-width: thin;
+      scrollbar-color: #00ff00 #000;
+    }
+    .article code {
+      font-family: 'Share Tech Mono', monospace;
+      background: rgba(0,255,0,0.06);
+      padding: 0.1rem 0.35rem;
+      font-size: 0.85rem;
+      color: #00ff00;
+    }
+    .article pre code { background: none; padding: 0; }
+    .article .highlight { color: #ffffff; font-weight: bold; }
+    .article .dim { opacity: 0.5; }
+    .article .section-icon { margin-right: 0.5rem; }
+    .article a { color: #ffffff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); transition: all 0.2s; }
+    .article a:hover { border-bottom-color: #ffffff; }
+    .back-link { font-size: 0.85rem; margin-bottom: 2rem; display: block; }
+    .arch-box {
+      border: 1px solid rgba(0,255,0,0.2);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      background: rgba(0,255,0,0.02);
+    }
+    .arch-box .label { color: #00ff00; font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem; }
+    .arch-flow { font-size: 0.85rem; color: #00cc00; line-height: 2; }
+    .arch-flow .arrow { color: #00ff00; }
+    .table-wrap { overflow-x: auto; margin: 1rem 0; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .table-wrap th { text-align: left; color: #00ff00; border-bottom: 1px solid rgba(0,255,0,0.3); padding: 0.5rem 0.8rem; }
+    .table-wrap td { color: #00cc00; padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(0,255,0,0.07); }
+    .lang-nav { font-size: 0.8rem; margin-bottom: 0.5rem; opacity: 0.6; }
+    .lang-nav a { margin-left: 0.8rem; border: 1px solid rgba(0,255,0,0.3); padding: 0.1rem 0.5rem; }
+    .lang-nav a:hover { background: #00ff00; color: #000; border-color: #00ff00; }
+    .article img { max-width: 100%; border: 1px solid rgba(0,255,0,0.2); margin: 1rem 0; display: block; }
+    .img-caption { font-size: 0.75rem; color: #00ff00; opacity: 0.5; text-align: center; margin-top: -0.5rem; margin-bottom: 1rem; }
+    .warn { border-left: 3px solid #ffff00; padding: 0.8rem 1rem; margin: 1rem 0; background: rgba(255,255,0,0.03); }
+    .warn::before { content: '⚠ '; color: #ffff00; }
+    .tip { border-left: 3px solid #00ff00; padding: 0.8rem 1rem; margin: 1rem 0; background: rgba(0,255,0,0.03); }
+    .tip::before { content: '💡 '; }
+    .step-num { color: #ffffff; font-weight: bold; font-size: 1.05rem; }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="article">
+        <a href="/cn/archive.html" class="back-link matrix-link">cd ../archive</a>
+        <div class="lang-nav">
+          lang: <a href="/archive/cliproxy-design.html" style="color:#00ff00;">EN</a>
+          <a href="/cn/archive/cliproxy-design.html" style="color:#00ff00;">CN</a>
+        </div>
+
+        <h1>零成本白嫖 GPT-5 + AI 设计神器</h1>
+        <div class="article-meta">
+          > 日期: 2026-05-06 &nbsp;|&nbsp; 标签: ai, gpt, openai, cliproxyapi, open-design, gopay, free &nbsp;|&nbsp; 阅读时间: ~15 分钟
+        </div>
+
+        <p>
+          这篇文章记录了一套完整的「零成本 AI 工作流」：用印尼 GoPay 免费拿到 ChatGPT Plus 账号，搭建 CLIProxyAPI 把多个 Plus 账号聚合成一个 OpenAI 兼容的 API 端点，再接入 Open Design 实现 AI 驱动的设计出图。全程不花一分钱。
+        </p>
+
+        <img src="/assets/img/cliproxy-design/02-management-dashboard.png" alt="CLIProxyAPI 管理面板" />
+        <div class="img-caption">CLIProxyAPI 管理面板 — 多账号统一管理</div>
+
+        <div class="arch-box">
+          <div class="label">整体架构</div>
+          <div class="arch-flow">
+            <span class="arrow">印尼 GoPay</span> → 免费注册 <span class="highlight">ChatGPT Plus</span> 账号（多个）<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">CLIProxyAPI</span> 将多个 Plus 账号聚合成 <span class="highlight">OpenAI 兼容 API</span><br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Open Design</span> / 任意 OpenAI 客户端 → 调用 GPT-5、Codex、Image 2 等模型<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">轮询 + 额度耗尽自动切换</span> → 无限续杯，永远可用
+          </div>
+        </div>
+
+        <!-- ==================== PART 1: GoPay ==================== -->
+        <h2><span class="section-icon">◆</span> 第一部分：用印尼 GoPay 免费搞到 ChatGPT Plus</h2>
+
+        <p>
+          OpenAI 在部分地区推出了 <span class="highlight">0 元试用 Plus</span> 的活动，配合印尼的电子钱包 GoPay 可以零成本完成订阅。核心思路：注册一个新的 ChatGPT 账号 → 触发 0 元试用 → 用 GoPay 作为支付方式（实际不扣钱）→ 订阅成功后立即取消自动续费。
+        </p>
+
+        <h3><span class="step-num">1.</span> 准备工作与账号注册</h3>
+        <ul>
+          <li>准备一个邮箱，建议专门注册新小号，干净利落</li>
+          <li>下载 <span class="highlight">WhatsApp</span> 和 <span class="highlight">GoPay</span>（印尼电子钱包），去 Google Play 或外网应用市场下载</li>
+          <li>用你的 <code>+86</code> 国内手机号注册 WhatsApp 和 GoPay，直接登录即可</li>
+        </ul>
+
+        <h3><span class="step-num">2.</span> 注册 ChatGPT 账号</h3>
+        <ul>
+          <li>把梯子切到<span class="highlight">日本节点</span>（或其他支持的地区）</li>
+          <li>用准备好的邮箱注册一个全新的 ChatGPT 账号</li>
+          <li>登录后进入 ChatGPT 主页</li>
+        </ul>
+
+        <h3><span class="step-num">3.</span> 获取 0 元试用</h3>
+        <ul>
+          <li>在页面顶部找「升级 Plus」点进去，或留意左下角的优惠提示</li>
+          <li>目标是找到 <span class="highlight">「0 元试用」</span> 的入口</li>
+          <li>到订阅页面后，右下角把地区手动切换成 <span class="highlight">印度尼西亚</span></li>
+          <li>支付方式选 <span class="highlight">GoPay</span></li>
+        </ul>
+
+        <h3><span class="step-num">4.</span> 填写账单地址</h3>
+        <ul>
+          <li>网上搜一个「新加坡地址生成器」，随便生成一个虚拟地址</li>
+          <li>把地址填到账单信息里</li>
+        </ul>
+
+        <h3><span class="step-num">5.</span> 配置 GoPay 支付密码</h3>
+        <ul>
+          <li>打开手机上的 GoPay App</li>
+          <li>点右下角 <code>Profil</code>（个人资料）</li>
+          <li>找到带 <code>PIN</code> 字样的设置项，输入两次支付密码，确认</li>
+        </ul>
+
+        <h3><span class="step-num">6.</span> 完成订阅</h3>
+        <ul>
+          <li>回到 ChatGPT 订阅页面点订阅</li>
+          <li>填手机号时选 <code>+86 (China)</code>，填国内手机号</li>
+          <li>验证码不会走短信，会发到 <span class="highlight">WhatsApp</span> 上，进去收验证码填上</li>
+          <li>订阅完成！</li>
+        </ul>
+
+        <h3><span class="step-num">7.</span> 立即取消自动续费（关键！）</h3>
+        <div class="warn">
+          这一步必须做！否则免费期过了会自动扣钱。
+        </div>
+        <ul>
+          <li>回到 ChatGPT 页面，左下角 → 设置 → 账户 → 管理</li>
+          <li>进去把订阅<span class="highlight">取消</span>掉</li>
+          <li>这样免费期结束后就不会扣费，而 Plus 权限在试用期内照常使用</li>
+        </ul>
+
+        <div class="tip">
+          多注册几个账号，每个都走一遍这个流程，就得到了一个 Plus 账号池。后面用 CLIProxyAPI 统一管理。
+        </div>
+
+        <!-- ==================== PART 2: CLIProxyAPI ==================== -->
+        <h2><span class="section-icon">◆</span> 第二部分：搭建 CLIProxyAPI 多账号代理</h2>
+
+        <p>
+          <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a> 是一个用 Go 写的代理服务器，可以把多个 ChatGPT/Claude/Gemini 账号聚合成标准的 OpenAI 兼容 API。支持轮询负载均衡、额度耗尽自动切换、会话亲和等特性。
+        </p>
+
+        <img src="/assets/img/cliproxy-design/01-management-login.png" alt="CLIProxyAPI 登录页" />
+        <div class="img-caption">CLIProxyAPI Web 管理面板登录页</div>
+
+        <h3><span class="step-num">1.</span> 安装 CLIProxyAPI</h3>
+        <p>macOS 用 Homebrew 安装（需要先添加 tap）：</p>
+<pre><code>brew tap tianyicui/homebrew-cliproxyapi
+brew install cliproxyapi</code></pre>
+        <p>或者直接下载预编译二进制：</p>
+<pre><code># macOS ARM (Apple Silicon)
+curl -L -o cliproxy.tar.gz \
+  "https://github.com/router-for-me/CLIProxyAPI/releases/download/v6.10.8/CLIProxyAPI_6.10.8_darwin_aarch64.tar.gz"
+tar -xzf cliproxy.tar.gz
+sudo cp cli-proxy-api /usr/local/bin/</code></pre>
+        <p>Linux 一键安装脚本：</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/router-for-me/cliproxyapi-installer/refs/heads/master/cliproxyapi-installer | bash</code></pre>
+
+        <h3><span class="step-num">2.</span> 登录 ChatGPT 账号</h3>
+        <p>对每个 Plus 账号执行一次 OAuth 登录：</p>
+<pre><code>cli-proxy-api -config ~/.cli-proxy-api/config.yaml -codex-login</code></pre>
+        <p>浏览器会自动打开 OpenAI 授权页面，登录后凭证自动保存到 <code>~/.cli-proxy-api/</code> 目录。有几个号就跑几次。</p>
+
+        <h3><span class="step-num">3.</span> 配置文件</h3>
+        <p>编辑 <code>~/.cli-proxy-api/config.yaml</code>：</p>
+<pre><code>host: ""
+port: 8317
+
+remote-management:
+  allow-remote: false
+  secret-key: "你的管理面板密码"
+
+auth-dir: "~/.cli-proxy-api"
+
+api-keys:
+  - "你的API密钥"  # 用 openssl rand -hex 32 生成
+
+request-retry: 3
+
+quota-exceeded:
+  switch-project: true       # 额度用完自动换号
+  switch-preview-model: true  # 自动切换到预览模型
+
+routing:
+  strategy: "round-robin"    # 轮询分配请求</code></pre>
+
+        <h3><span class="step-num">4.</span> 启动服务</h3>
+<pre><code># 后台启动
+nohup cli-proxy-api -config ~/.cli-proxy-api/config.yaml &gt; /tmp/cli-proxy-api.log 2&gt;&amp;1 &amp;
+
+# 或者用 TUI 模式（交互式终端界面）
+cli-proxy-api -config ~/.cli-proxy-api/config.yaml -tui</code></pre>
+
+        <h3><span class="step-num">5.</span> 验证 API</h3>
+<pre><code># 查看可用模型
+curl http://localhost:8317/v1/models \
+  -H "Authorization: Bearer 你的API密钥"
+
+# 测试对话
+curl http://localhost:8317/v1/chat/completions \
+  -H "Authorization: Bearer 你的API密钥" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"hello"}]}'</code></pre>
+
+        <h3><span class="step-num">6.</span> 管理面板</h3>
+        <p>浏览器打开 <code>http://localhost:8317/management.html</code>，用配置的管理密码登录，可以看到所有账号状态、模型列表、请求统计等。</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>信息</th><th>值</th></tr>
+            <tr><td>Base URL</td><td><code>http://localhost:8317/v1</code></td></tr>
+            <tr><td>API Key</td><td>配置文件中的 api-keys</td></tr>
+            <tr><td>可用模型</td><td>gpt-5.2, gpt-5.3-codex, gpt-5.4, gpt-5.5, gpt-image-2 等</td></tr>
+            <tr><td>自动切换</td><td>额度耗尽自动换下一个账号，客户端无感知</td></tr>
+          </table>
+        </div>
+
+        <!-- ==================== PART 3: Open Design ==================== -->
+        <h2><span class="section-icon">◆</span> 第三部分：接入 Open Design 实现 AI 设计</h2>
+
+        <p>
+          <a href="https://github.com/nexu-io/open-design">Open Design</a> 是 Anthropic Claude Design 的开源替代品。完全本地运行、Web 可部署、全 BYOK 架构。它不自带 AI agent——而是复用你机器上已有的 coding agent CLI（Claude Code、Codex、Cursor、Gemini CLI 等 15 种），把它们变成设计引擎。
+        </p>
+
+        <img src="/assets/img/cliproxy-design/16-od-banner.png" alt="Open Design Banner" />
+        <div class="img-caption">Open Design — 开源 Claude Design 替代品</div>
+
+        <h3>核心设计理念</h3>
+        <p>Open Design 有六个核心设计哲学：</p>
+        <ul>
+          <li><span class="highlight">不自带 agent</span> — 扫描 PATH 上的 15+ CLI 工具，每个都能当设计引擎</li>
+          <li><span class="highlight">技能即文件</span> — 遵循 Claude Code 的 SKILL.md 规范，放个文件夹、重启就能用</li>
+          <li><span class="highlight">设计系统是 Markdown</span> — 不是 JSON 主题文件，而是 9 段式 DESIGN.md（颜色、排版、间距、布局、组件、动效、语调、品牌、反模式）</li>
+          <li><span class="highlight">交互式需求表单</span> — 编码前先问清楚，减少 80% 的返工</li>
+          <li><span class="highlight">本地守护进程</span> — agent 真正读写你本地文件系统，会话持久化到 SQLite</li>
+          <li><span class="highlight">Prompt 栈即产品</span> — 由发现指令 + 身份宪章 + 设计系统 + 技能定义 + 项目元数据组合而成</li>
+        </ul>
+
+        <h3>支持的 15 种 Coding Agent</h3>
+        <p>Open Design 会自动检测你 PATH 上的 CLI 工具，一键切换：</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Agent</th><th>CLI 命令</th></tr>
+            <tr><td><span class="highlight">Claude Code</span></td><td><code>claude</code></td></tr>
+            <tr><td><span class="highlight">Codex CLI</span></td><td><code>codex</code></td></tr>
+            <tr><td><span class="highlight">Cursor Agent</span></td><td><code>cursor-agent</code></td></tr>
+            <tr><td><span class="highlight">Gemini CLI</span></td><td><code>gemini</code></td></tr>
+            <tr><td><span class="highlight">GitHub Copilot CLI</span></td><td><code>copilot</code></td></tr>
+            <tr><td>Devin for Terminal</td><td><code>devin</code></td></tr>
+            <tr><td>OpenCode</td><td><code>opencode</code></td></tr>
+            <tr><td>Qwen Code</td><td><code>qwen</code></td></tr>
+            <tr><td>Hermes (ACP)</td><td><code>hermes</code></td></tr>
+            <tr><td>Kimi CLI (ACP)</td><td><code>kimi</code></td></tr>
+            <tr><td>Pi (RPC)</td><td><code>pi</code></td></tr>
+            <tr><td>Kiro CLI (ACP)</td><td><code>kiro-cli</code></td></tr>
+            <tr><td>Kilo (ACP)</td><td><code>kilo</code></td></tr>
+            <tr><td>Mistral Vibe CLI</td><td><code>vibe-acp</code></td></tr>
+            <tr><td>DeepSeek TUI</td><td><code>deepseek</code></td></tr>
+          </table>
+        </div>
+        <p>
+          如果没有本地 CLI，还可以用 <span class="highlight">BYOK API 代理</span>作为后备——支持 Anthropic、OpenAI、Azure OpenAI、Google Gemini 四种协议。
+        </p>
+
+        <h3>31 个内置技能</h3>
+        <p>技能分为原型模式（27 个）和演示模式（4 个）：</p>
+
+        <img src="/assets/img/cliproxy-design/05-od-entry.png" alt="Open Design 入口" />
+        <div class="img-caption">选择技能和设计方向</div>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>类别</th><th>技能</th><th>说明</th></tr>
+            <tr><td>网页设计</td><td><span class="highlight">web-prototype</span></td><td>单页 HTML 着陆页（默认技能）</td></tr>
+            <tr><td>网页设计</td><td><span class="highlight">saas-landing</span></td><td>SaaS 着陆页（Hero/功能/定价/CTA）</td></tr>
+            <tr><td>运营</td><td><span class="highlight">dashboard</span></td><td>管理后台/数据分析面板</td></tr>
+            <tr><td>销售</td><td>pricing-page</td><td>独立定价页 + 对比表格</td></tr>
+            <tr><td>工程</td><td>docs-page</td><td>三栏文档布局</td></tr>
+            <tr><td>营销</td><td>blog-post</td><td>编辑式长文</td></tr>
+            <tr><td>移动端</td><td><span class="highlight">mobile-app</span></td><td>iPhone 15 Pro / Pixel 带设备边框</td></tr>
+            <tr><td>移动端</td><td>mobile-onboarding</td><td>多屏引导流程（启动页/价值主张/登录）</td></tr>
+            <tr><td>移动端</td><td>gamified-app</td><td>三帧游戏化原型</td></tr>
+            <tr><td>营销</td><td><span class="highlight">email-marketing</span></td><td>品牌产品发布 HTML 邮件</td></tr>
+            <tr><td>营销</td><td><span class="highlight">social-carousel</span></td><td>3 张 1080x1080 社交轮播图</td></tr>
+            <tr><td>营销</td><td>magazine-poster</td><td>单页杂志海报</td></tr>
+            <tr><td>营销</td><td>motion-frames</td><td>带 CSS 动画的动效 Hero</td></tr>
+            <tr><td>营销</td><td>sprite-animation</td><td>像素/8-bit 动画解说</td></tr>
+            <tr><td>设计</td><td>wireframe-sketch</td><td>手绘风格线框图</td></tr>
+            <tr><td>设计</td><td>critique</td><td>五维自评评分表</td></tr>
+            <tr><td>产品</td><td>pm-spec</td><td>PM 需求文档（目录 + 决策日志）</td></tr>
+            <tr><td>产品</td><td>team-okrs</td><td>OKR 评分表</td></tr>
+            <tr><td>运营</td><td>meeting-notes</td><td>会议决策日志</td></tr>
+            <tr><td>运营</td><td>kanban-board</td><td>看板快照</td></tr>
+            <tr><td>工程</td><td>eng-runbook</td><td>事故处理手册</td></tr>
+            <tr><td>财务</td><td>finance-report</td><td>高管财务摘要</td></tr>
+            <tr><td>财务</td><td>invoice</td><td>单页发票</td></tr>
+            <tr><td>HR</td><td>hr-onboarding</td><td>入职计划</td></tr>
+          </table>
+        </div>
+
+        <h3>演示模式技能（PPT/Deck）</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>技能</th><th>说明</th></tr>
+            <tr><td><span class="highlight">guizang-ppt</span></td><td>杂志风格 Web PPT（默认 Deck 技能）</td></tr>
+            <tr><td>simple-deck</td><td>极简水平滑动演示</td></tr>
+            <tr><td>replit-deck</td><td>产品演示 Deck（Replit 风格）</td></tr>
+            <tr><td>weekly-update</td><td>团队周报滑动 Deck</td></tr>
+          </table>
+        </div>
+
+        <img src="/assets/img/cliproxy-design/11-od-deck.png" alt="Magazine Deck" />
+        <div class="img-caption">杂志风格 PPT 演示</div>
+
+        <h3>72+ 品牌设计系统</h3>
+        <p>
+          内置 129 个设计系统，覆盖主流产品设计语言。每个系统包含完整的颜色、排版、间距、组件规范：
+        </p>
+        <p>
+          <span class="highlight">Linear</span> · <span class="highlight">Stripe</span> · <span class="highlight">Vercel</span> · <span class="highlight">Airbnb</span> · <span class="highlight">Tesla</span> · <span class="highlight">Notion</span> · <span class="highlight">Anthropic</span> · <span class="highlight">Apple</span> · <span class="highlight">Cursor</span> · <span class="highlight">Supabase</span> · <span class="highlight">Figma</span> · <span class="highlight">小红书</span> · <span class="highlight">Resend</span> · <span class="highlight">Raycast</span> · <span class="highlight">Lovable</span> · <span class="highlight">Spotify</span> · <span class="highlight">Webflow</span> · <span class="highlight">PostHog</span> · <span class="highlight">Sentry</span> · <span class="highlight">MongoDB</span> · <span class="highlight">ClickHouse</span> … 以及更多
+        </p>
+
+        <img src="/assets/img/cliproxy-design/10-od-designsystems.png" alt="设计系统库" />
+        <div class="img-caption">72+ 品牌设计系统库</div>
+
+        <h3>5 种视觉方向</h3>
+        <p>每个设计都可以选择一种视觉风格：</p>
+        <ul>
+          <li><span class="highlight">Editorial Monocle</span> — 杂志排版风格，大留白，精致字体</li>
+          <li><span class="highlight">Modern Minimal</span> — 现代极简，干净线条</li>
+          <li><span class="highlight">Warm Soft</span> — 温暖柔和色调</li>
+          <li><span class="highlight">Tech Utility</span> — 工具感、开发者向</li>
+          <li><span class="highlight">Brutalist Experimental</span> — 粗野主义实验风格</li>
+        </ul>
+
+        <img src="/assets/img/cliproxy-design/07-od-direction.png" alt="视觉方向选择" />
+        <div class="img-caption">选择视觉方向</div>
+
+        <h3>生成效果展示</h3>
+
+        <img src="/assets/img/cliproxy-design/09-od-preview.png" alt="预览" />
+        <div class="img-caption">沙盒 iframe 实时预览</div>
+
+        <img src="/assets/img/cliproxy-design/12-od-mobile.png" alt="移动端设计" />
+        <div class="img-caption">移动端 App 设计（带设备边框）</div>
+
+        <img src="/assets/img/cliproxy-design/13-od-social.png" alt="社交轮播" />
+        <div class="img-caption">社交媒体轮播图</div>
+
+        <img src="/assets/img/cliproxy-design/15-od-dating.png" alt="约会网页" />
+        <div class="img-caption">消费级约会网站原型</div>
+
+        <img src="/assets/img/cliproxy-design/14-od-email.png" alt="邮件营销" />
+        <div class="img-caption">品牌邮件营销模板</div>
+
+        <h3>媒体生成能力</h3>
+        <p>除了网页和 PPT，Open Design 还支持：</p>
+        <ul>
+          <li><span class="highlight">图片生成</span> — 通过 gpt-image-2（Azure/OpenAI）生成高质量图片</li>
+          <li><span class="highlight">视频生成</span> — Seedance 2.0（字节跳动），15 秒电影级文字转视频</li>
+          <li><span class="highlight">HyperFrames</span> — HTML 转 MP4 动效图形，93 个现成模板</li>
+        </ul>
+
+        <h3><span class="step-num">1.</span> 安装 Open Design</h3>
+<pre><code>git clone https://github.com/nexu-io/open-design.git
+cd open-design
+corepack enable
+pnpm install</code></pre>
+        <p>需要 Node.js 24+ 和 pnpm 10.33.x（通过 Corepack 自动管理）。</p>
+
+        <h3><span class="step-num">2.</span> 配置 API 代理</h3>
+        <p>将 Open Design 的 BYOK API 端点指向 CLIProxyAPI，用免费的 GPT 账号池驱动设计：</p>
+        <ul>
+          <li>在 Open Design 设置中配置 OpenAI 兼容端点</li>
+          <li>Base URL 填 <code>http://localhost:8317/v1</code></li>
+          <li>API Key 填 CLIProxyAPI 中配置的密钥</li>
+        </ul>
+        <p>这样 Open Design 的所有 AI 调用都会经过 CLIProxyAPI，自动在你的 Plus 账号池中轮询。</p>
+
+        <h3><span class="step-num">3.</span> 启动</h3>
+<pre><code># 守护进程 + Web（前台）
+pnpm tools-dev run web
+
+# 守护进程 + Web（后台）
+pnpm tools-dev start web
+
+# 查看状态
+pnpm tools-dev status
+
+# 查看日志
+pnpm tools-dev logs
+
+# 停止
+pnpm tools-dev stop</code></pre>
+        <p>浏览器打开 <code>http://localhost:63559</code> 即可使用。</p>
+
+        <h3><span class="step-num">4.</span> 使用流程</h3>
+        <ul>
+          <li>进入页面后选择一个<span class="highlight">技能</span>（如 Landing Page、Mobile App、Pitch Deck）</li>
+          <li>选择<span class="highlight">设计系统</span>（如 Linear、Stripe、Apple 风格）</li>
+          <li>选择<span class="highlight">视觉方向</span>（如 Modern Minimal、Editorial Monocle）</li>
+          <li>填写<span class="highlight">需求表单</span>——AI 会先问清楚再动手</li>
+          <li>AI 自动生成，在沙盒 iframe 中<span class="highlight">实时预览</span></li>
+          <li>支持导出 HTML / PDF / PPTX / MP4</li>
+        </ul>
+
+        <h3>持久化与导入</h3>
+        <ul>
+          <li>所有项目、对话、消息存储在本地 SQLite（<code>.od/app.sqlite</code>）</li>
+          <li>支持导入 Claude Design 导出的 ZIP 文件</li>
+          <li>可选 Electron 桌面应用，支持 macOS (Apple Silicon) 和 Windows (x64)</li>
+        </ul>
+
+        <!-- ==================== PART 4: 高级玩法 ==================== -->
+        <h2><span class="section-icon">◆</span> 第四部分：高级玩法与成本分析</h2>
+
+        <h3>账号池策略</h3>
+        <p>
+          注册多个 Plus 账号（建议 3-5 个），每个都通过 GoPay 0 元试用获得 Plus 权限。CLIProxyAPI 会自动轮询：
+        </p>
+        <ul>
+          <li>正常情况下 round-robin 均匀分配请求</li>
+          <li>某个账号额度耗尽 → 自动跳过，切换到下一个</li>
+          <li>支持 <span class="highlight">session-affinity</span>，同一会话绑定同一账号</li>
+          <li>OAuth token 自动刷新，无需手动维护</li>
+        </ul>
+
+        <h3>免费可用的模型</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>模型</th><th>用途</th><th>特点</th></tr>
+            <tr><td><span class="highlight">gpt-5.5</span></td><td>通用对话</td><td>最新旗舰模型</td></tr>
+            <tr><td><span class="highlight">gpt-5.3-codex</span></td><td>代码生成</td><td>编程专用，配合 Codex CLI</td></tr>
+            <tr><td><span class="highlight">gpt-image-2</span></td><td>图片生成</td><td>DALL·E 级别的图像生成</td></tr>
+            <tr><td><span class="highlight">gpt-5.4-mini</span></td><td>轻量任务</td><td>快速、低成本</td></tr>
+          </table>
+        </div>
+
+        <h3>成本</h3>
+        <div class="arch-box">
+          <div class="label">总花费</div>
+          <div class="arch-flow">
+            ChatGPT Plus 试用：<span class="highlight">¥0</span>（GoPay 0 元试用 + 立即取消续费）<br>
+            CLIProxyAPI：<span class="highlight">¥0</span>（开源免费）<br>
+            Open Design：<span class="highlight">¥0</span>（开源免费）<br>
+            GoPay 注册：<span class="highlight">¥0</span>（国内手机号直接注册）<br>
+            ─────────────────<br>
+            <span class="highlight">总计：¥0</span>
+          </div>
+        </div>
+
+        <h3>注意事项</h3>
+        <ul>
+          <li>每个账号的 Plus 试用期有限（通常 14 天），到期前取消即可</li>
+          <li>可以持续注册新账号续杯</li>
+          <li>GoPay 不会实际扣款，但务必在试用期内取消订阅</li>
+          <li>CLIProxyAPI 支持热加载配置，添加新账号无需重启</li>
+          <li>建议搭配 VPN 使用，确保网络稳定</li>
+        </ul>
+
+        <h2><span class="section-icon">◆</span> 技术栈总结</h2>
+        <div class="table-wrap">
+          <table>
+            <tr><th>组件</th><th>作用</th><th>链接</th></tr>
+            <tr><td><span class="highlight">GoPay</span></td><td>印尼电子钱包，用于 0 元订阅</td><td>Google Play 下载</td></tr>
+            <tr><td><span class="highlight">ChatGPT Plus</span></td><td>提供 GPT-5、Codex、Image 2 等模型</td><td>chat.openai.com</td></tr>
+            <tr><td><span class="highlight">CLIProxyAPI</span></td><td>多账号 API 代理，OpenAI 兼容</td><td><a href="https://github.com/router-for-me/CLIProxyAPI">GitHub</a></td></tr>
+            <tr><td><span class="highlight">Open Design</span></td><td>本地 AI 设计工具</td><td><a href="https://github.com/nexu-io/open-design">GitHub</a></td></tr>
+          </table>
+        </div>
+
+        <br>
+        <p class="dim">
+          > EOF
+        </p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

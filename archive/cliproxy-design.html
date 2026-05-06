@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Free GPT-5 + AI Design Stack — Zero Cost - eazylee</title>
+  <meta name="description" content="Get ChatGPT Plus for free with Indonesian GoPay, build a multi-account API proxy with CLIProxyAPI, and connect Open Design for zero-cost AI-powered design." />
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .article { max-width: 800px; margin: 0 auto; padding: 2rem 0; }
+    .article h1 { font-size: 1.6rem; margin-bottom: 0.3rem; animation: none; letter-spacing: 1px; }
+    .article-meta { color: #00ff00; opacity: 0.6; font-size: 0.85rem; margin-bottom: 2rem; }
+    .article h2 { font-size: 1.15rem; color: #00ff00; margin: 2.5rem 0 0.8rem; letter-spacing: 1px; border-bottom: 1px solid rgba(0,255,0,0.15); padding-bottom: 0.4rem; }
+    .article h3 { font-size: 1rem; color: #00ff00; margin: 1.5rem 0 0.5rem; }
+    .article p { font-size: 0.9rem; margin-bottom: 1rem; color: #00cc00; line-height: 1.9; }
+    .article ul, .article ol { margin: 0.5rem 0 1rem 1.2rem; list-style: none; }
+    .article li { font-size: 0.9rem; color: #00cc00; margin: 0.3rem 0; line-height: 1.7; }
+    .article li::before { content: '> '; color: #00ff00; }
+    .article pre {
+      background: rgba(0,255,0,0.04);
+      border: 1px solid rgba(0,255,0,0.15);
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #00ff00;
+      scrollbar-width: thin;
+      scrollbar-color: #00ff00 #000;
+    }
+    .article code {
+      font-family: 'Share Tech Mono', monospace;
+      background: rgba(0,255,0,0.06);
+      padding: 0.1rem 0.35rem;
+      font-size: 0.85rem;
+      color: #00ff00;
+    }
+    .article pre code { background: none; padding: 0; }
+    .article .highlight { color: #ffffff; font-weight: bold; }
+    .article .dim { opacity: 0.5; }
+    .article .section-icon { margin-right: 0.5rem; }
+    .article a { color: #ffffff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); transition: all 0.2s; }
+    .article a:hover { border-bottom-color: #ffffff; }
+    .back-link { font-size: 0.85rem; margin-bottom: 2rem; display: block; }
+    .arch-box {
+      border: 1px solid rgba(0,255,0,0.2);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      background: rgba(0,255,0,0.02);
+    }
+    .arch-box .label { color: #00ff00; font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem; }
+    .arch-flow { font-size: 0.85rem; color: #00cc00; line-height: 2; }
+    .arch-flow .arrow { color: #00ff00; }
+    .table-wrap { overflow-x: auto; margin: 1rem 0; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .table-wrap th { text-align: left; color: #00ff00; border-bottom: 1px solid rgba(0,255,0,0.3); padding: 0.5rem 0.8rem; }
+    .table-wrap td { color: #00cc00; padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(0,255,0,0.07); }
+    .lang-nav { font-size: 0.8rem; margin-bottom: 0.5rem; opacity: 0.6; }
+    .lang-nav a { margin-left: 0.8rem; border: 1px solid rgba(0,255,0,0.3); padding: 0.1rem 0.5rem; }
+    .lang-nav a:hover { background: #00ff00; color: #000; border-color: #00ff00; }
+    .article img { max-width: 100%; border: 1px solid rgba(0,255,0,0.2); margin: 1rem 0; display: block; }
+    .img-caption { font-size: 0.75rem; color: #00ff00; opacity: 0.5; text-align: center; margin-top: -0.5rem; margin-bottom: 1rem; }
+    .warn { border-left: 3px solid #ffff00; padding: 0.8rem 1rem; margin: 1rem 0; background: rgba(255,255,0,0.03); }
+    .warn::before { content: '⚠ '; color: #ffff00; }
+    .tip { border-left: 3px solid #00ff00; padding: 0.8rem 1rem; margin: 1rem 0; background: rgba(0,255,0,0.03); }
+    .tip::before { content: '💡 '; }
+    .step-num { color: #ffffff; font-weight: bold; font-size: 1.05rem; }
+  </style>
+</head>
+<body>
+  <main class="page-content" aria-label="Content">
+    <div class="w">
+      <div class="article">
+        <a href="/archive.html" class="back-link matrix-link">cd ../archive</a>
+        <div class="lang-nav">
+          lang: <a href="/archive/cliproxy-design.html" style="color:#00ff00;">EN</a>
+          <a href="/cn/archive/cliproxy-design.html" style="color:#00ff00;">CN</a>
+        </div>
+
+        <h1>Free GPT-5 + AI Design Stack — Zero Cost</h1>
+        <div class="article-meta">
+          > date: 2026-05-06 &nbsp;|&nbsp; tags: ai, gpt, openai, cliproxyapi, open-design, gopay, free &nbsp;|&nbsp; time: ~15 min read
+        </div>
+
+        <p>
+          This post documents a complete zero-cost AI workflow: use Indonesian GoPay to get free ChatGPT Plus accounts, build a multi-account API proxy with CLIProxyAPI, and connect Open Design for AI-powered design generation. Total cost: nothing.
+        </p>
+
+        <img src="/assets/img/cliproxy-design/02-management-dashboard.png" alt="CLIProxyAPI Management Dashboard" />
+        <div class="img-caption">CLIProxyAPI management panel — unified multi-account control</div>
+
+        <div class="arch-box">
+          <div class="label">ARCHITECTURE OVERVIEW</div>
+          <div class="arch-flow">
+            <span class="arrow">Indonesian GoPay</span> → free <span class="highlight">ChatGPT Plus</span> accounts (multiple)<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">CLIProxyAPI</span> aggregates accounts into <span class="highlight">OpenAI-compatible API</span><br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Open Design</span> / any OpenAI client → GPT-5, Codex, Image 2<br>
+            <span class="arrow">&nbsp;&nbsp;↓</span><br>
+            <span class="highlight">Round-robin + auto-failover</span> → infinite uptime, zero cost
+          </div>
+        </div>
+
+        <!-- ==================== PART 1: GoPay ==================== -->
+        <h2><span class="section-icon">◆</span> Part 1: Free ChatGPT Plus via Indonesian GoPay</h2>
+
+        <p>
+          OpenAI offers a <span class="highlight">free Plus trial</span> in certain regions. Combined with GoPay (an Indonesian e-wallet), you can subscribe at zero cost. The flow: register a new ChatGPT account → trigger the free trial → use GoPay as payment (no actual charge) → immediately cancel auto-renewal.
+        </p>
+
+        <h3><span class="step-num">1.</span> Preparation</h3>
+        <ul>
+          <li>Prepare a fresh email (dedicated account recommended)</li>
+          <li>Download <span class="highlight">WhatsApp</span> and <span class="highlight">GoPay</span> from Google Play or other app stores</li>
+          <li>Register both with your <code>+86</code> phone number</li>
+        </ul>
+
+        <h3><span class="step-num">2.</span> Register ChatGPT Account</h3>
+        <ul>
+          <li>Switch your VPN to a <span class="highlight">Japan node</span> (or other supported region)</li>
+          <li>Register a new ChatGPT account with your prepared email</li>
+        </ul>
+
+        <h3><span class="step-num">3.</span> Get the Free Trial</h3>
+        <ul>
+          <li>Click "Upgrade to Plus" at the top, or look for a promotional prompt</li>
+          <li>Find the <span class="highlight">"Free trial"</span> entry point</li>
+          <li>On the subscription page, switch region to <span class="highlight">Indonesia</span></li>
+          <li>Select <span class="highlight">GoPay</span> as payment method</li>
+        </ul>
+
+        <h3><span class="step-num">4.</span> Billing Address</h3>
+        <ul>
+          <li>Search for a "Singapore address generator" online</li>
+          <li>Fill in a generated virtual address</li>
+        </ul>
+
+        <h3><span class="step-num">5.</span> Set Up GoPay PIN</h3>
+        <ul>
+          <li>Open the GoPay app on your phone</li>
+          <li>Tap <code>Profil</code> (bottom right)</li>
+          <li>Find the <code>PIN</code> setting, enter your payment PIN twice, confirm</li>
+        </ul>
+
+        <h3><span class="step-num">6.</span> Complete Subscription</h3>
+        <ul>
+          <li>Return to the ChatGPT subscription page and click Subscribe</li>
+          <li>Select <code>+86 (China)</code> for phone verification, enter your number</li>
+          <li>The verification code arrives on <span class="highlight">WhatsApp</span>, not SMS — check WhatsApp and enter the code</li>
+          <li>Subscription complete!</li>
+        </ul>
+
+        <h3><span class="step-num">7.</span> Cancel Auto-Renewal Immediately (Critical!)</h3>
+        <div class="warn">
+          Do this NOW or you'll be charged when the trial ends.
+        </div>
+        <ul>
+          <li>Go to ChatGPT → Settings → Account → Manage</li>
+          <li><span class="highlight">Cancel</span> the subscription</li>
+          <li>You keep Plus access during the trial period, but won't be charged after</li>
+        </ul>
+
+        <div class="tip">
+          Repeat for multiple accounts to build a Plus account pool. CLIProxyAPI will manage them all.
+        </div>
+
+        <!-- ==================== PART 2: CLIProxyAPI ==================== -->
+        <h2><span class="section-icon">◆</span> Part 2: CLIProxyAPI Multi-Account Proxy</h2>
+
+        <p>
+          <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a> is a Go proxy server that aggregates multiple ChatGPT/Claude/Gemini accounts into a standard OpenAI-compatible API. Features round-robin load balancing, auto-failover on quota exhaustion, and session affinity.
+        </p>
+
+        <img src="/assets/img/cliproxy-design/01-management-login.png" alt="CLIProxyAPI Login" />
+        <div class="img-caption">CLIProxyAPI web management panel login</div>
+
+        <h3><span class="step-num">1.</span> Install CLIProxyAPI</h3>
+        <p>macOS via Homebrew:</p>
+<pre><code>brew tap tianyicui/homebrew-cliproxyapi
+brew install cliproxyapi</code></pre>
+        <p>Or download the pre-built binary directly:</p>
+<pre><code># macOS ARM (Apple Silicon)
+curl -L -o cliproxy.tar.gz \
+  "https://github.com/router-for-me/CLIProxyAPI/releases/download/v6.10.8/CLIProxyAPI_6.10.8_darwin_aarch64.tar.gz"
+tar -xzf cliproxy.tar.gz
+sudo cp cli-proxy-api /usr/local/bin/</code></pre>
+        <p>Linux one-liner:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/router-for-me/cliproxyapi-installer/refs/heads/master/cliproxyapi-installer | bash</code></pre>
+
+        <h3><span class="step-num">2.</span> Log In ChatGPT Accounts</h3>
+        <p>Run OAuth login for each Plus account:</p>
+<pre><code>cli-proxy-api -config ~/.cli-proxy-api/config.yaml -codex-login</code></pre>
+        <p>A browser window opens for OpenAI authorization. Credentials are saved to <code>~/.cli-proxy-api/</code>. Repeat for each account.</p>
+
+        <h3><span class="step-num">3.</span> Configuration</h3>
+        <p>Edit <code>~/.cli-proxy-api/config.yaml</code>:</p>
+<pre><code>host: ""
+port: 8317
+
+remote-management:
+  allow-remote: false
+  secret-key: "your-management-password"
+
+auth-dir: "~/.cli-proxy-api"
+
+api-keys:
+  - "your-api-key"  # generate with: openssl rand -hex 32
+
+request-retry: 3
+
+quota-exceeded:
+  switch-project: true
+  switch-preview-model: true
+
+routing:
+  strategy: "round-robin"</code></pre>
+
+        <h3><span class="step-num">4.</span> Start the Service</h3>
+<pre><code># Background
+nohup cli-proxy-api -config ~/.cli-proxy-api/config.yaml &gt; /tmp/cli-proxy-api.log 2&gt;&amp;1 &amp;
+
+# Or TUI mode (interactive terminal UI)
+cli-proxy-api -config ~/.cli-proxy-api/config.yaml -tui</code></pre>
+
+        <h3><span class="step-num">5.</span> Verify the API</h3>
+<pre><code># List available models
+curl http://localhost:8317/v1/models \
+  -H "Authorization: Bearer your-api-key"
+
+# Test chat completion
+curl http://localhost:8317/v1/chat/completions \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"hello"}]}'</code></pre>
+
+        <h3><span class="step-num">6.</span> Management Panel</h3>
+        <p>Open <code>http://localhost:8317/management.html</code> in your browser. Log in with your management password to see account status, model lists, and request statistics.</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Info</th><th>Value</th></tr>
+            <tr><td>Base URL</td><td><code>http://localhost:8317/v1</code></td></tr>
+            <tr><td>API Key</td><td>From config file api-keys</td></tr>
+            <tr><td>Models</td><td>gpt-5.2, gpt-5.3-codex, gpt-5.4, gpt-5.5, gpt-image-2, etc.</td></tr>
+            <tr><td>Auto-failover</td><td>Quota exhausted → auto-switch to next account, transparent to client</td></tr>
+          </table>
+        </div>
+
+        <!-- ==================== PART 3: Open Design ==================== -->
+        <h2><span class="section-icon">◆</span> Part 3: Open Design for AI-Powered Design</h2>
+
+        <p>
+          <a href="https://github.com/nexu-io/open-design">Open Design</a> is the open-source alternative to Anthropic's Claude Design. Runs locally, web-deployable, fully BYOK. It doesn't ship its own AI agent — instead it reuses the coding agent CLIs already on your machine (Claude Code, Codex, Cursor, Gemini CLI, and 11 others) and turns them into design engines.
+        </p>
+
+        <img src="/assets/img/cliproxy-design/16-od-banner.png" alt="Open Design Banner" />
+        <div class="img-caption">Open Design — open-source Claude Design alternative</div>
+
+        <h3>Core Design Philosophy</h3>
+        <p>Open Design is built on six load-bearing ideas:</p>
+        <ul>
+          <li><span class="highlight">No bundled agent</span> — scans PATH for 15+ CLIs; each becomes a candidate design engine</li>
+          <li><span class="highlight">Skills are files</span> — follows Claude Code's SKILL.md convention; drop a folder, restart daemon</li>
+          <li><span class="highlight">Design Systems are Markdown</span> — 9-section DESIGN.md schema (color, typography, spacing, layout, components, motion, voice, brand, anti-patterns)</li>
+          <li><span class="highlight">Interactive question form</span> — discovery before coding, prevents 80% of redirects</li>
+          <li><span class="highlight">Local daemon</span> — agent gets real filesystem access; sessions persist in SQLite</li>
+          <li><span class="highlight">Prompt stack is the product</span> — composed of discovery directives + identity charter + DESIGN.md + SKILL.md + project metadata</li>
+        </ul>
+
+        <h3>15 Supported Coding Agents</h3>
+        <p>Auto-detected on your PATH, swap with one click:</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Agent</th><th>CLI</th></tr>
+            <tr><td><span class="highlight">Claude Code</span></td><td><code>claude</code></td></tr>
+            <tr><td><span class="highlight">Codex CLI</span></td><td><code>codex</code></td></tr>
+            <tr><td><span class="highlight">Cursor Agent</span></td><td><code>cursor-agent</code></td></tr>
+            <tr><td><span class="highlight">Gemini CLI</span></td><td><code>gemini</code></td></tr>
+            <tr><td><span class="highlight">GitHub Copilot CLI</span></td><td><code>copilot</code></td></tr>
+            <tr><td>Devin for Terminal</td><td><code>devin</code></td></tr>
+            <tr><td>OpenCode</td><td><code>opencode</code></td></tr>
+            <tr><td>Qwen Code</td><td><code>qwen</code></td></tr>
+            <tr><td>Hermes (ACP)</td><td><code>hermes</code></td></tr>
+            <tr><td>Kimi CLI (ACP)</td><td><code>kimi</code></td></tr>
+            <tr><td>Pi (RPC)</td><td><code>pi</code></td></tr>
+            <tr><td>Kiro CLI (ACP)</td><td><code>kiro-cli</code></td></tr>
+            <tr><td>Kilo (ACP)</td><td><code>kilo</code></td></tr>
+            <tr><td>Mistral Vibe CLI</td><td><code>vibe-acp</code></td></tr>
+            <tr><td>DeepSeek TUI</td><td><code>deepseek</code></td></tr>
+          </table>
+        </div>
+        <p>
+          No local CLI? Use the <span class="highlight">BYOK API proxy</span> fallback — supports Anthropic, OpenAI, Azure OpenAI, and Google Gemini protocols.
+        </p>
+
+        <h3>31 Built-in Skills</h3>
+        <p>Skills are split into Prototype mode (27) and Deck mode (4):</p>
+
+        <img src="/assets/img/cliproxy-design/05-od-entry.png" alt="Open Design Entry" />
+        <div class="img-caption">Choose skill and design direction</div>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Category</th><th>Skill</th><th>Description</th></tr>
+            <tr><td>Web</td><td><span class="highlight">web-prototype</span></td><td>Single-page HTML landing (default)</td></tr>
+            <tr><td>Web</td><td><span class="highlight">saas-landing</span></td><td>SaaS landing (Hero/Features/Pricing/CTA)</td></tr>
+            <tr><td>Ops</td><td><span class="highlight">dashboard</span></td><td>Admin/analytics panel</td></tr>
+            <tr><td>Sales</td><td>pricing-page</td><td>Standalone pricing + comparison tables</td></tr>
+            <tr><td>Eng</td><td>docs-page</td><td>3-column documentation layout</td></tr>
+            <tr><td>Marketing</td><td>blog-post</td><td>Editorial long-form</td></tr>
+            <tr><td>Mobile</td><td><span class="highlight">mobile-app</span></td><td>iPhone 15 Pro / Pixel with device frames</td></tr>
+            <tr><td>Mobile</td><td>mobile-onboarding</td><td>Multi-screen onboarding flow</td></tr>
+            <tr><td>Mobile</td><td>gamified-app</td><td>Three-frame gamified prototype</td></tr>
+            <tr><td>Marketing</td><td><span class="highlight">email-marketing</span></td><td>Brand product-launch HTML email</td></tr>
+            <tr><td>Marketing</td><td><span class="highlight">social-carousel</span></td><td>3-card 1080x1080 social carousel</td></tr>
+            <tr><td>Marketing</td><td>magazine-poster</td><td>Single-page magazine poster</td></tr>
+            <tr><td>Marketing</td><td>motion-frames</td><td>Motion-design hero with CSS animations</td></tr>
+            <tr><td>Marketing</td><td>sprite-animation</td><td>Pixel/8-bit animated explainer</td></tr>
+            <tr><td>Design</td><td>wireframe-sketch</td><td>Hand-drawn ideation sketch</td></tr>
+            <tr><td>Design</td><td>critique</td><td>Five-dimensional self-critique</td></tr>
+            <tr><td>Product</td><td>pm-spec</td><td>PM spec doc with TOC + decision log</td></tr>
+            <tr><td>Product</td><td>team-okrs</td><td>OKR scoresheet</td></tr>
+            <tr><td>Ops</td><td>meeting-notes</td><td>Meeting decision log</td></tr>
+            <tr><td>Ops</td><td>kanban-board</td><td>Board snapshot</td></tr>
+            <tr><td>Eng</td><td>eng-runbook</td><td>Incident runbook</td></tr>
+            <tr><td>Finance</td><td>finance-report</td><td>Exec finance summary</td></tr>
+            <tr><td>Finance</td><td>invoice</td><td>Single-page invoice</td></tr>
+            <tr><td>HR</td><td>hr-onboarding</td><td>Role onboarding plan</td></tr>
+          </table>
+        </div>
+
+        <h3>Deck Mode Skills (PPT/Presentation)</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Skill</th><th>Description</th></tr>
+            <tr><td><span class="highlight">guizang-ppt</span></td><td>Magazine-style web PPT (default deck skill)</td></tr>
+            <tr><td>simple-deck</td><td>Minimal horizontal-swipe deck</td></tr>
+            <tr><td>replit-deck</td><td>Product-walkthrough deck (Replit-style)</td></tr>
+            <tr><td>weekly-update</td><td>Team weekly cadence swipe deck</td></tr>
+          </table>
+        </div>
+
+        <img src="/assets/img/cliproxy-design/11-od-deck.png" alt="Magazine Deck" />
+        <div class="img-caption">Magazine-style PPT presentation</div>
+
+        <h3>72+ Brand Design Systems</h3>
+        <p>
+          129 design systems built in, covering mainstream product design languages. Each includes complete color, typography, spacing, and component specs:
+        </p>
+        <p>
+          <span class="highlight">Linear</span> · <span class="highlight">Stripe</span> · <span class="highlight">Vercel</span> · <span class="highlight">Airbnb</span> · <span class="highlight">Tesla</span> · <span class="highlight">Notion</span> · <span class="highlight">Anthropic</span> · <span class="highlight">Apple</span> · <span class="highlight">Cursor</span> · <span class="highlight">Supabase</span> · <span class="highlight">Figma</span> · <span class="highlight">Xiaohongshu</span> · <span class="highlight">Resend</span> · <span class="highlight">Raycast</span> · <span class="highlight">Lovable</span> · <span class="highlight">Spotify</span> · <span class="highlight">Webflow</span> · <span class="highlight">PostHog</span> · <span class="highlight">Sentry</span> · <span class="highlight">MongoDB</span> · <span class="highlight">ClickHouse</span> … and more
+        </p>
+
+        <img src="/assets/img/cliproxy-design/10-od-designsystems.png" alt="Design Systems" />
+        <div class="img-caption">72+ brand design systems library</div>
+
+        <h3>5 Visual Directions</h3>
+        <p>Each design can be styled with a visual direction:</p>
+        <ul>
+          <li><span class="highlight">Editorial Monocle</span> — magazine typography, generous whitespace</li>
+          <li><span class="highlight">Modern Minimal</span> — clean lines, contemporary</li>
+          <li><span class="highlight">Warm Soft</span> — warm, soft color palette</li>
+          <li><span class="highlight">Tech Utility</span> — developer-oriented, tool-like feel</li>
+          <li><span class="highlight">Brutalist Experimental</span> — raw, experimental style</li>
+        </ul>
+
+        <img src="/assets/img/cliproxy-design/07-od-direction.png" alt="Direction Picker" />
+        <div class="img-caption">Choose visual direction</div>
+
+        <h3>Generation Showcase</h3>
+
+        <img src="/assets/img/cliproxy-design/09-od-preview.png" alt="Preview" />
+        <div class="img-caption">Sandbox iframe live preview</div>
+
+        <img src="/assets/img/cliproxy-design/12-od-mobile.png" alt="Mobile Design" />
+        <div class="img-caption">Mobile app design with device frames</div>
+
+        <img src="/assets/img/cliproxy-design/13-od-social.png" alt="Social Carousel" />
+        <div class="img-caption">Social media carousel cards</div>
+
+        <img src="/assets/img/cliproxy-design/15-od-dating.png" alt="Dating Web" />
+        <div class="img-caption">Consumer dating website prototype</div>
+
+        <img src="/assets/img/cliproxy-design/14-od-email.png" alt="Email Marketing" />
+        <div class="img-caption">Brand email marketing template</div>
+
+        <h3>Media Generation</h3>
+        <p>Beyond web and PPT, Open Design supports:</p>
+        <ul>
+          <li><span class="highlight">Image generation</span> — via gpt-image-2 (Azure/OpenAI)</li>
+          <li><span class="highlight">Video generation</span> — Seedance 2.0 (ByteDance), 15s cinematic text-to-video</li>
+          <li><span class="highlight">HyperFrames</span> — HTML-to-MP4 motion graphics, 93 ready-to-use templates</li>
+        </ul>
+
+        <h3><span class="step-num">1.</span> Install Open Design</h3>
+<pre><code>git clone https://github.com/nexu-io/open-design.git
+cd open-design
+corepack enable
+pnpm install</code></pre>
+        <p>Requires Node.js 24+ and pnpm 10.33.x (managed via Corepack).</p>
+
+        <h3><span class="step-num">2.</span> Configure API Proxy</h3>
+        <p>Point Open Design's BYOK endpoint to CLIProxyAPI to use your free GPT account pool:</p>
+        <ul>
+          <li>In Open Design settings, configure the OpenAI-compatible endpoint</li>
+          <li>Base URL: <code>http://localhost:8317/v1</code></li>
+          <li>API Key: the key from your CLIProxyAPI config</li>
+        </ul>
+        <p>All AI calls from Open Design will route through CLIProxyAPI, automatically rotating across your Plus accounts.</p>
+
+        <h3><span class="step-num">3.</span> Launch</h3>
+<pre><code># Daemon + web (foreground)
+pnpm tools-dev run web
+
+# Daemon + web (background)
+pnpm tools-dev start web
+
+# Check status
+pnpm tools-dev status
+
+# View logs
+pnpm tools-dev logs
+
+# Stop
+pnpm tools-dev stop</code></pre>
+        <p>Open <code>http://localhost:63559</code> in your browser.</p>
+
+        <h3><span class="step-num">4.</span> Usage Flow</h3>
+        <ul>
+          <li>Choose a <span class="highlight">skill</span> (Landing Page, Mobile App, Pitch Deck, etc.)</li>
+          <li>Pick a <span class="highlight">design system</span> (Linear, Stripe, Apple style, etc.)</li>
+          <li>Select a <span class="highlight">visual direction</span> (Modern Minimal, Editorial Monocle, etc.)</li>
+          <li>Fill in the <span class="highlight">discovery form</span> — AI asks before coding</li>
+          <li>AI generates, <span class="highlight">live preview</span> in sandbox iframe</li>
+          <li>Export as HTML / PDF / PPTX / MP4</li>
+        </ul>
+
+        <h3>Persistence &amp; Import</h3>
+        <ul>
+          <li>All projects, conversations, messages stored in local SQLite (<code>.od/app.sqlite</code>)</li>
+          <li>Import Claude Design export ZIPs via API</li>
+          <li>Optional Electron desktop app for macOS (Apple Silicon) and Windows (x64)</li>
+        </ul>
+
+        <!-- ==================== PART 4: Advanced ==================== -->
+        <h2><span class="section-icon">◆</span> Part 4: Advanced Tips &amp; Cost Analysis</h2>
+
+        <h3>Account Pool Strategy</h3>
+        <p>
+          Register 3-5 Plus accounts, each with the GoPay free trial. CLIProxyAPI handles the rest:
+        </p>
+        <ul>
+          <li>Round-robin distributes requests evenly across accounts</li>
+          <li>Quota exhausted on one → auto-skip to next, transparent to client</li>
+          <li><span class="highlight">session-affinity</span> binds sessions to accounts for consistency</li>
+          <li>OAuth tokens auto-refresh — zero maintenance</li>
+        </ul>
+
+        <h3>Free Models Available</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Model</th><th>Use Case</th><th>Notes</th></tr>
+            <tr><td><span class="highlight">gpt-5.5</span></td><td>General chat</td><td>Latest flagship model</td></tr>
+            <tr><td><span class="highlight">gpt-5.3-codex</span></td><td>Code generation</td><td>Coding-specialized, works with Codex CLI</td></tr>
+            <tr><td><span class="highlight">gpt-image-2</span></td><td>Image generation</td><td>DALL-E class image generation</td></tr>
+            <tr><td><span class="highlight">gpt-5.4-mini</span></td><td>Light tasks</td><td>Fast, low-overhead</td></tr>
+          </table>
+        </div>
+
+        <h3>Cost Breakdown</h3>
+        <div class="arch-box">
+          <div class="label">TOTAL SPEND</div>
+          <div class="arch-flow">
+            ChatGPT Plus trial: <span class="highlight">$0</span> (GoPay free trial + cancel before renewal)<br>
+            CLIProxyAPI: <span class="highlight">$0</span> (open source)<br>
+            Open Design: <span class="highlight">$0</span> (open source)<br>
+            GoPay registration: <span class="highlight">$0</span> (free with any phone number)<br>
+            ─────────────────<br>
+            <span class="highlight">Total: $0</span>
+          </div>
+        </div>
+
+        <h3>Important Notes</h3>
+        <ul>
+          <li>Each Plus trial lasts ~14 days — cancel before it ends</li>
+          <li>Register new accounts to keep the cycle going</li>
+          <li>GoPay won't actually charge you, but always cancel during the trial</li>
+          <li>CLIProxyAPI supports hot-reload — add accounts without restarting</li>
+          <li>Use a VPN for stable connectivity</li>
+        </ul>
+
+        <h2><span class="section-icon">◆</span> Tech Stack Summary</h2>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Component</th><th>Purpose</th><th>Link</th></tr>
+            <tr><td><span class="highlight">GoPay</span></td><td>Indonesian e-wallet for free subscription</td><td>Google Play / App Store</td></tr>
+            <tr><td><span class="highlight">ChatGPT Plus</span></td><td>GPT-5, Codex, Image 2 access</td><td>chat.openai.com</td></tr>
+            <tr><td><span class="highlight">CLIProxyAPI</span></td><td>Multi-account API proxy, OpenAI-compatible</td><td><a href="https://github.com/router-for-me/CLIProxyAPI">GitHub</a></td></tr>
+            <tr><td><span class="highlight">Open Design</span></td><td>Local AI design tool</td><td><a href="https://github.com/nexu-io/open-design">GitHub</a></td></tr>
+          </table>
+        </div>
+
+        <br>
+        <p class="dim">
+          > EOF
+        </p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
