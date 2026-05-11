@@ -1,7 +1,7 @@
 ---
 type: content-brief
 status: idea
-topic: 机器人
+topic: Hermes Agent
 source_type: trendradar
 captured: 2026-05-11
 updated: 2026-05-11
@@ -16,15 +16,15 @@ channels:
 cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 ---
 
-# 2026-05-11 机器人 选题卡
+# 2026-05-11 Hermes Agent 选题卡
 
 ## One-Line Angle
 
-- 把「机器人」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
+- 把「Hermes Agent」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
 
 ## Why Now
 
-- `bilibili 热搜 #30` [人形机器人挑战采茶制茶](https://search.bilibili.com/all?keyword=%E4%BA%BA%E5%BD%A2%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%8C%91%E6%88%98%E9%87%87%E8%8C%B6%E5%88%B6%E8%8C%B6)
+- `bilibili 热搜 #4` [OpenClaw失控是怎么回事](https://search.bilibili.com/all?keyword=OpenClaw%E5%A4%B1%E6%8E%A7%E6%98%AF%E6%80%8E%E4%B9%88%E5%9B%9E%E4%BA%8B)
 
 ## Draft Direction
 
@@ -34,7 +34,7 @@ cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 
 ## Evidence Pool
 
-- `bilibili 热搜 #30` [人形机器人挑战采茶制茶](https://search.bilibili.com/all?keyword=%E4%BA%BA%E5%BD%A2%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%8C%91%E6%88%98%E9%87%87%E8%8C%B6%E5%88%B6%E8%8C%B6)
+- `bilibili 热搜 #4` [OpenClaw失控是怎么回事](https://search.bilibili.com/all?keyword=OpenClaw%E5%A4%B1%E6%8E%A7%E6%98%AF%E6%80%8E%E4%B9%88%E5%9B%9E%E4%BA%8B)
 
 ## Cover Brief
 
