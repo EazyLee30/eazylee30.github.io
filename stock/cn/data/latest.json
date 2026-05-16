@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "generatedAt": "2026-05-17T07:51:18+08:00",
+    "tradingDate": "2026-05-17",
+    "mode": "mock",
+    "isMock": true,
+    "callsUsed": 0,
+    "callBudget": 0,
+    "note": "Seed data only. GitHub Actions will replace this when MX_APIKEY is configured."
+  },
+  "market": [
+    {
+      "title": "A股主要指数",
+      "rows": [
+        {
+          "date": "上证指数",
+          "最新价": "4135.39",
+          "涨跌幅": "-1.02%",
+          "成交额": "1.519万亿元"
+        }
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "title": "题材热度示例",
+      "rows": [
+        {
+          "date": "消费电子",
+          "涨跌幅": "-0.23%",
+          "成交额": "示例"
+        }
+      ]
+    }
+  ],
+  "screeners": [
+    {
+      "name": "资金进攻",
+      "query": "A股 非ST 成交额大于20亿元 主力资金净流入大于2亿元",
+      "rows": [
+        {
+          "代码": "300433",
+          "名称": "蓝思科技",
+          "涨跌幅": "5.88%",
+          "主力净额": "3.323亿元",
+          "成交额": "89.43亿元"
+        },
+        {
+          "代码": "002564",
+          "名称": "天沃科技",
+          "涨跌幅": "-2.33%",
+          "主力净额": "-589.9万元",
+          "成交额": "1.147亿元"
+        }
+      ]
+    }
+  ],
+  "news": [],
+  "stockDetails": [],
+  "quotaPlan": {
+    "dailyLimit": 500,
+    "reserve": 20,
+    "runs": [
+      {
+        "name": "premarket",
+        "timeCN": "08:20",
+        "budget": 180,
+        "focus": "外围资讯、盘前题材、候选池预热"
+      },
+      {
+        "name": "postclose",
+        "timeCN": "15:45",
+        "budget": 300,
+        "focus": "收盘截面、题材排名、个股细查、次日候选"
+      }
+    ],
+    "storagePolicy": {
+      "repo": "只提交代码和轻量 seed 数据，不日更提交大 JSON",
+      "pagesArtifact": "定时生成 latest.json 并直接部署到 Pages artifact",
+      "history": "默认保留 20 个交易日小 JSON，可在 workflow 中关闭或缩短"
+    }
+  },
+  "errors": []
+}

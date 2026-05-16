@@ -5,6 +5,42 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      update_stock_data:
+        description: "Run MX A-share data pipeline before deploy"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      stock_mode:
+        description: "MX pipeline mode"
+        required: true
+        default: "postclose"
+        type: choice
+        options:
+          - premarket
+          - postclose
+          - exhaustive
+          - mock
+      call_budget:
+        description: "MX call budget for this run"
+        required: true
+        default: "300"
+      detail_limit:
+        description: "Max per-stock detail queries"
+        required: true
+        default: "270"
+  schedule:
+    # 08:20 Asia/Shanghai, weekday pre-market refresh.
+    - cron: "20 0 * * 1-5"
+    # 15:45 Asia/Shanghai, weekday post-close refresh.
+    - cron: "45 7 * * 1-5"
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -16,20 +52,79 @@ jobs:
       contents: read
       pages: write
       id-token: write
+    env:
+      MX_APIKEY: ${{ secrets.MX_APIKEY }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve stock data budget
+        id: stock
+        shell: bash
+        run: |
+          update="false"
+          mode="postclose"
+          budget="0"
+          detail_limit="0"
+
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            update="true"
+            if [[ "${{ github.event.schedule }}" == "20 0 * * 1-5" ]]; then
+              mode="premarket"
+              budget="180"
+              detail_limit="150"
+            else
+              mode="postclose"
+              budget="300"
+              detail_limit="270"
+            fi
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            update="${{ inputs.update_stock_data }}"
+            mode="${{ inputs.stock_mode }}"
+            budget="${{ inputs.call_budget }}"
+            detail_limit="${{ inputs.detail_limit }}"
+          fi
+
+          if [[ -z "${MX_APIKEY}" && "${mode}" != "mock" ]]; then
+            echo "MX_APIKEY is not configured; deploying existing stock/cn seed data."
+            update="false"
+          fi
+
+          echo "update=${update}" >> "$GITHUB_OUTPUT"
+          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
+          echo "budget=${budget}" >> "$GITHUB_OUTPUT"
+          echo "detail_limit=${detail_limit}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate A-share dashboard data
+        if: steps.stock.outputs.update == 'true'
+        run: >
+          python3 scripts/mx_cn_pipeline.py
+          --mode "${{ steps.stock.outputs.mode }}"
+          --call-budget "${{ steps.stock.outputs.budget }}"
+          --detail-limit "${{ steps.stock.outputs.detail_limit }}"
+          --history-days 20
+          --output stock/cn/data/latest.json
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
+      - name: Prepare static artifact
+        shell: bash
+        run: |
+          mkdir -p _site
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.DS_Store' \
+            --exclude='_site' \
+            -cf - . | tar -xf - -C _site
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
       
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
