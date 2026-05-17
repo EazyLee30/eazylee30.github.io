@@ -45,6 +45,12 @@ HIGH_VOL_SCALP_QUERY = (
     "成交额大于3亿元 换手率大于8% 主力资金净流入大于0 "
     "今日涨跌幅在-3%到18%之间 按换手率降序"
 )
+N_REVERSAL_QUERY = (
+    "创业板 300或301开头 或 科创板 688开头 或 北交所 A股 非ST "
+    "上市超过5个交易日 股价大于5元 近3日内单日涨幅大于8% "
+    "今日成交额大于20日平均成交额1.5倍 股价站上5日均线和10日均线 "
+    "换手率8%到35% 今日涨跌幅在0%到15% 主力资金净流入大于0 按成交额降序"
+)
 SMART_MONEY_TREND_QUERY = (
     "A股 非ST 成交额大于2亿元 股价高于60日均线 近60日涨幅大于15% "
     "收盘价创60日新高 成交量大于20日均量1.5倍 主力资金净流入大于0 "
@@ -64,6 +70,7 @@ SCREENERS = [
     ("流动性核心", "A股 非ST 成交额大于50亿元 主力资金净流入大于0 按成交额降序"),
     ("小微盘活跃", "A股 非ST 总市值小于100亿元 成交额大于3亿元 换手率大于8% 主力资金净流入大于0"),
     ("688/创业板/北交所超短搏杀", HIGH_VOL_SCALP_QUERY),
+    ("20/30cm N字反弹", N_REVERSAL_QUERY),
     ("机构趋势跟随", SMART_MONEY_TREND_QUERY),
     ("机构踩踏反转", FORCED_SELLER_REVERSAL_QUERY),
     ("半导体", "半导体 A股 非ST 成交额大于8亿元 主力资金净流入大于0"),
@@ -1037,6 +1044,11 @@ def is_high_volatility_board_code(code: str) -> bool:
     return code.startswith(("688", "30", "920", "83", "87", "88", "43"))
 
 
+def is_likely_new_stock(row: dict[str, Any]) -> bool:
+    name = find_name(row)
+    return name.startswith(("N", "C"))
+
+
 def collect_candidates(screeners: list[dict[str, Any]], limit: int) -> list[dict[str, str]]:
     seen: set[str] = set()
     candidates: list[dict[str, str]] = []
@@ -1099,6 +1111,11 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
             {
                 "name": "688/创业板/北交所超短搏杀",
                 "query": HIGH_VOL_SCALP_QUERY,
+                "rows": [],
+            },
+            {
+                "name": "20/30cm N字反弹",
+                "query": N_REVERSAL_QUERY,
                 "rows": [],
             },
             {
@@ -1195,8 +1212,10 @@ def generate(
             if client.remaining <= 0:
                 break
             rows = parse_screen_rows(client.screen(query, f"screener:{name}"), limit=80)
-            if name == "688/创业板/北交所超短搏杀":
+            if name in {"688/创业板/北交所超短搏杀", "20/30cm N字反弹"}:
                 rows = [row for row in rows if is_high_volatility_board_code(find_code(row))]
+            if name == "20/30cm N字反弹":
+                rows = [row for row in rows if not is_likely_new_stock(row)]
             screeners.append({"name": name, "query": query, "rows": rows})
 
     news_groups: list[dict[str, Any]] = []

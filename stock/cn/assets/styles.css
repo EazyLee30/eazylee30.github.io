@@ -148,6 +148,10 @@ select {
     rgba(15, 23, 42, 0.66);
 }
 
+.overview-only.is-hidden {
+  display: none;
+}
+
 .hero-copy {
   min-height: 310px;
   padding: 28px;

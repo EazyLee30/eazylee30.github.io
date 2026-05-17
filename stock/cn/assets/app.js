@@ -244,6 +244,22 @@ function buildHighVolScalpSignal(data) {
   };
 }
 
+function buildNReversalSignal(data) {
+  const group = findScreener(data, ["N字反弹", "20/30cm", "尾盘N字"]);
+  const rows = (group?.rows || []).filter((row) => isHighVolatilityBoardCode(findRowCode(row)));
+  if (!rows.length) {
+    return {
+      signal: "20/30cm N字反弹：未触发强阳、放量、回踩后再确认组合；T+1 下不做日内进出。",
+      operation: "N字策略只在 14:00-14:45 看尾盘确认，次日 5-30 分钟处理，低开不修复优先退出。",
+    };
+  }
+  const picks = rows.slice(0, 3).map(formatSignalPick).join("；");
+  return {
+    signal: `20/30cm N字反弹：${rows.length} 只进入尾盘观察，优先看 ${picks}`,
+    operation: "N字反弹是买次日溢价，不是抓日内最低；只买第二段资金确认，次日冲高分批卖。",
+  };
+}
+
 function buildSmartMoneyTrendSignal(data) {
   const group = findScreener(data, ["机构趋势跟随", "Smart Money", "趋势跟随"]);
   const rows = group?.rows || [];
@@ -430,6 +446,7 @@ function analyzeDashboard(data) {
   ];
   const strategySignals = [
     buildHighVolScalpSignal(data),
+    buildNReversalSignal(data),
     buildSmartMoneyTrendSignal(data),
     buildForcedSellerSignal(data),
   ];
@@ -1464,8 +1481,13 @@ function getCurrentView() {
 
 function setView(view) {
   const target = VIEWS.has(view) ? view : "overview";
+  document.body.dataset.activeView = target;
   document.querySelectorAll(".page-view").forEach((node) => {
     node.classList.toggle("is-active", node.dataset.view === target);
+  });
+  document.querySelectorAll(".overview-only").forEach((node) => {
+    node.classList.toggle("is-hidden", target !== "overview");
+    node.setAttribute("aria-hidden", target === "overview" ? "false" : "true");
   });
   document.querySelectorAll("[data-view-link]").forEach((link) => {
     const active = link.dataset.viewLink === target;
