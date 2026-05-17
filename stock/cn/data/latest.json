@@ -1,7 +1,28 @@
 {
   "meta": {
-    "generatedAt": "2026-05-17 14:06:44",
-    "tradingDate": "2026-05-17",
+    "generatedAt": "2026-05-17 14:34:45",
+    "dataCutoffAt": "2026-05-15 15:00:00",
+    "tradingDate": "2026-05-15",
+    "marketClock": {
+      "isOpen": false,
+      "session": "non_trading_day",
+      "sessionText": "非交易日",
+      "lastTradingDate": "2026-05-15",
+      "dataCutoffAt": "2026-05-15 15:00:00",
+      "calendarSource": "weekday fallback",
+      "recentTradingDates": [
+        "2026-05-04",
+        "2026-05-05",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15"
+      ]
+    },
     "mode": "mock",
     "isMock": true,
     "callsUsed": 0,
@@ -52,7 +73,7 @@
     "source": "workflow breadth snapshots + browser 15s realtime polling",
     "rows": [
       {
-        "time": "2026-05-17 14:06:44",
+        "time": "2026-05-15 15:00:00",
         "up": 1847,
         "down": 3617,
         "flat": 109,

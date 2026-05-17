@@ -27,6 +27,7 @@ from typing import Any
 
 API_BASE = "https://mkapi2.dfcfs.com/finskillshub/api/claw"
 PUBLIC_QUOTE_BASE = "https://push2.eastmoney.com/api/qt"
+PUBLIC_HISTORY_BASE = "https://push2his.eastmoney.com/api/qt"
 TIMEZONE = dt.timezone(dt.timedelta(hours=8), name="Asia/Shanghai")
 
 
@@ -72,6 +73,10 @@ PUBLIC_INDEX_SECIDS = "1.000001,0.399001,0.399006,1.000688,0.899050"
 PUBLIC_A_SHARE_FS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
 DEFAULT_PREVIOUS_LATEST_URL = "https://eazylee.xyz/stock/cn/data/latest.json"
 BREADTH_PULSE_MAX_POINTS = 1600
+MARKET_OPEN_AM = dt.time(9, 30)
+MARKET_CLOSE_AM = dt.time(11, 30)
+MARKET_OPEN_PM = dt.time(13, 0)
+MARKET_CLOSE_PM = dt.time(15, 0)
 
 
 def now_cn() -> dt.datetime:
@@ -161,6 +166,153 @@ def public_get_json(path: str, params: dict[str, str | int], timeout: int = 12) 
     return None
 
 
+def public_history_get_json(path: str, params: dict[str, str | int], timeout: int = 12) -> dict[str, Any] | None:
+    query = urllib.parse.urlencode(params, safe=",:.+")
+    url = f"{PUBLIC_HISTORY_BASE}/{path}?{query}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json,text/plain,*/*",
+            "Referer": "https://quote.eastmoney.com/",
+        },
+    )
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception:
+            if attempt < 2:
+                time.sleep(0.5 * (attempt + 1))
+    try:
+        raw = subprocess.check_output(
+            ["curl", "-sL", "--retry", "2", "--max-time", str(timeout), url],
+            text=True,
+            timeout=timeout + 4,
+            stderr=subprocess.DEVNULL,
+        )
+        return json.loads(raw)
+    except Exception:
+        pass
+    return None
+
+
+def fallback_previous_weekday(value: dt.date) -> dt.date:
+    current = value
+    while current.weekday() >= 5:
+        current -= dt.timedelta(days=1)
+    return current
+
+
+def fallback_trade_dates(end_date: dt.date, count: int = 20) -> list[dt.date]:
+    dates: list[dt.date] = []
+    current = end_date
+    while len(dates) < count:
+        if current.weekday() < 5:
+            dates.append(current)
+        current -= dt.timedelta(days=1)
+    return list(reversed(dates))
+
+
+def fetch_recent_trade_dates(end_date: dt.date, limit: int = 20) -> list[dt.date]:
+    result = public_history_get_json(
+        "stock/kline/get",
+        {
+            "secid": "1.000001",
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "klt": 101,
+            "fqt": 1,
+            "end": end_date.strftime("%Y%m%d"),
+            "lmt": limit,
+        },
+    )
+    rows = ((result or {}).get("data") or {}).get("klines") or []
+    dates: list[dt.date] = []
+    for row in rows:
+        raw_date = str(row).split(",", 1)[0]
+        try:
+            dates.append(dt.date.fromisoformat(raw_date))
+        except ValueError:
+            continue
+    return sorted(set(dates))
+
+
+def combine_cn(date_value: dt.date, time_value: dt.time) -> dt.datetime:
+    return dt.datetime.combine(date_value, time_value, tzinfo=TIMEZONE)
+
+
+def previous_trade_date(value: dt.date, trade_dates: list[dt.date]) -> dt.date:
+    for trade_date in reversed(trade_dates):
+        if trade_date < value:
+            return trade_date
+    return fallback_previous_weekday(value - dt.timedelta(days=1))
+
+
+def trade_date_on_or_before(value: dt.date, trade_dates: list[dt.date]) -> dt.date:
+    for trade_date in reversed(trade_dates):
+        if trade_date <= value:
+            return trade_date
+    return fallback_previous_weekday(value)
+
+
+def resolve_market_clock(generated_at: dt.datetime) -> dict[str, Any]:
+    today = generated_at.date()
+    trade_dates = fetch_recent_trade_dates(today, 24)
+    calendar_source = "Eastmoney daily kline"
+    if not trade_dates:
+        trade_dates = fallback_trade_dates(today, 24)
+        calendar_source = "weekday fallback"
+
+    latest_trade_date = trade_date_on_or_before(today, trade_dates)
+    current_time = generated_at.time()
+    is_open = False
+    session = "closed"
+    session_text = "已收盘"
+
+    if latest_trade_date == today:
+        if MARKET_OPEN_AM <= current_time <= MARKET_CLOSE_AM or MARKET_OPEN_PM <= current_time <= MARKET_CLOSE_PM:
+            is_open = True
+            session = "open"
+            session_text = "交易中"
+            cutoff_at = generated_at.replace(microsecond=0)
+        elif MARKET_CLOSE_AM < current_time < MARKET_OPEN_PM:
+            session = "lunch_break"
+            session_text = "午间休市"
+            cutoff_at = combine_cn(today, MARKET_CLOSE_AM)
+        elif current_time > MARKET_CLOSE_PM:
+            session = "postclose"
+            session_text = "已收盘"
+            cutoff_at = combine_cn(today, MARKET_CLOSE_PM)
+        else:
+            last_trade_date = previous_trade_date(today, trade_dates)
+            latest_trade_date = last_trade_date
+            session = "premarket"
+            session_text = "盘前未开盘"
+            cutoff_at = combine_cn(last_trade_date, MARKET_CLOSE_PM)
+    else:
+        if today.weekday() >= 5:
+            session = "non_trading_day"
+            session_text = "非交易日"
+        elif current_time < MARKET_OPEN_AM:
+            session = "premarket"
+            session_text = "盘前未开盘"
+        else:
+            session = "market_holiday_or_no_quote"
+            session_text = "未开盘"
+        cutoff_at = combine_cn(latest_trade_date, MARKET_CLOSE_PM)
+
+    return {
+        "isOpen": is_open,
+        "session": session,
+        "sessionText": session_text,
+        "lastTradingDate": latest_trade_date.isoformat(),
+        "dataCutoffAt": format_cn_time(cutoff_at),
+        "calendarSource": calendar_source,
+        "recentTradingDates": [value.isoformat() for value in trade_dates[-10:]],
+    }
+
+
 def fetch_previous_payload(output: Path, timeout: int = 8) -> dict[str, Any]:
     url = os.getenv("STOCK_CN_PREVIOUS_URL", DEFAULT_PREVIOUS_LATEST_URL).strip()
     if url:
@@ -211,12 +363,24 @@ def normalize_breadth_sample(sample: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def breadth_to_sample(generated_at: dt.datetime, breadth: dict[str, Any]) -> dict[str, Any] | None:
+def coerce_sample_to_trade_time(sample: dict[str, Any], trade_dates: list[dt.date]) -> dict[str, Any]:
+    sample_time = parse_cn_time(sample.get("time"))
+    if not sample_time:
+        return sample
+    sample_date = sample_time.date()
+    known_dates = set(trade_dates)
+    if sample_date in known_dates:
+        return sample
+    trade_date = trade_date_on_or_before(sample_date, trade_dates)
+    return {**sample, "time": format_cn_time(combine_cn(trade_date, MARKET_CLOSE_PM))}
+
+
+def breadth_to_sample(cutoff_at: dt.datetime, breadth: dict[str, Any]) -> dict[str, Any] | None:
     if not breadth or breadth.get("up") is None or breadth.get("down") is None:
         return None
     return normalize_breadth_sample(
         {
-            "time": format_cn_time(generated_at),
+            "time": format_cn_time(cutoff_at),
             "up": breadth.get("up"),
             "down": breadth.get("down"),
             "flat": breadth.get("flat"),
@@ -228,11 +392,13 @@ def breadth_to_sample(generated_at: dt.datetime, breadth: dict[str, Any]) -> dic
 
 
 def build_breadth_pulse(
-    generated_at: dt.datetime,
+    cutoff_at: dt.datetime,
     breadth: dict[str, Any],
     previous_payload: dict[str, Any] | None,
+    trade_dates: list[dt.date] | None = None,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
+    known_trade_dates = trade_dates or fallback_trade_dates(cutoff_at.date(), 24)
 
     previous_rows = ((previous_payload or {}).get("breadthPulse") or {}).get("rows", [])
     if isinstance(previous_rows, list):
@@ -240,18 +406,19 @@ def build_breadth_pulse(
             if isinstance(row, dict):
                 normalized = normalize_breadth_sample(row)
                 if normalized:
-                    rows.append(normalized)
+                    rows.append(coerce_sample_to_trade_time(normalized, known_trade_dates))
 
     previous_breadth = (previous_payload or {}).get("breadth") or {}
-    previous_generated_at = ((previous_payload or {}).get("meta") or {}).get("generatedAt")
-    if previous_breadth and previous_generated_at:
-        previous_sample = normalize_breadth_sample({**previous_breadth, "time": previous_generated_at})
+    previous_meta = (previous_payload or {}).get("meta") or {}
+    previous_cutoff = previous_meta.get("dataCutoffAt") or previous_meta.get("generatedAt")
+    if previous_breadth and previous_cutoff:
+        previous_sample = normalize_breadth_sample({**previous_breadth, "time": previous_cutoff})
         if previous_sample:
-            rows.append(previous_sample)
+            rows.append(coerce_sample_to_trade_time(previous_sample, known_trade_dates))
 
-    current_sample = breadth_to_sample(generated_at, breadth)
+    current_sample = breadth_to_sample(cutoff_at, breadth)
     if current_sample:
-        rows.append(current_sample)
+        rows.append(coerce_sample_to_trade_time(current_sample, known_trade_dates))
 
     deduped: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -624,7 +791,11 @@ def collect_candidates(screeners: list[dict[str, Any]], limit: int) -> list[dict
 
 
 def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
-    generated_at = format_cn_time()
+    generated_dt = now_cn()
+    generated_at = format_cn_time(generated_dt)
+    market_clock = resolve_market_clock(generated_dt)
+    cutoff_at = parse_cn_time(market_clock["dataCutoffAt"]) or generated_dt
+    recent_trade_dates = [dt.date.fromisoformat(value) for value in market_clock.get("recentTradingDates", [])]
     breadth = {
         "total": 5573,
         "up": 1847,
@@ -640,7 +811,9 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
     payload = {
         "meta": {
             "generatedAt": generated_at,
-            "tradingDate": generated_at[:10],
+            "dataCutoffAt": market_clock["dataCutoffAt"],
+            "tradingDate": market_clock["lastTradingDate"],
+            "marketClock": market_clock,
             "mode": mode,
             "isMock": True,
             "callsUsed": 0,
@@ -655,7 +828,7 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
             },
         ],
         "breadth": breadth,
-        "breadthPulse": build_breadth_pulse(parse_cn_time(generated_at) or now_cn(), breadth, {}),
+        "breadthPulse": build_breadth_pulse(cutoff_at, breadth, {}, recent_trade_dates),
         "themes": [
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},
         ],
@@ -706,7 +879,10 @@ def generate(
 ) -> dict[str, Any]:
     client = MXClient(api_key=api_key, call_budget=call_budget, timeout=request_timeout)
     generated_at = now_cn()
-    trading_date = generated_at.date().isoformat()
+    market_clock = resolve_market_clock(generated_at)
+    cutoff_at = parse_cn_time(market_clock["dataCutoffAt"]) or generated_at
+    recent_trade_dates = [dt.date.fromisoformat(value) for value in market_clock.get("recentTradingDates", [])]
+    trading_date = market_clock["lastTradingDate"]
 
     market, breadth = fetch_public_market()
     if not market:
@@ -765,7 +941,9 @@ def generate(
     payload = {
         "meta": {
             "generatedAt": format_cn_time(generated_at),
+            "dataCutoffAt": market_clock["dataCutoffAt"],
             "tradingDate": trading_date,
+            "marketClock": market_clock,
             "mode": mode,
             "isMock": False,
             "callsUsed": client.calls_used,
@@ -776,7 +954,7 @@ def generate(
         },
         "market": market,
         "breadth": breadth,
-        "breadthPulse": build_breadth_pulse(generated_at, breadth, previous_payload),
+        "breadthPulse": build_breadth_pulse(cutoff_at, breadth, previous_payload, recent_trade_dates),
         "themes": themes[:12],
         "screeners": screeners,
         "news": news_groups,

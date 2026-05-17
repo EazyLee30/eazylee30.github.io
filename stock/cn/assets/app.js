@@ -137,8 +137,9 @@ function firstRows(tables) {
 
 function updateMeta(data) {
   const meta = data.meta || {};
-  el("generated-at").textContent = formatTime(meta.generatedAt);
-  el("run-mode").textContent = `${text(meta.mode)}${meta.isMock ? " / seed" : ""}`;
+  const clock = meta.marketClock || {};
+  el("generated-at").textContent = formatTime(meta.dataCutoffAt || meta.generatedAt);
+  el("run-mode").textContent = `${text(meta.mode)}${meta.isMock ? " / seed" : ""}${clock.sessionText ? ` / ${clock.sessionText}` : ""}`;
   el("call-usage").textContent = `${text(meta.callsUsed, 0)} / ${text(meta.callBudget, 0)}`;
   el("strategy-count").textContent = text((data.screeners || []).length, 0);
   el("detail-count").textContent = text((data.stockDetails || []).length, 0);
@@ -147,7 +148,7 @@ function updateMeta(data) {
   const breadth = data.breadth || {};
   if (breadth.up !== undefined && breadth.down !== undefined) {
     el("market-state").textContent = `${text(breadth.up, 0)} 涨 / ${text(breadth.down, 0)} 跌`;
-    el("market-note").textContent = `${text(breadth.scope, "沪深京")} ${text(breadth.total, "-")} 只`;
+    el("market-note").textContent = `${text(breadth.scope, "沪深京")} ${text(breadth.total, "-")} 只 / 截止 ${text(meta.tradingDate)}`;
     return;
   }
 
@@ -241,7 +242,7 @@ function seedBreadthFromDashboard(data) {
   const breadth = data?.breadth || {};
   if (breadth.up === undefined || breadth.down === undefined) return;
   addBreadthSample({
-    t: parseCnTimestamp(data.meta?.generatedAt),
+    t: parseCnTimestamp(data.meta?.dataCutoffAt || data.meta?.generatedAt),
     up: breadth.up,
     down: breadth.down,
     flat: breadth.flat,
