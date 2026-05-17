@@ -70,6 +70,10 @@ def now_cn() -> dt.datetime:
     return dt.datetime.now(TIMEZONE)
 
 
+def format_cn_time(value: dt.datetime | None = None) -> str:
+    return (value or now_cn()).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def safe_slug(text: str, max_len: int = 60) -> str:
     text = re.sub(r"[^\w\u4e00-\u9fff.-]+", "_", text, flags=re.UNICODE)
     return text.strip("._")[:max_len] or "query"
@@ -286,7 +290,7 @@ def collect_candidates(screeners: list[dict[str, Any]], limit: int) -> list[dict
 
 
 def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
-    generated_at = now_cn().isoformat(timespec="seconds")
+    generated_at = format_cn_time()
     return {
         "meta": {
             "generatedAt": generated_at,
@@ -402,7 +406,7 @@ def generate(
 
     payload = {
         "meta": {
-            "generatedAt": generated_at.isoformat(timespec="seconds"),
+            "generatedAt": format_cn_time(generated_at),
             "tradingDate": trading_date,
             "mode": mode,
             "isMock": False,

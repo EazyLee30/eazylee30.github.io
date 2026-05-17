@@ -10,6 +10,11 @@ function text(value, fallback = "-") {
   return String(value);
 }
 
+function formatTime(value) {
+  const raw = text(value);
+  return raw.replace("T", " ").replace(/\+08:00$/, "");
+}
+
 function numberLike(value) {
   return /(^|[^0-9])-?\d+(\.\d+)?%?/.test(String(value || ""));
 }
@@ -75,7 +80,7 @@ function firstRows(tables) {
 
 function updateMeta(data) {
   const meta = data.meta || {};
-  el("generated-at").textContent = text(meta.generatedAt);
+  el("generated-at").textContent = formatTime(meta.generatedAt);
   el("run-mode").textContent = `${text(meta.mode)}${meta.isMock ? " / seed" : ""}`;
   el("call-usage").textContent = `${text(meta.callsUsed, 0)} / ${text(meta.callBudget, 0)}`;
   el("strategy-count").textContent = text((data.screeners || []).length, 0);
