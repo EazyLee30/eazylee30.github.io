@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-05-17T07:51:18+08:00",
+    "generatedAt": "2026-05-17T08:10:18+08:00",
     "tradingDate": "2026-05-17",
     "mode": "mock",
     "isMock": true,
@@ -64,13 +64,19 @@
       {
         "name": "premarket",
         "timeCN": "08:20",
-        "budget": 180,
+        "budget": 120,
         "focus": "外围资讯、盘前题材、候选池预热"
+      },
+      {
+        "name": "midday",
+        "timeCN": "12:45",
+        "budget": 120,
+        "focus": "午间行情、题材温度、风险复核"
       },
       {
         "name": "postclose",
         "timeCN": "15:45",
-        "budget": 300,
+        "budget": 240,
         "focus": "收盘截面、题材排名、个股细查、次日候选"
       }
     ],

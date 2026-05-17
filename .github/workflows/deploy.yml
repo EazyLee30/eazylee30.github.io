@@ -21,20 +21,23 @@ on:
         type: choice
         options:
           - premarket
+          - midday
           - postclose
           - exhaustive
           - mock
       call_budget:
         description: "MX call budget for this run"
         required: true
-        default: "300"
+        default: "180"
       detail_limit:
         description: "Max per-stock detail queries"
         required: true
-        default: "270"
+        default: "120"
   schedule:
     # 08:20 Asia/Shanghai, weekday pre-market refresh.
     - cron: "20 0 * * 1-5"
+    # 12:45 Asia/Shanghai, weekday mid-day refresh.
+    - cron: "45 4 * * 1-5"
     # 15:45 Asia/Shanghai, weekday post-close refresh.
     - cron: "45 7 * * 1-5"
 
@@ -72,12 +75,16 @@ jobs:
             update="true"
             if [[ "${{ github.event.schedule }}" == "20 0 * * 1-5" ]]; then
               mode="premarket"
-              budget="180"
-              detail_limit="150"
+              budget="120"
+              detail_limit="90"
+            elif [[ "${{ github.event.schedule }}" == "45 4 * * 1-5" ]]; then
+              mode="midday"
+              budget="120"
+              detail_limit="90"
             else
               mode="postclose"
-              budget="300"
-              detail_limit="270"
+              budget="240"
+              detail_limit="180"
             fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             update="${{ inputs.update_stock_data }}"
@@ -98,11 +105,13 @@ jobs:
 
       - name: Generate A-share dashboard data
         if: steps.stock.outputs.update == 'true'
+        timeout-minutes: 8
         run: >
           python3 scripts/mx_cn_pipeline.py
           --mode "${{ steps.stock.outputs.mode }}"
           --call-budget "${{ steps.stock.outputs.budget }}"
           --detail-limit "${{ steps.stock.outputs.detail_limit }}"
+          --request-timeout 12
           --history-days 20
           --output stock/cn/data/latest.json
       

@@ -106,6 +106,8 @@ class MXClient:
             return None
 
         self.calls_used += 1
+        if self.calls_used == 1 or self.calls_used % 10 == 0 or self.calls_used == self.call_budget:
+            print(f"[mx] {self.calls_used}/{self.call_budget} {label}", flush=True)
         url = f"{API_BASE}/{path}"
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(
@@ -323,8 +325,9 @@ def quota_plan() -> dict[str, Any]:
         "dailyLimit": 500,
         "reserve": 20,
         "runs": [
-            {"name": "premarket", "timeCN": "08:20", "budget": 180, "focus": "外围资讯、盘前题材、候选池预热"},
-            {"name": "postclose", "timeCN": "15:45", "budget": 300, "focus": "收盘截面、题材排名、个股细查、次日候选"},
+            {"name": "premarket", "timeCN": "08:20", "budget": 120, "focus": "外围资讯、盘前题材、候选池预热"},
+            {"name": "midday", "timeCN": "12:45", "budget": 120, "focus": "午间行情、题材温度、风险复核"},
+            {"name": "postclose", "timeCN": "15:45", "budget": 240, "focus": "收盘截面、题材排名、个股细查、次日候选"},
         ],
         "storagePolicy": {
             "repo": "只提交代码和轻量 seed 数据，不日更提交大 JSON",
@@ -334,8 +337,16 @@ def quota_plan() -> dict[str, Any]:
     }
 
 
-def generate(api_key: str, output: Path, mode: str, call_budget: int, detail_limit: int, history_days: int) -> dict[str, Any]:
-    client = MXClient(api_key=api_key, call_budget=call_budget)
+def generate(
+    api_key: str,
+    output: Path,
+    mode: str,
+    call_budget: int,
+    detail_limit: int,
+    history_days: int,
+    request_timeout: int,
+) -> dict[str, Any]:
+    client = MXClient(api_key=api_key, call_budget=call_budget, timeout=request_timeout)
     generated_at = now_cn()
     trading_date = generated_at.date().isoformat()
 
@@ -363,14 +374,19 @@ def generate(api_key: str, output: Path, mode: str, call_budget: int, detail_lim
         items = parse_news_items(client.news(query, f"news:{name}"), limit=10)
         news_groups.append({"name": name, "query": query, "items": items})
 
+    print("[mx] fetching market and theme data", flush=True)
+
     if mode == "premarket":
         max_details = min(detail_limit, 150)
     elif mode == "exhaustive":
         max_details = min(detail_limit, 440)
+    elif mode == "midday":
+        max_details = min(detail_limit, 150)
     else:
         max_details = min(detail_limit, 270)
 
     candidates = collect_candidates(screeners, max_details)
+    print(f"[mx] collected {len(candidates)} detail candidates", flush=True)
     stock_details: list[dict[str, Any]] = []
     for candidate in candidates:
         if client.remaining <= 5:
@@ -445,10 +461,11 @@ def write_payload(output: Path, payload: dict[str, Any], history_days: int) -> N
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate stock/cn dashboard data with MX APIs.")
     parser.add_argument("--output", default="stock/cn/data/latest.json", help="Output JSON path")
-    parser.add_argument("--mode", choices=["premarket", "postclose", "exhaustive", "mock"], default="postclose")
+    parser.add_argument("--mode", choices=["premarket", "midday", "postclose", "exhaustive", "mock"], default="postclose")
     parser.add_argument("--call-budget", type=int, default=300)
     parser.add_argument("--detail-limit", type=int, default=180)
     parser.add_argument("--history-days", type=int, default=20)
+    parser.add_argument("--request-timeout", type=int, default=12)
     return parser.parse_args(argv)
 
 
@@ -470,6 +487,7 @@ def main(argv: list[str]) -> int:
         call_budget=args.call_budget,
         detail_limit=args.detail_limit,
         history_days=args.history_days,
+        request_timeout=args.request_timeout,
     )
     meta = payload["meta"]
     print(
