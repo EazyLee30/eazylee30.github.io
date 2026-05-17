@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-05-17 10:12:53",
+    "generatedAt": "2026-05-17 10:50:41",
     "tradingDate": "2026-05-17",
     "mode": "mock",
     "isMock": true,
@@ -21,29 +21,30 @@
       ]
     },
     {
-      "title": "全A涨跌家数",
+      "title": "沪深京涨跌家数",
       "rows": [
         {
-          "date": "全A",
-          "总数": 5852,
-          "上涨家数": 1200,
-          "下跌家数": 4300,
-          "平盘家数": 120,
-          "成交额": "示例"
+          "date": "上证指数 + 深证成指 + 北证50",
+          "总数": 5573,
+          "上涨家数": 1847,
+          "下跌家数": 3617,
+          "平盘家数": 109,
+          "口径": "seed"
         }
       ]
     }
   ],
   "breadth": {
-    "total": 5852,
-    "up": 1200,
-    "down": 4300,
-    "flat": 120,
-    "suspended": 0,
-    "limitUpApprox": 80,
-    "limitDownApprox": 20,
+    "total": 5573,
+    "up": 1847,
+    "down": 3617,
+    "flat": 109,
+    "suspended": "",
+    "limitUpApprox": "",
+    "limitDownApprox": "",
     "amount": "示例",
-    "source": "seed"
+    "source": "seed",
+    "scope": "上证指数 + 深证成指 + 北证50"
   },
   "themes": [
     {

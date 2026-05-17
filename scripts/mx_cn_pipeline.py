@@ -15,6 +15,7 @@ import datetime as dt
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -115,6 +116,15 @@ def public_get_json(path: str, params: dict[str, str | int], timeout: int = 12) 
         except Exception:
             if attempt < 2:
                 time.sleep(0.5 * (attempt + 1))
+    try:
+        raw = subprocess.check_output(
+            ["curl", "-sL", "--retry", "2", "--max-time", str(timeout), url],
+            text=True,
+            timeout=timeout + 4,
+        )
+        return json.loads(raw)
+    except Exception:
+        pass
     return None
 
 
@@ -228,28 +238,48 @@ def fetch_public_breadth(page_size: int = 100) -> dict[str, Any]:
     }
 
 
+def summarize_index_breadth(index_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    # Use broad market rows only; 创业板指/科创50 are subsets and would double count.
+    broad_codes = {"000001", "399001", "899050"}
+    selected = [row for row in index_rows if str(row.get("代码")) in broad_codes]
+    up = sum(int(row.get("上涨家数") or 0) for row in selected)
+    down = sum(int(row.get("下跌家数") or 0) for row in selected)
+    flat = sum(int(row.get("平盘家数") or 0) for row in selected)
+    return {
+        "total": up + down + flat,
+        "sampled": len(selected),
+        "partial": False,
+        "up": up,
+        "down": down,
+        "flat": flat,
+        "suspended": "",
+        "limitUpApprox": "",
+        "limitDownApprox": "",
+        "amount": "",
+        "source": "Eastmoney public quote index breadth",
+        "scope": "上证指数 + 深证成指 + 北证50",
+    }
+
+
 def fetch_public_market() -> tuple[list[dict[str, Any]], dict[str, Any]]:
     indices = fetch_public_indices()
-    breadth = fetch_public_breadth()
+    breadth = summarize_index_breadth(indices) if indices else {}
     tables = []
     if indices:
         tables.append({"title": "公开行情-主要指数", "code": "public.indices", "rows": indices})
     if breadth and breadth.get("total"):
         tables.append(
             {
-                "title": "公开行情-全A涨跌家数",
+                "title": "公开行情-沪深京涨跌家数",
                 "code": "public.breadth",
                 "rows": [
                     {
-                        "date": "全A",
+                        "date": breadth.get("scope", "沪深京"),
                         "总数": breadth.get("total"),
                         "上涨家数": breadth.get("up"),
                         "下跌家数": breadth.get("down"),
                         "平盘家数": breadth.get("flat"),
-                        "停牌/无价": breadth.get("suspended"),
-                        "近似涨停": breadth.get("limitUpApprox"),
-                        "近似跌停": breadth.get("limitDownApprox"),
-                        "成交额": breadth.get("amount"),
+                        "口径": breadth.get("source"),
                     }
                 ],
             }
@@ -469,20 +499,21 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
         "market": [
             {"title": "A股主要指数", "rows": [{"date": "上证指数", "最新价": "4135.39", "涨跌幅": "-1.02%", "成交额": "1.519万亿元"}]},
             {
-                "title": "全A涨跌家数",
-                "rows": [{"date": "全A", "总数": 5852, "上涨家数": 1200, "下跌家数": 4300, "平盘家数": 120, "成交额": "示例"}],
+                "title": "沪深京涨跌家数",
+                "rows": [{"date": "上证指数 + 深证成指 + 北证50", "总数": 5573, "上涨家数": 1847, "下跌家数": 3617, "平盘家数": 109, "口径": "seed"}],
             },
         ],
         "breadth": {
-            "total": 5852,
-            "up": 1200,
-            "down": 4300,
-            "flat": 120,
-            "suspended": 0,
-            "limitUpApprox": 80,
-            "limitDownApprox": 20,
+            "total": 5573,
+            "up": 1847,
+            "down": 3617,
+            "flat": 109,
+            "suspended": "",
+            "limitUpApprox": "",
+            "limitDownApprox": "",
             "amount": "示例",
             "source": "seed",
+            "scope": "上证指数 + 深证成指 + 北证50",
         },
         "themes": [
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},

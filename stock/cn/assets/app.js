@@ -90,7 +90,7 @@ function updateMeta(data) {
   const breadth = data.breadth || {};
   if (breadth.up !== undefined && breadth.down !== undefined) {
     el("market-state").textContent = `${text(breadth.up, 0)} 涨 / ${text(breadth.down, 0)} 跌`;
-    el("market-note").textContent = `全A ${text(breadth.total, "-")} 只，成交额 ${text(breadth.amount, "-")}`;
+    el("market-note").textContent = `${text(breadth.scope, "沪深京")} ${text(breadth.total, "-")} 只`;
     return;
   }
 
