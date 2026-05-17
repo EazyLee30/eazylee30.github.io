@@ -103,8 +103,10 @@ jobs:
             update="true"
             cn_weekday="$(TZ=Asia/Shanghai date +%u)"
             if [[ "${cn_weekday}" == "6" || "${cn_weekday}" == "7" ]]; then
-              mode="weekend"
-              budget="90"
+              # Weekend mode preserves the previously deployed screener list for news-only refreshes.
+              # On code pushes we need a full screener pass so newly added strategies reach latest.json.
+              mode="exhaustive"
+              budget="110"
               detail_limit="0"
             else
               mode="postclose"
