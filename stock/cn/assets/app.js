@@ -1,7 +1,18 @@
 const DATA_URL = "/stock/cn/data/latest.json";
+const BREADTH_ENDPOINT = "https://push2.eastmoney.com/api/qt/ulist.np/get";
+const BREADTH_FIELDS = "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106";
+const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
+const BREADTH_CODES = new Set(["000001", "399001", "899050"]);
+const BREADTH_STORAGE_KEY = "stock-cn-breadth-series-v1";
+const BREADTH_POLL_MS = 15000;
+const BREADTH_MAX_POINTS = 1000;
 
 let dashboardData = null;
 let flatRows = [];
+let breadthSeries = [];
+let breadthTimer = null;
+let breadthInitialized = false;
+let breadthDrawQueued = false;
 
 const el = (id) => document.getElementById(id);
 
@@ -13,6 +24,45 @@ function text(value, fallback = "-") {
 function formatTime(value) {
   const raw = text(value);
   return raw.replace("T", " ").replace(/\+08:00$/, "");
+}
+
+function toNumber(value) {
+  if (value === null || value === undefined || value === "" || value === "-") return null;
+  const n = Number(String(value).replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatInteger(value) {
+  const n = toNumber(value);
+  if (n === null) return "-";
+  return new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 }).format(Math.round(n));
+}
+
+function cnDateKey(timestamp) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function formatCnClock(timestamp) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function parseCnTimestamp(value) {
+  const raw = formatTime(value).trim();
+  if (!raw || raw === "-") return Date.now();
+  const normalized = raw.includes(" ") ? `${raw.replace(" ", "T")}+08:00` : raw;
+  const timestamp = Date.parse(normalized);
+  return Number.isFinite(timestamp) ? timestamp : Date.now();
 }
 
 function numberLike(value) {
@@ -103,6 +153,356 @@ function updateMeta(data) {
 function renderMarket(data) {
   const rows = firstRows(data.market);
   renderTable("market-table", rows, ["date", "最新价", "涨跌幅", "成交额", "成交量"], 60);
+}
+
+function loadBreadthSeries() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(BREADTH_STORAGE_KEY) || "[]");
+    const today = cnDateKey(Date.now());
+    return stored
+      .filter((item) => item && cnDateKey(item.t) === today)
+      .map((item) => ({
+        t: Number(item.t),
+        up: toNumber(item.up),
+        down: toNumber(item.down),
+        flat: toNumber(item.flat) || 0,
+        total: toNumber(item.total),
+        source: item.source || "local",
+        scope: item.scope || "上证指数 + 深证成指 + 北证50",
+      }))
+      .filter((item) => Number.isFinite(item.t) && item.up !== null && item.down !== null);
+  } catch (error) {
+    console.warn("Unable to read breadth series", error);
+    return [];
+  }
+}
+
+function saveBreadthSeries() {
+  try {
+    localStorage.setItem(BREADTH_STORAGE_KEY, JSON.stringify(breadthSeries));
+  } catch (error) {
+    console.warn("Unable to save breadth series", error);
+  }
+}
+
+function addBreadthSample(sample) {
+  const up = toNumber(sample.up);
+  const down = toNumber(sample.down);
+  if (up === null || down === null) return false;
+
+  const flat = toNumber(sample.flat) || 0;
+  const total = toNumber(sample.total) || up + down + flat;
+  const normalized = {
+    t: Number(sample.t) || Date.now(),
+    up,
+    down,
+    flat,
+    total,
+    source: sample.source || "Eastmoney public quote",
+    scope: sample.scope || "上证指数 + 深证成指 + 北证50",
+  };
+
+  const sameIndex = breadthSeries.findIndex((item) => Math.abs(item.t - normalized.t) < 1000);
+  if (sameIndex >= 0) {
+    breadthSeries[sameIndex] = normalized;
+  } else {
+    breadthSeries.push(normalized);
+  }
+
+  breadthSeries.sort((a, b) => a.t - b.t);
+  if (breadthSeries.length > BREADTH_MAX_POINTS) {
+    breadthSeries = breadthSeries.slice(-BREADTH_MAX_POINTS);
+  }
+  saveBreadthSeries();
+  return true;
+}
+
+function seedBreadthFromDashboard(data) {
+  const breadth = data?.breadth || {};
+  if (breadth.up === undefined || breadth.down === undefined) return;
+  addBreadthSample({
+    t: parseCnTimestamp(data.meta?.generatedAt),
+    up: breadth.up,
+    down: breadth.down,
+    flat: breadth.flat,
+    total: breadth.total,
+    source: breadth.source || "latest.json",
+    scope: breadth.scope || "上证指数 + 深证成指 + 北证50",
+  });
+}
+
+function renderBreadthStats(message = "") {
+  const upEl = el("pulse-up");
+  if (!upEl) return;
+
+  const latest = breadthSeries[breadthSeries.length - 1];
+  if (!latest) {
+    upEl.textContent = "-";
+    el("pulse-down").textContent = "-";
+    el("pulse-samples").textContent = "0";
+    el("pulse-updated").textContent = message || "等待 15 秒采样";
+    return;
+  }
+
+  upEl.textContent = formatInteger(latest.up);
+  el("pulse-down").textContent = formatInteger(latest.down);
+  el("pulse-samples").textContent = formatInteger(breadthSeries.length);
+  el("pulse-updated").textContent = message || `${latest.scope} / ${formatCnClock(latest.t)} / 15秒`;
+}
+
+function jsonpRequest(url, params, timeout = 7000) {
+  return new Promise((resolve, reject) => {
+    const callback = `__stockCnBreadth${Date.now()}${Math.floor(Math.random() * 100000)}`;
+    const script = document.createElement("script");
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("实时宽度接口超时"));
+    }, timeout);
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      script.remove();
+      try {
+        delete window[callback];
+      } catch (error) {
+        window[callback] = undefined;
+      }
+    }
+
+    window[callback] = (payload) => {
+      cleanup();
+      resolve(payload);
+    };
+
+    const search = new URLSearchParams({ ...params, cb: callback, _: String(Date.now()) });
+    script.async = true;
+    script.src = `${url}?${search.toString()}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("实时宽度接口失败"));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function parseBreadthPayload(payload) {
+  const rows = payload?.data?.diff || [];
+  const selected = rows.filter((row) => BREADTH_CODES.has(String(row.f12)));
+  const sourceRows = selected.length ? selected : rows;
+  const sums = sourceRows.reduce((acc, row) => {
+    acc.up += toNumber(row.f104) || 0;
+    acc.down += toNumber(row.f105) || 0;
+    acc.flat += toNumber(row.f106) || 0;
+    return acc;
+  }, { up: 0, down: 0, flat: 0 });
+
+  if (!sourceRows.length || !sums.up && !sums.down && !sums.flat) {
+    throw new Error("实时宽度接口无有效数据");
+  }
+
+  return {
+    t: Date.now(),
+    up: sums.up,
+    down: sums.down,
+    flat: sums.flat,
+    total: sums.up + sums.down + sums.flat,
+    source: "Eastmoney public quote",
+    scope: "上证指数 + 深证成指 + 北证50",
+  };
+}
+
+async function pollLiveBreadth() {
+  if (!el("breadth-chart")) return;
+  try {
+    const payload = await jsonpRequest(BREADTH_ENDPOINT, {
+      fltt: "2",
+      fields: BREADTH_FIELDS,
+      secids: BREADTH_SECIDS,
+    });
+    addBreadthSample(parseBreadthPayload(payload));
+    renderBreadthStats();
+    scheduleBreadthDraw();
+  } catch (error) {
+    const latest = breadthSeries[breadthSeries.length - 1];
+    const prefix = latest ? `${latest.scope} / 最近 ${formatCnClock(latest.t)}` : "实时宽度";
+    renderBreadthStats(`${prefix} / ${error.message}`);
+  }
+}
+
+function movingAverage(points, windowSize) {
+  let sum = 0;
+  return points.map((point, index) => {
+    sum += point.up;
+    if (index >= windowSize) sum -= points[index - windowSize].up;
+    return index >= windowSize - 1 ? sum / windowSize : null;
+  });
+}
+
+function drawPolyline(ctx, points, values, scaleX, scaleY, color, width, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  let hasPoint = false;
+  points.forEach((point, index) => {
+    const value = Array.isArray(values) ? values[index] : values(point, index);
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      hasPoint = false;
+      return;
+    }
+    const x = scaleX(index);
+    const y = scaleY(value);
+    if (!hasPoint) {
+      ctx.moveTo(x, y);
+      hasPoint = true;
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBreadthChart() {
+  const canvas = el("breadth-chart");
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(320, Math.floor(rect.width));
+  const height = Math.max(240, Math.floor(rect.height));
+  const dpr = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+  }
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const pad = { left: 12, right: 58, top: 18, bottom: 34 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const points = breadthSeries.slice(-BREADTH_MAX_POINTS);
+  const latest = points[points.length - 1];
+  const maxObserved = Math.max(4500, latest?.total || 0, ...points.map((point) => point.up));
+  const yMin = 800;
+  const yMax = Math.ceil(maxObserved / 100) * 100;
+  const axisLabels = [1000, 2000, 3000, 4000, 4500];
+  if (yMax > 4800 && !axisLabels.includes(yMax)) axisLabels.push(yMax);
+
+  const scaleX = (index) => {
+    if (points.length <= 1) return pad.left;
+    return pad.left + (index / (points.length - 1)) * plotW;
+  };
+  const scaleY = (value) => {
+    const clamped = Math.min(yMax, Math.max(yMin, value));
+    return pad.top + ((yMax - clamped) / (yMax - yMin)) * plotH;
+  };
+
+  ctx.fillStyle = "#0b1519";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "rgba(138, 160, 162, 0.16)";
+  ctx.lineWidth = 1;
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  axisLabels
+    .filter((value) => value >= yMin && value <= yMax)
+    .forEach((value) => {
+      const y = scaleY(value);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(width - pad.right + 6, y);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(230, 240, 239, 0.66)";
+      ctx.fillText(String(value), width - pad.right + 12, y);
+    });
+
+  if (latest?.total) {
+    const mid = latest.total / 2;
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.26)";
+    ctx.beginPath();
+    ctx.moveTo(pad.left, scaleY(mid));
+    ctx.lineTo(width - pad.right, scaleY(mid));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (points.length < 2) {
+    if (latest) {
+      const x = pad.left + plotW / 2;
+      const y = scaleY(latest.up);
+      ctx.strokeStyle = "rgba(255, 107, 107, 0.32)";
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(width - pad.right, y);
+      ctx.stroke();
+      ctx.fillStyle = "#ff6b6b";
+      ctx.beginPath();
+      ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(230, 240, 239, 0.82)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`上涨 ${formatInteger(latest.up)}`, x, y - 10);
+    }
+    ctx.fillStyle = "rgba(138, 160, 162, 0.82)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("等待 15 秒采样", width / 2, height / 2);
+  } else {
+    drawPolyline(ctx, points, movingAverage(points, 250), scaleX, scaleY, "#c084fc", 1.2, 0.78);
+    drawPolyline(ctx, points, movingAverage(points, 120), scaleX, scaleY, "#4ade80", 1.3, 0.78);
+    drawPolyline(ctx, points, movingAverage(points, 60), scaleX, scaleY, "#f8fafc", 1.1, 0.72);
+    drawPolyline(ctx, points, movingAverage(points, 20), scaleX, scaleY, "#facc15", 1.2, 0.75);
+    drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#ff6b6b", 2.2);
+  }
+
+  ctx.fillStyle = "rgba(138, 160, 162, 0.72)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("15s", pad.left, pad.top - 4);
+
+  if (points.length) {
+    ctx.textBaseline = "bottom";
+    ctx.fillText(formatCnClock(points[0].t), pad.left, height - 8);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCnClock(points[points.length - 1].t), width - pad.right, height - 8);
+  }
+}
+
+function scheduleBreadthDraw() {
+  if (breadthDrawQueued) return;
+  breadthDrawQueued = true;
+  requestAnimationFrame(() => {
+    breadthDrawQueued = false;
+    drawBreadthChart();
+  });
+}
+
+function initBreadthPulse(data) {
+  if (!el("breadth-chart")) return;
+
+  if (!breadthInitialized) {
+    breadthSeries = loadBreadthSeries();
+    window.addEventListener("resize", scheduleBreadthDraw);
+    breadthInitialized = true;
+  }
+
+  seedBreadthFromDashboard(data);
+  renderBreadthStats();
+  scheduleBreadthDraw();
+
+  if (breadthTimer) window.clearInterval(breadthTimer);
+  pollLiveBreadth();
+  breadthTimer = window.setInterval(pollLiveBreadth, BREADTH_POLL_MS);
 }
 
 function renderStrategySelect(data) {
@@ -262,6 +662,7 @@ async function loadData() {
   renderNews(dashboardData);
   renderQuota(dashboardData);
   renderErrors(dashboardData);
+  initBreadthPulse(dashboardData);
 }
 
 el("search-input").addEventListener("input", (event) => renderRanking(event.target.value));
@@ -271,4 +672,5 @@ loadData().catch((error) => {
   console.error(error);
   el("generated-at").textContent = "加载失败";
   el("market-table").innerHTML = '<div class="empty">无法读取 /stock/cn/data/latest.json</div>';
+  initBreadthPulse(null);
 });
