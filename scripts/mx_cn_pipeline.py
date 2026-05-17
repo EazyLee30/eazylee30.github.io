@@ -21,6 +21,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -69,10 +71,21 @@ NEWS_QUERIES = [
     ("政策催化", "今日A股政策催化 人工智能 半导体 机器人 电力 光伏"),
 ]
 
+WEEKEND_NEWS_QUERIES = [
+    ("周末政策", "周末A股政策消息 证监会 交易所 财政 产业政策 影响板块"),
+    ("公告风险", "周末A股公告 风险提示 减持 立案调查 业绩预告亏损"),
+    ("外围变量", "周末全球市场 美股 英伟达 半导体 中概股 汇率 大宗商品 对A股影响"),
+    ("题材发酵", "周末A股题材发酵 人工智能 半导体 机器人 电力 光伏 消费电子"),
+    ("下周日历", "下周A股财经日历 新股解禁 财报 会议 政策事件 风险提示"),
+]
+
 PUBLIC_INDEX_SECIDS = "1.000001,0.399001,0.399006,1.000688,0.899050"
 PUBLIC_A_SHARE_FS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
 DEFAULT_PREVIOUS_LATEST_URL = "https://eazylee.xyz/stock/cn/data/latest.json"
 BREADTH_PULSE_MAX_POINTS = 1600
+HISTORICAL_BREADTH_DAYS = 280
+HISTORICAL_BREADTH_MIN_ROWS = 250
+HISTORICAL_BREADTH_WORKERS = 16
 MARKET_OPEN_AM = dt.time(9, 30)
 MARKET_CLOSE_AM = dt.time(11, 30)
 MARKET_OPEN_PM = dt.time(13, 0)
@@ -131,7 +144,10 @@ def int_value(value: Any) -> int | None:
     if value is None or value == "":
         return None
     try:
-        return int(round(float(str(value).replace(",", ""))))
+        cleaned = re.sub(r"[^0-9.+-]+", "", str(value).replace(",", ""))
+        if not cleaned:
+            return None
+        return int(round(float(cleaned)))
     except (TypeError, ValueError):
         return None
 
@@ -344,6 +360,223 @@ def fetch_previous_payload(output: Path, timeout: int = 8) -> dict[str, Any]:
     return {}
 
 
+def secid_for_code(code: str, market: Any = None) -> str:
+    code = str(code).strip()
+    market_text = str(market or "").strip()
+    if market_text in {"0", "1"}:
+        return f"{market_text}.{code}"
+    if code.startswith(("5", "6", "9")):
+        return f"1.{code}"
+    return f"0.{code}"
+
+
+def fetch_a_share_universe(page_size: int = 500) -> list[dict[str, str]]:
+    base_params: dict[str, str | int] = {
+        "pn": 1,
+        "pz": page_size,
+        "po": 1,
+        "np": 1,
+        "fltt": 2,
+        "invt": 2,
+        "fid": "f3",
+        "fs": PUBLIC_A_SHARE_FS,
+        "fields": "f12,f13,f14",
+    }
+    first = public_get_json("clist/get", base_params)
+    data = (first or {}).get("data", {})
+    total = int(data.get("total") or 0)
+    pages = max(1, (total + page_size - 1) // page_size) if total else 1
+    rows = data.get("diff") if isinstance(data.get("diff"), list) else []
+
+    for page in range(2, pages + 1):
+        params = dict(base_params)
+        params["pn"] = page
+        result = public_get_json("clist/get", params)
+        diff = (result or {}).get("data", {}).get("diff", [])
+        if isinstance(diff, list):
+            rows.extend(diff)
+
+    universe: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for row in rows:
+        code = str(row.get("f12") or "").strip()
+        if not re.fullmatch(r"\d{6}", code) or code in seen:
+            continue
+        seen.add(code)
+        universe.append(
+            {
+                "code": code,
+                "name": compact(row.get("f14")),
+                "secid": secid_for_code(code, row.get("f13")),
+            }
+        )
+    return universe
+
+
+def parse_kline_pct(row: str) -> tuple[dt.date, float] | None:
+    parts = str(row).split(",")
+    if len(parts) < 9:
+        return None
+    try:
+        trade_date = dt.date.fromisoformat(parts[0])
+        pct = float(parts[8])
+        return trade_date, pct
+    except ValueError:
+        return None
+
+
+def fetch_stock_daily_moves(secid: str, days: int = HISTORICAL_BREADTH_DAYS) -> list[tuple[dt.date, float]]:
+    result = public_history_get_json(
+        "stock/kline/get",
+        {
+            "secid": secid,
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "klt": 101,
+            "fqt": 1,
+            "end": "20500101",
+            "lmt": days,
+        },
+        timeout=8,
+    )
+    rows = ((result or {}).get("data") or {}).get("klines") or []
+    parsed = [parse_kline_pct(row) for row in rows]
+    return [item for item in parsed if item is not None]
+
+
+def existing_breadth_rows(previous_payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    rows = ((previous_payload or {}).get("breadthPulse") or {}).get("rows", [])
+    if not isinstance(rows, list):
+        return []
+    normalized: list[dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, dict):
+            item = normalize_breadth_sample(row)
+            if item:
+                normalized.append(item)
+    return normalized
+
+
+def needs_historical_breadth(previous_payload: dict[str, Any] | None) -> bool:
+    rows = existing_breadth_rows(previous_payload)
+    unique_dates = {
+        (parse_cn_time(row.get("time")) or dt.datetime.min.replace(tzinfo=TIMEZONE)).date()
+        for row in rows
+    }
+    return len(unique_dates) < HISTORICAL_BREADTH_MIN_ROWS
+
+
+def build_historical_breadth(previous_payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not needs_historical_breadth(previous_payload):
+        return []
+
+    symbol_limit = int(os.getenv("STOCK_CN_HISTORY_SYMBOL_LIMIT", "0") or 0)
+    workers = max(1, int(os.getenv("STOCK_CN_HISTORY_WORKERS", str(HISTORICAL_BREADTH_WORKERS)) or HISTORICAL_BREADTH_WORKERS))
+    days = max(HISTORICAL_BREADTH_MIN_ROWS, int(os.getenv("STOCK_CN_HISTORY_DAYS", str(HISTORICAL_BREADTH_DAYS)) or HISTORICAL_BREADTH_DAYS))
+
+    universe = fetch_a_share_universe()
+    if symbol_limit > 0:
+        universe = universe[:symbol_limit]
+    if not universe:
+        return []
+
+    print(f"[public-history] rebuilding breadth: symbols={len(universe)} days={days} workers={workers}", flush=True)
+    buckets: dict[dt.date, dict[str, int]] = defaultdict(lambda: {"up": 0, "down": 0, "flat": 0, "total": 0})
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(fetch_stock_daily_moves, item["secid"], days): item for item in universe}
+        completed = 0
+        for future in as_completed(futures):
+            completed += 1
+            if completed % 500 == 0 or completed == len(futures):
+                print(f"[public-history] {completed}/{len(futures)} symbols", flush=True)
+            try:
+                moves = future.result()
+            except Exception:
+                continue
+            for trade_date, pct in moves:
+                bucket = buckets[trade_date]
+                bucket["total"] += 1
+                if pct > 0:
+                    bucket["up"] += 1
+                elif pct < 0:
+                    bucket["down"] += 1
+                else:
+                    bucket["flat"] += 1
+
+    rows: list[dict[str, Any]] = []
+    for trade_date in sorted(buckets)[-days:]:
+        bucket = buckets[trade_date]
+        if bucket["total"] <= 0:
+            continue
+        rows.append(
+            {
+                "time": format_cn_time(combine_cn(trade_date, MARKET_CLOSE_PM)),
+                "up": bucket["up"],
+                "down": bucket["down"],
+                "flat": bucket["flat"],
+                "total": bucket["total"],
+                "source": "Eastmoney stock kline reconstructed breadth",
+                "scope": "A股日K重建涨跌家数",
+            }
+        )
+    return rows
+
+
+def parse_trade_date_text(value: Any) -> dt.date | None:
+    match = re.search(r"\d{4}-\d{2}-\d{2}", str(value or ""))
+    if not match:
+        return None
+    try:
+        return dt.date.fromisoformat(match.group(0))
+    except ValueError:
+        return None
+
+
+def breadth_rows_from_tables(tables: list[dict[str, Any]], source: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for table in tables:
+        for row in table.get("rows", []):
+            if not isinstance(row, dict):
+                continue
+            trade_date = parse_trade_date_text(row.get("date") or row.get("日期") or row.get("交易日"))
+            up = int_value(row.get("上涨家数"))
+            down = int_value(row.get("下跌家数"))
+            flat = int_value(row.get("平盘家数") or row.get("持平家数")) or 0
+            if not trade_date or up is None or down is None:
+                continue
+            rows.append(
+                {
+                    "time": format_cn_time(combine_cn(trade_date, MARKET_CLOSE_PM)),
+                    "up": up,
+                    "down": down,
+                    "flat": flat,
+                    "total": up + down + flat,
+                    "source": source,
+                    "scope": "全部A股历史涨跌家数",
+                }
+            )
+    deduped = {row["time"]: row for row in rows}
+    return sorted(deduped.values(), key=lambda row: parse_cn_time(row["time"]) or dt.datetime.min.replace(tzinfo=TIMEZONE))
+
+
+def fetch_mx_historical_breadth(client: "MXClient") -> list[dict[str, Any]]:
+    if client.remaining <= 0:
+        return []
+    queries = [
+        "全部A股近300个交易日上涨家数 下跌家数 平盘家数",
+        "沪深京A股近一年每个交易日上涨家数 下跌家数 平盘家数",
+    ]
+    for query in queries:
+        if client.remaining <= 0:
+            break
+        tables = parse_data_tables(client.data(query, "history-breadth"), limit=900)
+        rows = breadth_rows_from_tables(tables, "东方财富妙想历史涨跌家数")
+        if len(rows) >= HISTORICAL_BREADTH_MIN_ROWS:
+            return rows[-BREADTH_PULSE_MAX_POINTS:]
+    return []
+
+
 def normalize_breadth_sample(sample: dict[str, Any]) -> dict[str, Any] | None:
     sample_time = parse_cn_time(sample.get("time") or sample.get("generatedAt") or sample.get("t"))
     up = int_value(sample.get("up"))
@@ -396,9 +629,15 @@ def build_breadth_pulse(
     breadth: dict[str, Any],
     previous_payload: dict[str, Any] | None,
     trade_dates: list[dt.date] | None = None,
+    include_historical: bool = False,
+    historical_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     known_trade_dates = trade_dates or fallback_trade_dates(cutoff_at.date(), 24)
+    injected_historical_rows = historical_rows or []
+    if include_historical and not injected_historical_rows:
+        injected_historical_rows = build_historical_breadth(previous_payload)
+    rows.extend(injected_historical_rows)
 
     previous_rows = ((previous_payload or {}).get("breadthPulse") or {}).get("rows", [])
     if isinstance(previous_rows, list):
@@ -429,7 +668,8 @@ def build_breadth_pulse(
     return {
         "intervalSeconds": 15,
         "maxPoints": BREADTH_PULSE_MAX_POINTS,
-        "source": "workflow breadth snapshots + browser 15s realtime polling",
+        "historicalRows": len(injected_historical_rows),
+        "source": "historical daily breadth + workflow snapshots + optional browser realtime polling",
         "rows": ordered,
     }
 
@@ -828,7 +1068,7 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
             },
         ],
         "breadth": breadth,
-        "breadthPulse": build_breadth_pulse(cutoff_at, breadth, {}, recent_trade_dates),
+        "breadthPulse": build_breadth_pulse(cutoff_at, breadth, {}, recent_trade_dates, include_historical=False),
         "themes": [
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},
         ],
@@ -859,11 +1099,12 @@ def quota_plan() -> dict[str, Any]:
             {"name": "premarket", "timeCN": "08:20", "budget": 120, "focus": "外围资讯、盘前题材、候选池预热"},
             {"name": "midday", "timeCN": "12:45", "budget": 120, "focus": "午间行情、题材温度、风险复核"},
             {"name": "postclose", "timeCN": "15:45", "budget": 240, "focus": "收盘截面、题材排名、个股细查、次日候选"},
+            {"name": "weekend", "timeCN": "09:30", "budget": 80, "focus": "周末只刷新政策、公告、外围和下周事件，不更新盘中交易结论"},
         ],
         "storagePolicy": {
             "repo": "只提交代码和轻量 seed 数据，不日更提交大 JSON",
             "pagesArtifact": "定时生成 latest.json 并直接部署到 Pages artifact",
-            "history": "默认保留 20 个交易日小 JSON，可在 workflow 中关闭或缩短",
+            "history": "涨跌家数首次补全 250+ 个交易日，日更 JSON 默认保留 20 个交易日",
         },
     }
 
@@ -883,30 +1124,44 @@ def generate(
     cutoff_at = parse_cn_time(market_clock["dataCutoffAt"]) or generated_at
     recent_trade_dates = [dt.date.fromisoformat(value) for value in market_clock.get("recentTradingDates", [])]
     trading_date = market_clock["lastTradingDate"]
+    previous_payload = fetch_previous_payload(output)
+    news_only_mode = mode == "weekend" or (market_clock.get("session") == "non_trading_day" and mode != "exhaustive")
+    history_needed = needs_historical_breadth(previous_payload)
 
     market, breadth = fetch_public_market()
     if not market:
-        market_query = "A股主要指数 上证指数 深证成指 创业板指 科创50 北证50 沪深300 中证500 中证1000 最新价 涨跌幅 成交额 成交量"
-        market = parse_data_tables(client.data(market_query, "market-index"), limit=40)
-        breadth = {}
-    previous_payload = fetch_previous_payload(output)
+        market = previous_payload.get("market") or []
+        breadth = previous_payload.get("breadth") or {}
+        if not news_only_mode:
+            market_query = "A股主要指数 上证指数 深证成指 创业板指 科创50 北证50 沪深300 中证500 中证1000 最新价 涨跌幅 成交额 成交量"
+            market = parse_data_tables(client.data(market_query, "market-index"), limit=40) or market
+            breadth = breadth if market == previous_payload.get("market") else {}
+
+    historical_breadth = fetch_mx_historical_breadth(client) if history_needed else []
 
     themes: list[dict[str, Any]] = []
-    for query in CORE_THEME_GROUPS:
-        if client.remaining <= 0:
-            break
-        tables = parse_data_tables(client.data(query, f"theme:{query[:16]}"), limit=80)
-        themes.extend(tables)
+    if news_only_mode:
+        themes = list(previous_payload.get("themes") or [])
+    else:
+        for query in CORE_THEME_GROUPS:
+            if client.remaining <= 0:
+                break
+            tables = parse_data_tables(client.data(query, f"theme:{query[:16]}"), limit=80)
+            themes.extend(tables)
 
     screeners: list[dict[str, Any]] = []
-    for name, query in SCREENERS:
-        if client.remaining <= 0:
-            break
-        rows = parse_screen_rows(client.screen(query, f"screener:{name}"), limit=80)
-        screeners.append({"name": name, "query": query, "rows": rows})
+    if news_only_mode:
+        screeners = list(previous_payload.get("screeners") or [])
+    else:
+        for name, query in SCREENERS:
+            if client.remaining <= 0:
+                break
+            rows = parse_screen_rows(client.screen(query, f"screener:{name}"), limit=80)
+            screeners.append({"name": name, "query": query, "rows": rows})
 
     news_groups: list[dict[str, Any]] = []
-    for name, query in NEWS_QUERIES:
+    news_queries = WEEKEND_NEWS_QUERIES if news_only_mode else NEWS_QUERIES
+    for name, query in news_queries:
         if client.remaining <= 0:
             break
         items = parse_news_items(client.news(query, f"news:{name}"), limit=10)
@@ -914,7 +1169,9 @@ def generate(
 
     print("[mx] fetching market and theme data", flush=True)
 
-    if mode == "premarket":
+    if news_only_mode:
+        max_details = 0
+    elif mode == "premarket":
         max_details = min(detail_limit, 150)
     elif mode == "exhaustive":
         max_details = min(detail_limit, 440)
@@ -926,17 +1183,20 @@ def generate(
     candidates = collect_candidates(screeners, max_details)
     print(f"[mx] collected {len(candidates)} detail candidates", flush=True)
     stock_details: list[dict[str, Any]] = []
-    for candidate in candidates:
-        if client.remaining <= 5:
-            break
-        label = f"detail:{candidate['code']}"
-        query = (
-            f"{candidate['name']} {candidate['code']} 最新价 涨跌幅 成交额 换手率 "
-            "主力资金净流入 最高价 最低价 市盈率 市净率 近5日涨跌幅 近20日涨跌幅"
-        )
-        detail_tables = parse_data_tables(client.data(query, label), limit=12)
-        if detail_tables:
-            stock_details.append({**candidate, "tables": detail_tables[:3]})
+    if news_only_mode:
+        stock_details = list(previous_payload.get("stockDetails") or [])
+    else:
+        for candidate in candidates:
+            if client.remaining <= 5:
+                break
+            label = f"detail:{candidate['code']}"
+            query = (
+                f"{candidate['name']} {candidate['code']} 最新价 涨跌幅 成交额 换手率 "
+                "主力资金净流入 最高价 最低价 市盈率 市净率 近5日涨跌幅 近20日涨跌幅"
+            )
+            detail_tables = parse_data_tables(client.data(query, label), limit=12)
+            if detail_tables:
+                stock_details.append({**candidate, "tables": detail_tables[:3]})
 
     payload = {
         "meta": {
@@ -945,6 +1205,7 @@ def generate(
             "tradingDate": trading_date,
             "marketClock": market_clock,
             "mode": mode,
+            "runFocus": "news_only" if news_only_mode else "market_and_selection",
             "isMock": False,
             "callsUsed": client.calls_used,
             "callBudget": call_budget,
@@ -954,7 +1215,14 @@ def generate(
         },
         "market": market,
         "breadth": breadth,
-        "breadthPulse": build_breadth_pulse(cutoff_at, breadth, previous_payload, recent_trade_dates),
+        "breadthPulse": build_breadth_pulse(
+            cutoff_at,
+            breadth,
+            previous_payload,
+            recent_trade_dates,
+            include_historical=True,
+            historical_rows=historical_breadth,
+        ),
         "themes": themes[:12],
         "screeners": screeners,
         "news": news_groups,
@@ -1004,7 +1272,7 @@ def write_payload(output: Path, payload: dict[str, Any], history_days: int) -> N
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate stock/cn dashboard data with MX APIs.")
     parser.add_argument("--output", default="stock/cn/data/latest.json", help="Output JSON path")
-    parser.add_argument("--mode", choices=["premarket", "midday", "postclose", "exhaustive", "mock"], default="postclose")
+    parser.add_argument("--mode", choices=["premarket", "midday", "postclose", "weekend", "exhaustive", "mock"], default="postclose")
     parser.add_argument("--call-budget", type=int, default=300)
     parser.add_argument("--detail-limit", type=int, default=180)
     parser.add_argument("--history-days", type=int, default=20)

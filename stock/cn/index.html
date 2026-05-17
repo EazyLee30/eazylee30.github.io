@@ -3,139 +3,182 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A股量化面板 | eazylee</title>
-  <meta name="description" content="基于东方财富妙想的 A股日频截面量化面板：市场状态、题材热度、候选股、资讯风险和额度分配。" />
-  <link rel="canonical" href="https://eazylee30.github.io/stock/cn/" />
-  <link rel="stylesheet" href="/stock/cn/assets/styles.css?v=20260517-trading-clock" />
+  <title>A股市场驾驶舱 | eazylee</title>
+  <meta name="description" content="A股市场状态、历史涨跌家数、优选候选、截面策略、题材资讯和风控动作。" />
+  <link rel="canonical" href="https://eazylee.xyz/stock/cn/" />
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/stock/cn/assets/styles.css?v=20260517-fng-cockpit2" />
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/cn/">eazylee</a>
-    <nav class="nav">
-      <a href="#dashboard">总览</a>
-      <a href="#breadth-pulse">脉搏</a>
-      <a href="#ranking">候选</a>
-      <a href="#themes">题材</a>
-      <a href="#risk">风险</a>
-      <a href="#quota">额度</a>
+    <a class="brand" href="/cn/">eazylee <span>A股</span></a>
+    <nav class="nav" aria-label="A股面板导航">
+      <a href="#overview" data-view-link="overview">总览</a>
+      <a href="#picks" data-view-link="picks">优选</a>
+      <a href="#cross-section" data-view-link="cross-section">截面</a>
+      <a href="#themes" data-view-link="themes">题材</a>
+      <a href="#news" data-view-link="news">资讯</a>
+      <a href="#system" data-view-link="system">系统</a>
     </nav>
   </header>
 
   <main id="dashboard" class="shell">
-    <section class="hero">
-      <div>
-        <p class="eyebrow">A-share quant cockpit</p>
-        <h1>A股妙想量化面板</h1>
-        <p class="subline">日频截面选股、题材热度、公告风险和自动化额度分配。</p>
+    <section class="sentiment-stage">
+      <div class="hero-copy">
+        <div class="hero-badges">
+          <span id="session-badge" class="badge neutral">读取中</span>
+          <span id="risk-badge" class="badge neutral">等待数据</span>
+        </div>
+        <p class="eyebrow">A-share market cockpit</p>
+        <h1 id="hero-stance">正在读取市场状态</h1>
+        <p id="hero-action" class="subline">从 latest.json 汇总涨跌家数、指数方向、资金候选和资讯风险。</p>
+        <div class="emotion-axis" aria-label="恐惧贪婪区间">
+          <span>极度恐惧</span>
+          <span>恐惧</span>
+          <span>中性</span>
+          <span>贪婪</span>
+          <span>极度贪婪</span>
+        </div>
       </div>
-      <div class="status-stack">
-        <div class="status-line">
+      <div class="gauge-deck" aria-label="贪婪恐惧仪表盘">
+        <div class="gauge-wrap">
+          <canvas id="fear-greed-gauge" aria-label="贪婪恐惧指数仪表" role="img"></canvas>
+          <div class="gauge-readout">
+            <span id="fg-score">--</span>
+            <strong id="fg-label">读取中</strong>
+          </div>
+        </div>
+        <div id="factor-strip" class="factor-strip"></div>
+      </div>
+      <aside class="status-rail" aria-label="数据状态">
+        <div>
           <span>数据时间</span>
           <strong id="generated-at">加载中</strong>
         </div>
-        <div class="status-line">
+        <div>
           <span>运行模式</span>
           <strong id="run-mode">-</strong>
         </div>
-        <div class="status-line">
+        <div>
           <span>妙想调用</span>
           <strong id="call-usage">-</strong>
         </div>
-      </div>
+        <div>
+          <span>情绪分层</span>
+          <strong id="fg-tier">-</strong>
+        </div>
+        <button class="ghost status-refresh" data-refresh>刷新</button>
+      </aside>
     </section>
 
-    <section class="metrics-grid" aria-label="market status">
-      <div class="metric">
-        <span>市场状态</span>
+    <section class="market-ribbon" aria-label="市场摘要">
+      <div>
+        <span>市场结论</span>
         <strong id="market-state">读取中</strong>
         <small id="market-note">等待 latest.json</small>
       </div>
-      <div class="metric">
-        <span>候选策略</span>
-        <strong id="strategy-count">-</strong>
-        <small>资金、趋势、低吸、防守分层</small>
+      <div>
+        <span>涨跌宽度</span>
+        <strong id="breadth-ratio">-</strong>
+        <small id="breadth-note">上涨 / 下跌 / 平盘</small>
       </div>
-      <div class="metric">
-        <span>候选明细</span>
-        <strong id="detail-count">-</strong>
-        <small>逐股补充行情与估值</small>
+      <div>
+        <span>趋势强度</span>
+        <strong id="trend-score">-</strong>
+        <small id="trend-note">指数方向 + MA250 宽度</small>
       </div>
-      <div class="metric">
-        <span>错误/缺口</span>
-        <strong id="error-count">-</strong>
-        <small>自然语言查询可能有空表</small>
-      </div>
-    </section>
-
-    <section id="breadth-pulse" class="panel chart-panel">
-      <div class="panel-head chart-head">
-        <div>
-          <p class="eyebrow">15s breadth pulse</p>
-          <h2>涨跌家数情绪脉搏</h2>
-        </div>
-        <div class="pulse-stats" aria-label="实时涨跌家数">
-          <span><strong id="pulse-up">-</strong> 涨</span>
-          <span><strong id="pulse-down">-</strong> 跌</span>
-          <span>样本 <strong id="pulse-samples">0</strong></span>
-        </div>
-      </div>
-      <div class="chart-meta">
-        <span id="pulse-updated">等待 15 秒采样</span>
-        <span class="legend-item"><i class="pulse-line"></i>上涨家数</span>
-        <span class="legend-item"><i class="ma20-line"></i>MA20</span>
-        <span class="legend-item"><i class="ma60-line"></i>MA60</span>
-        <span class="legend-item"><i class="ma120-line"></i>MA120</span>
-        <span class="legend-item"><i class="ma250-line"></i>MA250</span>
-      </div>
-      <div class="chart-shell">
-        <canvas id="breadth-chart" aria-label="15秒涨跌家数脉搏图" role="img"></canvas>
+      <div>
+        <span>操作动作</span>
+        <strong id="action-bias">-</strong>
+        <small id="action-note">仓位、确认条件和风险</small>
       </div>
     </section>
 
-    <section class="grid two">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">indices</p>
-            <h2>指数与市场</h2>
+    <section id="overview" class="page-view" data-view="overview">
+      <div class="grid overview-grid">
+        <article class="panel decision-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">decision</p>
+              <h2>今天看什么</h2>
+            </div>
           </div>
-          <button class="ghost" data-refresh>刷新数据</button>
-        </div>
-        <div id="market-table" class="table-wrap"></div>
-      </article>
+          <div id="signal-list" class="signal-list"></div>
+          <div id="operation-list" class="operation-list"></div>
+        </article>
 
+        <article id="breadth-pulse" class="panel chart-panel">
+          <div class="panel-head chart-head">
+            <div>
+              <p class="eyebrow">breadth history</p>
+              <h2>历史涨跌家数与均线</h2>
+            </div>
+            <div class="chart-controls">
+              <div class="period-tabs" aria-label="涨跌家数周期">
+                <button type="button" data-breadth-period="15s">15s</button>
+                <button type="button" data-breadth-period="15m">15min</button>
+                <button type="button" data-breadth-period="4h">4h</button>
+                <button type="button" data-breadth-period="1d">日</button>
+                <button type="button" data-breadth-period="1w">周</button>
+                <button type="button" data-breadth-period="1mo">月</button>
+              </div>
+              <div class="pulse-stats" aria-label="涨跌家数">
+                <span><strong id="pulse-up">-</strong> 涨</span>
+                <span><strong id="pulse-down">-</strong> 跌</span>
+                <span>样本 <strong id="pulse-samples">0</strong></span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-meta">
+            <span id="pulse-updated">等待快照</span>
+            <span class="legend-item"><i class="pulse-line"></i>上涨家数</span>
+            <span class="legend-item"><i class="down-line"></i>下跌家数</span>
+            <span class="legend-item"><i class="ma20-line"></i>MA20</span>
+            <span class="legend-item"><i class="ma60-line"></i>MA60</span>
+            <span class="legend-item"><i class="ma120-line"></i>MA120</span>
+            <span class="legend-item"><i class="ma250-line"></i>MA250</span>
+          </div>
+          <div class="chart-shell">
+            <canvas id="breadth-chart" aria-label="历史涨跌家数图" role="img"></canvas>
+          </div>
+        </article>
+      </div>
+
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">market</p>
+              <h2>指数与宽度</h2>
+            </div>
+          </div>
+          <div id="market-cards" class="market-cards"></div>
+          <div id="market-table" class="table-wrap compact"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">weekend / risk</p>
+              <h2>资讯摘要</h2>
+            </div>
+          </div>
+          <div id="news-preview" class="news-preview"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="picks" class="page-view" data-view="picks">
       <article class="panel">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">top list</p>
+            <p class="eyebrow">priority</p>
             <h2>今日优先候选</h2>
           </div>
-          <select id="strategy-select" class="select"></select>
+          <select id="strategy-select" class="select" aria-label="候选策略"></select>
         </div>
+        <div id="candidate-cards" class="candidate-cards"></div>
         <div id="top-candidates" class="table-wrap"></div>
-      </article>
-    </section>
-
-    <section id="ranking" class="panel">
-      <div class="panel-head">
-        <div>
-          <p class="eyebrow">cross-section</p>
-          <h2>截面策略结果</h2>
-        </div>
-        <input id="search-input" class="search" type="search" placeholder="搜索代码 / 名称 / 策略" />
-      </div>
-      <div id="ranking-table" class="table-wrap large"></div>
-    </section>
-
-    <section id="themes" class="grid two">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">themes</p>
-            <h2>题材热度</h2>
-          </div>
-        </div>
-        <div id="theme-list" class="theme-list"></div>
       </article>
 
       <article class="panel">
@@ -149,49 +192,89 @@
       </article>
     </section>
 
-    <section id="risk" class="grid two">
+    <section id="cross-section" class="page-view" data-view="cross-section">
       <article class="panel">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">news</p>
-            <h2>资讯与公告风险</h2>
+            <p class="eyebrow">cross-section</p>
+            <h2>截面策略结果</h2>
           </div>
+          <input id="search-input" class="search" type="search" placeholder="搜索代码 / 名称 / 策略" />
         </div>
-        <div id="news-list" class="news-list"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">guardrails</p>
-            <h2>A股风控规则</h2>
-          </div>
-        </div>
-        <ul class="rules">
-          <li>ST、退市风险、停牌、新股短期高波动默认剔除。</li>
-          <li>高位连续异动、澄清公告、主力大幅流出会进入风险提醒。</li>
-          <li>涨停不可买入、跌停不可卖出，交易动作只做候选和风控参考。</li>
-          <li>周五和节前自动降低进攻权重，保留现金优先。</li>
-        </ul>
-        <div id="error-list" class="error-list"></div>
+        <div id="ranking-table" class="table-wrap large"></div>
       </article>
     </section>
 
-    <section id="quota" class="panel">
-      <div class="panel-head">
-        <div>
-          <p class="eyebrow">automation</p>
-          <h2>每日 500 次额度分配</h2>
+    <section id="themes" class="page-view" data-view="themes">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">themes</p>
+            <h2>题材热度</h2>
+          </div>
         </div>
+        <div id="theme-list" class="theme-list"></div>
+      </article>
+    </section>
+
+    <section id="news" class="page-view" data-view="news">
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">news</p>
+              <h2>资讯与公告风险</h2>
+            </div>
+          </div>
+          <div id="news-list" class="news-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">guardrails</p>
+              <h2>A股风控规则</h2>
+            </div>
+          </div>
+          <ul class="rules">
+            <li>ST、退市风险、停牌、新股短期高波动默认剔除。</li>
+            <li>高位连续异动、澄清公告、主力大幅流出进入风险提醒。</li>
+            <li>涨停不可追价，跌停不做流动性假设；先确认成交与盘口。</li>
+            <li>周末与非交易日只看资讯、公告、外围和下周事件。</li>
+          </ul>
+        </article>
       </div>
-      <div id="quota-plan" class="quota-grid"></div>
+    </section>
+
+    <section id="system" class="page-view" data-view="system">
+      <div class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">automation</p>
+              <h2>额度分配</h2>
+            </div>
+          </div>
+          <div id="quota-plan" class="quota-grid"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">diagnostics</p>
+              <h2>接口状态</h2>
+            </div>
+          </div>
+          <div id="error-list" class="error-list"></div>
+        </article>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <span>数据来源：东方财富妙想。页面仅供研究和交易辅助，不构成投资建议。</span>
+    <span>数据来源：东方财富妙想与公开行情。页面仅供研究和交易辅助，不构成投资建议。</span>
   </footer>
 
-  <script src="/stock/cn/assets/app.js?v=20260517-trading-clock"></script>
+  <script src="/stock/cn/assets/app.js?v=20260517-fng-cockpit2"></script>
 </body>
 </html>

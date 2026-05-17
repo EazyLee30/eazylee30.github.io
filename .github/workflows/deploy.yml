@@ -23,6 +23,7 @@ on:
           - premarket
           - midday
           - postclose
+          - weekend
           - exhaustive
           - mock
       call_budget:
@@ -40,6 +41,8 @@ on:
     - cron: "45 4 * * 1-5"
     # 15:45 Asia/Shanghai, weekday post-close refresh.
     - cron: "45 7 * * 1-5"
+    # 09:30 Asia/Shanghai, weekend news-only refresh.
+    - cron: "30 1 * * 6,0"
 
 concurrency:
   group: pages
@@ -86,11 +89,28 @@ jobs:
               budget="240"
               detail_limit="180"
             fi
+            if [[ "${{ github.event.schedule }}" == "30 1 * * 6,0" ]]; then
+              mode="weekend"
+              budget="80"
+              detail_limit="0"
+            fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             update="${{ inputs.update_stock_data }}"
             mode="${{ inputs.stock_mode }}"
             budget="${{ inputs.call_budget }}"
             detail_limit="${{ inputs.detail_limit }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            update="true"
+            cn_weekday="$(TZ=Asia/Shanghai date +%u)"
+            if [[ "${cn_weekday}" == "6" || "${cn_weekday}" == "7" ]]; then
+              mode="weekend"
+              budget="90"
+              detail_limit="0"
+            else
+              mode="postclose"
+              budget="180"
+              detail_limit="120"
+            fi
           fi
 
           if [[ -z "${MX_APIKEY}" && "${mode}" != "mock" ]]; then
@@ -105,7 +125,7 @@ jobs:
 
       - name: Generate A-share dashboard data
         if: steps.stock.outputs.update == 'true'
-        timeout-minutes: 8
+        timeout-minutes: 25
         run: >
           python3 scripts/mx_cn_pipeline.py
           --mode "${{ steps.stock.outputs.mode }}"
