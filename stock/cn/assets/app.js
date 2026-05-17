@@ -1103,7 +1103,6 @@ function drawBreadthChart() {
     .map((windowSize) => `ma${windowSize}`);
   const maxObserved = Math.max(
     5000,
-    latest?.total || 0,
     ...points.map((point) => Math.max(
       point.up,
       ...maKeys.map((key) => toNumber(point[key]) || 0)
@@ -1178,7 +1177,7 @@ function drawBreadthChart() {
   } else {
     drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 1.55, 0.72);
     if (isMaVisible(250)) drawPolyline(ctx, points, (point) => point.ma250, scaleX, scaleY, "#a78bfa", 2.05, 0.96);
-    if (isMaVisible(120)) drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#2dd4bf", 2.0, 0.96);
+    if (isMaVisible(120)) drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#60a5fa", 2.0, 0.96);
     if (isMaVisible(60)) drawPolyline(ctx, points, (point) => point.ma60, scaleX, scaleY, "#e2e8f0", 1.75, 0.88);
     if (isMaVisible(20)) drawPolyline(ctx, points, (point) => point.ma20, scaleX, scaleY, "#f59e0b", 1.85, 0.96);
   }
