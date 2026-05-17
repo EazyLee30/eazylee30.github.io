@@ -5,7 +5,8 @@ const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
 const BREADTH_CODES = new Set(["000001", "399001", "899050"]);
 const BREADTH_STORAGE_KEY = "stock-cn-breadth-series-v1";
 const BREADTH_POLL_MS = 15000;
-const BREADTH_MAX_POINTS = 1000;
+const BREADTH_MAX_POINTS = 1600;
+const BREADTH_MAX_AGE_DAYS = 10;
 
 let dashboardData = null;
 let flatRows = [];
@@ -57,12 +58,18 @@ function formatCnClock(timestamp) {
   }).format(new Date(timestamp));
 }
 
-function parseCnTimestamp(value) {
+function parseCnTimestamp(value, fallback = Date.now()) {
   const raw = formatTime(value).trim();
-  if (!raw || raw === "-") return Date.now();
+  if (!raw || raw === "-") return fallback;
   const normalized = raw.includes(" ") ? `${raw.replace(" ", "T")}+08:00` : raw;
   const timestamp = Date.parse(normalized);
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
+  return Number.isFinite(timestamp) ? timestamp : fallback;
+}
+
+function formatCnTick(timestamp, includeDate = false) {
+  const clock = formatCnClock(timestamp);
+  if (!includeDate) return clock;
+  return `${cnDateKey(timestamp).slice(5)} ${clock.slice(0, 5)}`;
 }
 
 function numberLike(value) {
@@ -158,9 +165,9 @@ function renderMarket(data) {
 function loadBreadthSeries() {
   try {
     const stored = JSON.parse(localStorage.getItem(BREADTH_STORAGE_KEY) || "[]");
-    const today = cnDateKey(Date.now());
+    const cutoff = Date.now() - BREADTH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
     return stored
-      .filter((item) => item && cnDateKey(item.t) === today)
+      .filter((item) => item && Number(item.t) >= cutoff)
       .map((item) => ({
         t: Number(item.t),
         up: toNumber(item.up),
@@ -185,15 +192,18 @@ function saveBreadthSeries() {
   }
 }
 
-function addBreadthSample(sample) {
+function addBreadthSample(sample, persist = true) {
   const up = toNumber(sample.up);
   const down = toNumber(sample.down);
   if (up === null || down === null) return false;
 
   const flat = toNumber(sample.flat) || 0;
   const total = toNumber(sample.total) || up + down + flat;
+  const sampleTime = Number(sample.t) || parseCnTimestamp(sample.time || sample.generatedAt, NaN);
+  if (!Number.isFinite(sampleTime)) return false;
+
   const normalized = {
-    t: Number(sample.t) || Date.now(),
+    t: sampleTime,
     up,
     down,
     flat,
@@ -213,8 +223,18 @@ function addBreadthSample(sample) {
   if (breadthSeries.length > BREADTH_MAX_POINTS) {
     breadthSeries = breadthSeries.slice(-BREADTH_MAX_POINTS);
   }
-  saveBreadthSeries();
+  if (persist) saveBreadthSeries();
   return true;
+}
+
+function mergeBreadthHistoryFromDashboard(data) {
+  const rows = data?.breadthPulse?.rows || [];
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  let changed = false;
+  rows.forEach((row) => {
+    if (row && addBreadthSample(row, false)) changed = true;
+  });
+  if (changed) saveBreadthSeries();
 }
 
 function seedBreadthFromDashboard(data) {
@@ -471,10 +491,11 @@ function drawBreadthChart() {
   ctx.fillText("15s", pad.left, pad.top - 4);
 
   if (points.length) {
+    const includeDate = cnDateKey(points[0].t) !== cnDateKey(points[points.length - 1].t);
     ctx.textBaseline = "bottom";
-    ctx.fillText(formatCnClock(points[0].t), pad.left, height - 8);
+    ctx.fillText(formatCnTick(points[0].t, includeDate), pad.left, height - 8);
     ctx.textAlign = "right";
-    ctx.fillText(formatCnClock(points[points.length - 1].t), width - pad.right, height - 8);
+    ctx.fillText(formatCnTick(points[points.length - 1].t, includeDate), width - pad.right, height - 8);
   }
 }
 
@@ -496,6 +517,7 @@ function initBreadthPulse(data) {
     breadthInitialized = true;
   }
 
+  mergeBreadthHistoryFromDashboard(data);
   seedBreadthFromDashboard(data);
   renderBreadthStats();
   scheduleBreadthDraw();

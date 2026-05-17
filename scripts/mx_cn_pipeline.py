@@ -70,6 +70,8 @@ NEWS_QUERIES = [
 
 PUBLIC_INDEX_SECIDS = "1.000001,0.399001,0.399006,1.000688,0.899050"
 PUBLIC_A_SHARE_FS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
+DEFAULT_PREVIOUS_LATEST_URL = "https://eazylee.xyz/stock/cn/data/latest.json"
+BREADTH_PULSE_MAX_POINTS = 1600
 
 
 def now_cn() -> dt.datetime:
@@ -78,6 +80,28 @@ def now_cn() -> dt.datetime:
 
 def format_cn_time(value: dt.datetime | None = None) -> str:
     return (value or now_cn()).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def parse_cn_time(value: Any) -> dt.datetime | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        # Browser samples use epoch milliseconds.
+        timestamp = float(value) / 1000 if float(value) > 1e12 else float(value)
+        return dt.datetime.fromtimestamp(timestamp, TIMEZONE)
+    raw = str(value).strip().replace("T", " ").replace("+08:00", "")
+    if raw.endswith("Z"):
+        try:
+            return dt.datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(TIMEZONE)
+        except ValueError:
+            return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            parsed = dt.datetime.strptime(raw, fmt)
+            return parsed.replace(tzinfo=TIMEZONE)
+        except ValueError:
+            continue
+    return None
 
 
 def safe_slug(text: str, max_len: int = 60) -> str:
@@ -96,6 +120,15 @@ def compact(value: Any, max_len: int = 220) -> Any:
         text = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
         return text if len(text) <= max_len else text[: max_len - 1] + "..."
     return str(value)
+
+
+def int_value(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(round(float(str(value).replace(",", ""))))
+    except (TypeError, ValueError):
+        return None
 
 
 def public_get_json(path: str, params: dict[str, str | int], timeout: int = 12) -> dict[str, Any] | None:
@@ -126,6 +159,112 @@ def public_get_json(path: str, params: dict[str, str | int], timeout: int = 12) 
     except Exception:
         pass
     return None
+
+
+def fetch_previous_payload(output: Path, timeout: int = 8) -> dict[str, Any]:
+    url = os.getenv("STOCK_CN_PREVIOUS_URL", DEFAULT_PREVIOUS_LATEST_URL).strip()
+    if url:
+        req = urllib.request.Request(
+            f"{url}?t={int(time.time())}",
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception:
+            pass
+        try:
+            raw = subprocess.check_output(
+                ["curl", "-fsSL", "--max-time", str(timeout), f"{url}?t={int(time.time())}"],
+                text=True,
+                timeout=timeout + 4,
+                stderr=subprocess.DEVNULL,
+            )
+            return json.loads(raw)
+        except Exception:
+            pass
+
+    if output.exists():
+        try:
+            return json.loads(output.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def normalize_breadth_sample(sample: dict[str, Any]) -> dict[str, Any] | None:
+    sample_time = parse_cn_time(sample.get("time") or sample.get("generatedAt") or sample.get("t"))
+    up = int_value(sample.get("up"))
+    down = int_value(sample.get("down"))
+    if not sample_time or up is None or down is None:
+        return None
+    flat = int_value(sample.get("flat")) or 0
+    total = int_value(sample.get("total")) or up + down + flat
+    return {
+        "time": format_cn_time(sample_time),
+        "up": up,
+        "down": down,
+        "flat": flat,
+        "total": total,
+        "source": compact(sample.get("source") or "Eastmoney public quote index breadth"),
+        "scope": compact(sample.get("scope") or "上证指数 + 深证成指 + 北证50"),
+    }
+
+
+def breadth_to_sample(generated_at: dt.datetime, breadth: dict[str, Any]) -> dict[str, Any] | None:
+    if not breadth or breadth.get("up") is None or breadth.get("down") is None:
+        return None
+    return normalize_breadth_sample(
+        {
+            "time": format_cn_time(generated_at),
+            "up": breadth.get("up"),
+            "down": breadth.get("down"),
+            "flat": breadth.get("flat"),
+            "total": breadth.get("total"),
+            "source": breadth.get("source"),
+            "scope": breadth.get("scope"),
+        }
+    )
+
+
+def build_breadth_pulse(
+    generated_at: dt.datetime,
+    breadth: dict[str, Any],
+    previous_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+
+    previous_rows = ((previous_payload or {}).get("breadthPulse") or {}).get("rows", [])
+    if isinstance(previous_rows, list):
+        for row in previous_rows:
+            if isinstance(row, dict):
+                normalized = normalize_breadth_sample(row)
+                if normalized:
+                    rows.append(normalized)
+
+    previous_breadth = (previous_payload or {}).get("breadth") or {}
+    previous_generated_at = ((previous_payload or {}).get("meta") or {}).get("generatedAt")
+    if previous_breadth and previous_generated_at:
+        previous_sample = normalize_breadth_sample({**previous_breadth, "time": previous_generated_at})
+        if previous_sample:
+            rows.append(previous_sample)
+
+    current_sample = breadth_to_sample(generated_at, breadth)
+    if current_sample:
+        rows.append(current_sample)
+
+    deduped: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        deduped[row["time"]] = row
+
+    ordered = sorted(deduped.values(), key=lambda row: parse_cn_time(row["time"]) or dt.datetime.min.replace(tzinfo=TIMEZONE))
+    ordered = ordered[-BREADTH_PULSE_MAX_POINTS:]
+    return {
+        "intervalSeconds": 15,
+        "maxPoints": BREADTH_PULSE_MAX_POINTS,
+        "source": "workflow breadth snapshots + browser 15s realtime polling",
+        "rows": ordered,
+    }
 
 
 def fmt_amount(value: Any) -> str:
@@ -486,7 +625,19 @@ def collect_candidates(screeners: list[dict[str, Any]], limit: int) -> list[dict
 
 def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
     generated_at = format_cn_time()
-    return {
+    breadth = {
+        "total": 5573,
+        "up": 1847,
+        "down": 3617,
+        "flat": 109,
+        "suspended": "",
+        "limitUpApprox": "",
+        "limitDownApprox": "",
+        "amount": "示例",
+        "source": "seed",
+        "scope": "上证指数 + 深证成指 + 北证50",
+    }
+    payload = {
         "meta": {
             "generatedAt": generated_at,
             "tradingDate": generated_at[:10],
@@ -503,18 +654,8 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
                 "rows": [{"date": "上证指数 + 深证成指 + 北证50", "总数": 5573, "上涨家数": 1847, "下跌家数": 3617, "平盘家数": 109, "口径": "seed"}],
             },
         ],
-        "breadth": {
-            "total": 5573,
-            "up": 1847,
-            "down": 3617,
-            "flat": 109,
-            "suspended": "",
-            "limitUpApprox": "",
-            "limitDownApprox": "",
-            "amount": "示例",
-            "source": "seed",
-            "scope": "上证指数 + 深证成指 + 北证50",
-        },
+        "breadth": breadth,
+        "breadthPulse": build_breadth_pulse(parse_cn_time(generated_at) or now_cn(), breadth, {}),
         "themes": [
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},
         ],
@@ -533,6 +674,7 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
         "quotaPlan": quota_plan(),
         "errors": [],
     }
+    return payload
 
 
 def quota_plan() -> dict[str, Any]:
@@ -571,6 +713,7 @@ def generate(
         market_query = "A股主要指数 上证指数 深证成指 创业板指 科创50 北证50 沪深300 中证500 中证1000 最新价 涨跌幅 成交额 成交量"
         market = parse_data_tables(client.data(market_query, "market-index"), limit=40)
         breadth = {}
+    previous_payload = fetch_previous_payload(output)
 
     themes: list[dict[str, Any]] = []
     for query in CORE_THEME_GROUPS:
@@ -633,6 +776,7 @@ def generate(
         },
         "market": market,
         "breadth": breadth,
+        "breadthPulse": build_breadth_pulse(generated_at, breadth, previous_payload),
         "themes": themes[:12],
         "screeners": screeners,
         "news": news_groups,

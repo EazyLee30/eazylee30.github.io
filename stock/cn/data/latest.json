@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-05-17 10:50:41",
+    "generatedAt": "2026-05-17 14:06:44",
     "tradingDate": "2026-05-17",
     "mode": "mock",
     "isMock": true,
@@ -45,6 +45,22 @@
     "amount": "示例",
     "source": "seed",
     "scope": "上证指数 + 深证成指 + 北证50"
+  },
+  "breadthPulse": {
+    "intervalSeconds": 15,
+    "maxPoints": 1600,
+    "source": "workflow breadth snapshots + browser 15s realtime polling",
+    "rows": [
+      {
+        "time": "2026-05-17 14:06:44",
+        "up": 1847,
+        "down": 3617,
+        "flat": 109,
+        "total": 5573,
+        "source": "seed",
+        "scope": "上证指数 + 深证成指 + 北证50"
+      }
+    ]
   },
   "themes": [
     {

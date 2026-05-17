@@ -114,6 +114,15 @@ jobs:
           --request-timeout 12
           --history-days 20
           --output stock/cn/data/latest.json
+
+      - name: Preserve deployed stock data
+        if: steps.stock.outputs.update != 'true'
+        shell: bash
+        run: |
+          mkdir -p stock/cn/data
+          curl -fsSL --retry 2 --max-time 10 \
+            "https://eazylee.xyz/stock/cn/data/latest.json?t=$(date +%s)" \
+            -o stock/cn/data/latest.json || true
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
