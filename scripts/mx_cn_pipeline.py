@@ -40,6 +40,22 @@ CORE_THEME_GROUPS = [
     "人工智能 AI算力 数据中心 算力租赁 液冷服务器 PCB 成交额 涨跌幅 主力净额",
 ]
 
+HIGH_VOL_SCALP_QUERY = (
+    "科创板 688开头 或 创业板 300或301开头 或 北交所 A股 非ST "
+    "成交额大于3亿元 换手率大于8% 主力资金净流入大于0 "
+    "今日涨跌幅在-3%到18%之间 按换手率降序"
+)
+SMART_MONEY_TREND_QUERY = (
+    "A股 非ST 成交额大于2亿元 股价高于60日均线 近60日涨幅大于15% "
+    "收盘价创60日新高 成交量大于20日均量1.5倍 主力资金净流入大于0 "
+    "行业指数强势 按近60日涨幅降序"
+)
+FORCED_SELLER_REVERSAL_QUERY = (
+    "A股 非ST 总市值大于300亿元 成交额大于5亿元 近20日跌幅大于15% "
+    "近3日成交额大于20日均额2倍 沪深300或中证500或中证1000或ETF成分 "
+    "最近两年没有连续亏损 没有退市风险 按近20日跌幅升序"
+)
+
 SCREENERS = [
     ("资金进攻", "A股 非ST 成交额大于20亿元 主力资金净流入大于2亿元 今日涨幅在1%到9%之间 按主力净流入降序"),
     ("强趋势", "A股 非ST 近5日涨幅大于5% 成交额大于10亿元 主力资金净流入大于0 按成交额降序"),
@@ -47,6 +63,9 @@ SCREENERS = [
     ("放量突破", "A股 非ST 今日涨幅大于3% 成交额大于8亿元 换手率大于5% 主力资金净流入大于0"),
     ("流动性核心", "A股 非ST 成交额大于50亿元 主力资金净流入大于0 按成交额降序"),
     ("小微盘活跃", "A股 非ST 总市值小于100亿元 成交额大于3亿元 换手率大于8% 主力资金净流入大于0"),
+    ("688/创业板/北交所超短搏杀", HIGH_VOL_SCALP_QUERY),
+    ("机构趋势跟随", SMART_MONEY_TREND_QUERY),
+    ("机构踩踏反转", FORCED_SELLER_REVERSAL_QUERY),
     ("半导体", "半导体 A股 非ST 成交额大于8亿元 主力资金净流入大于0"),
     ("CPO光模块", "CPO概念 光通信模块 A股 非ST 成交额大于8亿元 主力资金净流入大于0"),
     ("消费电子", "消费电子 苹果概念 A股 非ST 成交额大于5亿元 主力资金净流入大于0"),
@@ -1014,6 +1033,10 @@ def find_name(row: dict[str, Any]) -> str:
     return ""
 
 
+def is_high_volatility_board_code(code: str) -> bool:
+    return code.startswith(("688", "30", "920", "83", "87", "88", "43"))
+
+
 def collect_candidates(screeners: list[dict[str, Any]], limit: int) -> list[dict[str, str]]:
     seen: set[str] = set()
     candidates: list[dict[str, str]] = []
@@ -1073,6 +1096,21 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},
         ],
         "screeners": [
+            {
+                "name": "688/创业板/北交所超短搏杀",
+                "query": HIGH_VOL_SCALP_QUERY,
+                "rows": [],
+            },
+            {
+                "name": "机构趋势跟随",
+                "query": SMART_MONEY_TREND_QUERY,
+                "rows": [],
+            },
+            {
+                "name": "机构踩踏反转",
+                "query": FORCED_SELLER_REVERSAL_QUERY,
+                "rows": [],
+            },
             {
                 "name": "资金进攻",
                 "query": "A股 非ST 成交额大于20亿元 主力资金净流入大于2亿元",
@@ -1157,6 +1195,8 @@ def generate(
             if client.remaining <= 0:
                 break
             rows = parse_screen_rows(client.screen(query, f"screener:{name}"), limit=80)
+            if name == "688/创业板/北交所超短搏杀":
+                rows = [row for row in rows if is_high_volatility_board_code(find_code(row))]
             screeners.append({"name": name, "query": query, "rows": rows})
 
     news_groups: list[dict[str, Any]] = []

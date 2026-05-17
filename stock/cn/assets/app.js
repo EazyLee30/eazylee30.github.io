@@ -206,6 +206,76 @@ function findRowName(row) {
   return text(pickValue(row, ["名称", "简称", "SECURITY_SHORT_NAME", "name"]), "");
 }
 
+function findScreener(data, labels) {
+  const groups = data?.screeners || [];
+  return groups.find((group) => labels.some((label) => String(group?.name || "").includes(label))) || null;
+}
+
+function isHighVolatilityBoardCode(code) {
+  const raw = String(code || "").trim();
+  return raw.startsWith("688") || raw.startsWith("30") || raw.startsWith("920") || raw.startsWith("83") || raw.startsWith("87") || raw.startsWith("88") || raw.startsWith("43");
+}
+
+function formatSignalPick(row) {
+  const code = findRowCode(row);
+  const name = findRowName(row) || code;
+  const pct = text(pickValue(row, ["涨跌幅(%)", "涨跌幅"]), "");
+  const turnover = text(pickValue(row, ["换手率(%)", "换手率"]), "");
+  const amount = text(pickValue(row, ["成交额(元)", "成交额"]), "");
+  const pctText = pct ? (pct.includes("%") ? pct : `${pct}%`) : "";
+  const turnoverText = turnover ? (turnover.includes("%") ? turnover : `${turnover}%`) : "";
+  const metrics = [pctText, turnoverText ? `换手${turnoverText}` : "", amount ? `成交${amount}` : ""].filter(Boolean).join(" / ");
+  return `${name}${code ? ` ${code}` : ""}${metrics ? ` ${metrics}` : ""}`;
+}
+
+function buildHighVolScalpSignal(data) {
+  const group = findScreener(data, ["超短搏杀", "688/创业板", "688/300", "688超短", "科创板超短"]);
+  const rows = (group?.rows || []).filter((row) => isHighVolatilityBoardCode(findRowCode(row)));
+  if (!rows.length) {
+    return {
+      signal: "高波动超短：688/创业板/北交所未触发量价资金共振；没有候选时不做高波动搏杀。",
+      operation: "高波动板块只做隔日/日内观察，低开破位或冲高回落不接力。",
+    };
+  }
+  const picks = rows.slice(0, 3).map(formatSignalPick).join("；");
+  return {
+    signal: `高波动超短：${rows.length} 只触发，优先看 ${picks}`,
+    operation: "688/创业板/北交所按高波动仓位处理，触发后只看量价延续和次日承接。",
+  };
+}
+
+function buildSmartMoneyTrendSignal(data) {
+  const group = findScreener(data, ["机构趋势跟随", "Smart Money", "趋势跟随"]);
+  const rows = group?.rows || [];
+  if (!rows.length) {
+    return {
+      signal: "机构趋势跟随：未触发强趋势、放量突破和行业共振组合；不追情绪单点。",
+      operation: "趋势策略等待突破回踩、趋势二买或行业确认，跌破20日线/平台低点降级。",
+    };
+  }
+  const picks = rows.slice(0, 3).map(formatSignalPick).join("；");
+  return {
+    signal: `机构趋势跟随：${rows.length} 只进入候选，优先看 ${picks}`,
+    operation: "趋势策略只吃中段，确认后用20日线、平台低点和单笔1R做硬风控。",
+  };
+}
+
+function buildForcedSellerSignal(data) {
+  const group = findScreener(data, ["机构踩踏反转", "被迫卖出", "Forced Seller", "踩踏反转"]);
+  const rows = group?.rows || [];
+  if (!rows.length) {
+    return {
+      signal: "机构踩踏反转：未触发急跌放量、机构拥挤和基本面未崩组合；不捡无因下跌。",
+      operation: "反转策略等待恐慌衰竭、站回5日线或突破恐慌日高点，跌破恐慌低点直接退出。",
+    };
+  }
+  const picks = rows.slice(0, 3).map(formatSignalPick).join("；");
+  return {
+    signal: `机构踩踏反转：${rows.length} 只进入观察，优先看 ${picks}`,
+    operation: "反转策略分批确认卖压衰竭；出现业绩暴雷、监管立案或再次破5日线则降级。",
+  };
+}
+
 function pickColumns(rows, preferred, options = {}) {
   const maxColumns = options.maxColumns || 8;
   const available = new Set();
@@ -358,10 +428,17 @@ function analyzeDashboard(data) {
       : "MA250 支撑：历史样本不足",
     `交易时段：${sessionText}`,
   ];
+  const strategySignals = [
+    buildHighVolScalpSignal(data),
+    buildSmartMoneyTrendSignal(data),
+    buildForcedSellerSignal(data),
+  ];
+  signals.push(...strategySignals.map((item) => item.signal));
 
   const operations = newsOnly
     ? ["复核周末政策、公告风险、外围市场。", "把候选池保留到优选页，不在周末新增盘中结论。", "下个交易日只在宽度重新扩张后提高仓位。"]
     : [action, "优选页看候选，截面页做搜索和复核。", "若资讯页出现减持、监管或澄清公告，候选降级处理。"];
+  operations.push(...strategySignals.map((item) => item.operation));
 
   return {
     ...inferred,
