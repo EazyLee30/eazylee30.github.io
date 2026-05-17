@@ -1,4 +1,5 @@
 const DATA_URL = "/stock/cn/data/latest.json";
+const DATA_AUTO_REFRESH_MS = 60 * 1000;
 const BREADTH_ENDPOINT = "https://push2.eastmoney.com/api/qt/ulist.np/get";
 const BREADTH_FIELDS = "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106";
 const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
@@ -26,6 +27,8 @@ let breadthInitialized = false;
 let breadthDrawQueued = false;
 let currentInsight = null;
 let activeBreadthPeriod = "1d";
+let dataLoadInFlight = false;
+let dataRefreshTimer = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -97,6 +100,11 @@ function formatCnClock(timestamp) {
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(timestamp));
+}
+
+function formatRefreshInterval(ms) {
+  const seconds = Math.round(ms / 1000);
+  return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60}min` : `${seconds}s`;
 }
 
 function parseCnTimestamp(value, fallback = Date.now()) {
@@ -1268,6 +1276,28 @@ function renderErrors(data) {
     : '<div class="neutral">暂无接口错误。实时宽度只在交易时段尝试采样，失败时沿用 latest.json 快照。</div>';
 }
 
+function setRefreshStatus(state = "idle") {
+  const interval = formatRefreshInterval(DATA_AUTO_REFRESH_MS);
+  if (state === "loading") {
+    setText("refresh-mode", "同步中");
+    return;
+  }
+  if (state === "error") {
+    setText("refresh-mode", `${interval} / 自动重试`);
+    return;
+  }
+  setText("refresh-mode", `${interval} / ${formatCnClock(Date.now())}`);
+}
+
+function handleLoadError(error) {
+  console.error(error);
+  setRefreshStatus("error");
+  setText("generated-at", "加载失败");
+  const market = el("market-table");
+  if (market) market.innerHTML = '<div class="empty">无法读取 /stock/cn/data/latest.json</div>';
+  initBreadthPulse(null);
+}
+
 function getCurrentView() {
   const hash = window.location.hash.replace("#", "");
   return VIEWS.has(hash) ? hash : "overview";
@@ -1299,29 +1329,35 @@ function initRouting() {
 }
 
 async function loadData() {
-  const response = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  dashboardData = await response.json();
-  flatRows = flattenRanking(dashboardData);
-  updateMeta(dashboardData);
-  renderMarket(dashboardData);
-  renderStrategySelect(dashboardData);
-  renderTopCandidates();
-  renderRanking();
-  renderThemes(dashboardData);
-  renderDetails(dashboardData);
-  renderNews(dashboardData);
-  renderQuota(dashboardData);
-  renderErrors(dashboardData);
-  initBreadthPulse(dashboardData);
+  if (dataLoadInFlight) return dashboardData;
+  dataLoadInFlight = true;
+  setRefreshStatus("loading");
+  try {
+    const response = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    dashboardData = await response.json();
+    flatRows = flattenRanking(dashboardData);
+    updateMeta(dashboardData);
+    renderMarket(dashboardData);
+    renderStrategySelect(dashboardData);
+    renderTopCandidates();
+    renderRanking();
+    renderThemes(dashboardData);
+    renderDetails(dashboardData);
+    renderNews(dashboardData);
+    renderQuota(dashboardData);
+    renderErrors(dashboardData);
+    initBreadthPulse(dashboardData);
+    setRefreshStatus("idle");
+    return dashboardData;
+  } finally {
+    dataLoadInFlight = false;
+  }
 }
 
 function bindEvents() {
   const searchInput = el("search-input");
   if (searchInput) searchInput.addEventListener("input", (event) => renderRanking(event.target.value));
-  document.querySelectorAll("[data-refresh]").forEach((button) => {
-    button.addEventListener("click", loadData);
-  });
   document.querySelectorAll("[data-breadth-period]").forEach((button) => {
     button.addEventListener("click", () => {
       activeBreadthPeriod = button.dataset.breadthPeriod || "1d";
@@ -1332,12 +1368,18 @@ function bindEvents() {
   });
 }
 
+function initAutoRefresh() {
+  setText("refresh-mode", `${formatRefreshInterval(DATA_AUTO_REFRESH_MS)} / 页面可见`);
+  if (dataRefreshTimer) window.clearInterval(dataRefreshTimer);
+  dataRefreshTimer = window.setInterval(() => {
+    if (!document.hidden) loadData().catch(handleLoadError);
+  }, DATA_AUTO_REFRESH_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadData().catch(handleLoadError);
+  });
+}
+
 initRouting();
 bindEvents();
-loadData().catch((error) => {
-  console.error(error);
-  setText("generated-at", "加载失败");
-  const market = el("market-table");
-  if (market) market.innerHTML = '<div class="empty">无法读取 /stock/cn/data/latest.json</div>';
-  initBreadthPulse(null);
-});
+initAutoRefresh();
+loadData().catch(handleLoadError);

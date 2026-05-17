@@ -366,11 +366,6 @@ small {
   text-align: right;
 }
 
-.status-refresh {
-  width: calc(100% - 28px);
-  margin: 14px;
-}
-
 .market-ribbon {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
