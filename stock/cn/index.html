@@ -7,7 +7,7 @@
   <meta name="description" content="A股市场状态、历史涨跌家数、优选候选、截面策略、题材资讯和风控动作。" />
   <link rel="canonical" href="https://eazylee.xyz/stock/cn/" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/stock/cn/assets/styles.css?v=20260517-auto-refresh" />
+  <link rel="stylesheet" href="/stock/cn/assets/styles.css?v=20260517-chart-tools" />
 </head>
 <body>
   <header class="topbar">
@@ -125,6 +125,24 @@
                 <button type="button" data-breadth-period="1w">周</button>
                 <button type="button" data-breadth-period="1mo">月</button>
               </div>
+              <div class="chart-tool-row" aria-label="涨跌家数局部缩放">
+                <span>视窗</span>
+                <div class="compact-tabs">
+                  <button type="button" data-breadth-window="all">全量</button>
+                  <button type="button" data-breadth-window="60">近60</button>
+                  <button type="button" data-breadth-window="120">近120</button>
+                  <button type="button" data-breadth-window="250">近250</button>
+                </div>
+              </div>
+              <div class="chart-tool-row" aria-label="均线显示设置">
+                <span>均线</span>
+                <div class="compact-tabs ma-tabs">
+                  <button type="button" data-ma-toggle="20">MA20</button>
+                  <button type="button" data-ma-toggle="60">MA60</button>
+                  <button type="button" data-ma-toggle="120">MA120</button>
+                  <button type="button" data-ma-toggle="250">MA250</button>
+                </div>
+              </div>
               <div class="pulse-stats" aria-label="涨跌家数">
                 <span><strong id="pulse-up">-</strong> 涨</span>
                 <span><strong id="pulse-down">-</strong> 跌</span>
@@ -136,10 +154,10 @@
             <span id="pulse-updated">等待快照</span>
             <span class="legend-item"><i class="pulse-line"></i>上涨家数</span>
             <span class="legend-item"><i class="down-line"></i>下跌家数</span>
-            <span class="legend-item"><i class="ma20-line"></i>MA20</span>
-            <span class="legend-item"><i class="ma60-line"></i>MA60</span>
-            <span class="legend-item"><i class="ma120-line"></i>MA120</span>
-            <span class="legend-item"><i class="ma250-line"></i>MA250</span>
+            <span class="legend-item" data-ma-legend="20"><i class="ma20-line"></i>MA20</span>
+            <span class="legend-item" data-ma-legend="60"><i class="ma60-line"></i>MA60</span>
+            <span class="legend-item" data-ma-legend="120"><i class="ma120-line"></i>MA120</span>
+            <span class="legend-item" data-ma-legend="250"><i class="ma250-line"></i>MA250</span>
           </div>
           <div class="chart-shell">
             <canvas id="breadth-chart" aria-label="历史涨跌家数图" role="img"></canvas>
@@ -278,6 +296,6 @@
     <span>数据来源：东方财富妙想与公开行情。页面仅供研究和交易辅助，不构成投资建议。</span>
   </footer>
 
-  <script src="/stock/cn/assets/app.js?v=20260517-auto-refresh"></script>
+  <script src="/stock/cn/assets/app.js?v=20260517-chart-tools"></script>
 </body>
 </html>

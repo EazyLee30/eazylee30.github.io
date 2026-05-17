@@ -470,11 +470,12 @@ small {
 
 .chart-controls {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: end;
 }
 
-.period-tabs {
+.period-tabs,
+.compact-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -485,7 +486,20 @@ small {
   background: rgba(9, 14, 26, 0.54);
 }
 
-.period-tabs button {
+.chart-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chart-tool-row > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.period-tabs button,
+.compact-tabs button {
   min-height: 28px;
   padding: 0 9px;
   border: 1px solid transparent;
@@ -496,10 +510,18 @@ small {
 }
 
 .period-tabs button:hover,
-.period-tabs button.is-active {
+.period-tabs button.is-active,
+.compact-tabs button:hover,
+.compact-tabs button.is-active {
   border-color: rgba(148, 163, 184, 0.18);
   background: rgba(248, 250, 252, 0.10);
   color: var(--ink);
+}
+
+.ma-tabs button:not(.is-active) {
+  color: rgba(148, 163, 184, 0.52);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .pulse-stats,
@@ -563,6 +585,11 @@ small {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+.legend-item.is-muted {
+  opacity: 0.42;
+  text-decoration: line-through;
 }
 
 .legend-item i {
@@ -1122,9 +1149,16 @@ tr:hover td {
   }
 
   .chart-controls,
-  .period-tabs {
+  .period-tabs,
+  .chart-tool-row,
+  .compact-tabs {
     justify-items: start;
     justify-content: flex-start;
+  }
+
+  .chart-tool-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .gauge-wrap canvas {

@@ -5,10 +5,17 @@ const BREADTH_FIELDS = "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106";
 const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
 const BREADTH_CODES = new Set(["000001", "399001", "899050"]);
 const BREADTH_STORAGE_KEY = "stock-cn-breadth-series-v2";
+const BREADTH_UI_STORAGE_KEY = "stock-cn-breadth-ui-v1";
 const BREADTH_POLL_MS = 15000;
 const BREADTH_MAX_POINTS = 1600;
 const BREADTH_MAX_AGE_DAYS = 390;
 const BREADTH_MA_WINDOWS = [20, 60, 120, 250];
+const BREADTH_WINDOW_OPTIONS = new Set(["all", "60", "120", "250"]);
+const BREADTH_INTRADAY_FALLBACK_POINTS = {
+  "15s": 1,
+  "15m": 20,
+  "4h": 60,
+};
 const VIEWS = new Set(["overview", "picks", "cross-section", "themes", "news", "system"]);
 const BREADTH_PERIODS = {
   "15s": { label: "15s", kind: "interval", ms: 15 * 1000 },
@@ -27,6 +34,8 @@ let breadthInitialized = false;
 let breadthDrawQueued = false;
 let currentInsight = null;
 let activeBreadthPeriod = "1d";
+let activeBreadthWindow = "all";
+let activeMaWindows = new Set(BREADTH_MA_WINDOWS);
 let dataLoadInFlight = false;
 let dataRefreshTimer = null;
 
@@ -105,6 +114,39 @@ function formatCnClock(timestamp) {
 function formatRefreshInterval(ms) {
   const seconds = Math.round(ms / 1000);
   return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60}min` : `${seconds}s`;
+}
+
+function loadBreadthUiPrefs() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(BREADTH_UI_STORAGE_KEY) || "{}");
+    if (BREADTH_WINDOW_OPTIONS.has(String(stored.window))) {
+      activeBreadthWindow = String(stored.window);
+    }
+    if (Array.isArray(stored.maWindows)) {
+      activeMaWindows = new Set(
+        stored.maWindows
+          .map((value) => Number(value))
+          .filter((value) => BREADTH_MA_WINDOWS.includes(value))
+      );
+    }
+  } catch (error) {
+    console.warn("Unable to read breadth UI prefs", error);
+  }
+}
+
+function saveBreadthUiPrefs() {
+  try {
+    localStorage.setItem(BREADTH_UI_STORAGE_KEY, JSON.stringify({
+      window: activeBreadthWindow,
+      maWindows: [...activeMaWindows],
+    }));
+  } catch (error) {
+    console.warn("Unable to save breadth UI prefs", error);
+  }
+}
+
+function isMaVisible(windowSize) {
+  return activeMaWindows.has(Number(windowSize));
 }
 
 function parseCnTimestamp(value, fallback = Date.now()) {
@@ -743,11 +785,15 @@ function getBreadthChartSeries(periodKey = activeBreadthPeriod) {
   }
 
   if (intradayKeys.has(periodKey)) {
+    const fallbackCount = BREADTH_INTRADAY_FALLBACK_POINTS[periodKey] || 60;
+    const fallbackPoints = aggregatePoints(dailyPoints, "1d").slice(-fallbackCount);
     return {
-      points: aggregatePoints(dailyPoints, "1d"),
-      label: `${period.label} / 日收盘快照`,
+      points: fallbackPoints,
+      label: `${period.label} / 收盘参照`,
       mode: "daily-fallback",
-      note: "暂无真实盘中历史，显示日收盘宽度与日线MA",
+      note: periodKey === "15s"
+        ? "暂无真实15s盘中历史，显示最新收盘快照"
+        : `暂无真实${period.label}盘中历史，显示近${fallbackCount}个交易日收盘参照`,
     };
   }
 
@@ -763,6 +809,17 @@ function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
   return getBreadthChartSeries(periodKey).points;
 }
 
+function applyBreadthWindow(points) {
+  if (!Array.isArray(points)) return [];
+  if (activeBreadthWindow === "all") return points;
+  const size = Number(activeBreadthWindow);
+  return Number.isFinite(size) && size > 0 ? points.slice(-size) : points;
+}
+
+function breadthWindowLabel() {
+  return activeBreadthWindow === "all" ? "全量" : `近${activeBreadthWindow}`;
+}
+
 function updatePeriodTabs() {
   document.querySelectorAll("[data-breadth-period]").forEach((button) => {
     const active = button.dataset.breadthPeriod === activeBreadthPeriod;
@@ -771,12 +828,37 @@ function updatePeriodTabs() {
   });
 }
 
+function updateBreadthWindowTabs() {
+  document.querySelectorAll("[data-breadth-window]").forEach((button) => {
+    const active = button.dataset.breadthWindow === activeBreadthWindow;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function updateMaToggles() {
+  document.querySelectorAll("[data-ma-toggle]").forEach((button) => {
+    const active = isMaVisible(button.dataset.maToggle);
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  document.querySelectorAll("[data-ma-legend]").forEach((item) => {
+    item.classList.toggle("is-muted", !isMaVisible(item.dataset.maLegend));
+  });
+}
+
+function updateBreadthControls() {
+  updatePeriodTabs();
+  updateBreadthWindowTabs();
+  updateMaToggles();
+}
+
 function renderBreadthStats(message = "") {
   const upEl = el("pulse-up");
   if (!upEl) return;
 
   const series = getBreadthChartSeries();
-  const points = series.points;
+  const points = applyBreadthWindow(series.points);
   const latest = points[points.length - 1];
   if (!latest) {
     upEl.textContent = "-";
@@ -789,7 +871,7 @@ function renderBreadthStats(message = "") {
   upEl.textContent = formatInteger(latest.up);
   setText("pulse-down", formatInteger(latest.down));
   setText("pulse-samples", formatInteger(points.length));
-  setText("pulse-updated", message || `${series.label} / ${latest.scope} / ${formatCnTick(latest.t, true)} / ${series.note}`);
+  setText("pulse-updated", message || `${series.label} / ${breadthWindowLabel()} / ${latest.scope} / ${formatCnTick(latest.t, true)} / ${series.note}`);
 }
 
 function jsonpRequest(url, params, timeout = 7000) {
@@ -920,9 +1002,11 @@ function drawBreadthChart() {
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const series = getBreadthChartSeries();
-  const points = series.points;
+  const points = applyBreadthWindow(series.points);
   const latest = points[points.length - 1];
-  const maKeys = BREADTH_MA_WINDOWS.map((windowSize) => `ma${windowSize}`);
+  const maKeys = BREADTH_MA_WINDOWS
+    .filter((windowSize) => isMaVisible(windowSize))
+    .map((windowSize) => `ma${windowSize}`);
   const maxObserved = Math.max(
     5000,
     latest?.total || 0,
@@ -1001,16 +1085,16 @@ function drawBreadthChart() {
   } else {
     drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#34d399", 1.35, 0.50);
     drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 1.55, 0.72);
-    drawPolyline(ctx, points, (point) => point.ma250, scaleX, scaleY, "#a78bfa", 2.05, 0.96);
-    drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#2dd4bf", 2.0, 0.96);
-    drawPolyline(ctx, points, (point) => point.ma60, scaleX, scaleY, "#e2e8f0", 1.75, 0.88);
-    drawPolyline(ctx, points, (point) => point.ma20, scaleX, scaleY, "#f59e0b", 1.85, 0.96);
+    if (isMaVisible(250)) drawPolyline(ctx, points, (point) => point.ma250, scaleX, scaleY, "#a78bfa", 2.05, 0.96);
+    if (isMaVisible(120)) drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#2dd4bf", 2.0, 0.96);
+    if (isMaVisible(60)) drawPolyline(ctx, points, (point) => point.ma60, scaleX, scaleY, "#e2e8f0", 1.75, 0.88);
+    if (isMaVisible(20)) drawPolyline(ctx, points, (point) => point.ma20, scaleX, scaleY, "#f59e0b", 1.85, 0.96);
   }
 
   ctx.fillStyle = "rgba(203, 213, 225, 0.72)";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`${series.label} breadth`, pad.left, pad.top - 4);
+  ctx.fillText(`${series.label} / ${breadthWindowLabel()}`, pad.left, pad.top - 4);
 
   if (points.length) {
     const includeDate = cnDateKey(points[0].t) !== cnDateKey(points[points.length - 1].t);
@@ -1048,7 +1132,7 @@ function initBreadthPulse(data) {
 
   mergeBreadthHistoryFromDashboard(data);
   seedBreadthFromDashboard(data);
-  updatePeriodTabs();
+  updateBreadthControls();
   renderBreadthStats();
   scheduleBreadthDraw();
 
@@ -1060,9 +1144,7 @@ function initBreadthPulse(data) {
     pollLiveBreadth();
     breadthTimer = window.setInterval(pollLiveBreadth, BREADTH_POLL_MS);
   } else {
-    const latest = breadthSeries[breadthSeries.length - 1];
-    const mode = data?.meta?.marketClock?.sessionText || "非交易时段";
-    if (latest) renderBreadthStats(`${BREADTH_PERIODS[activeBreadthPeriod]?.label || activeBreadthPeriod} / ${latest.scope} / ${formatCnTick(latest.t, true)} / ${mode}，使用收盘快照`);
+    renderBreadthStats();
   }
 }
 
@@ -1361,8 +1443,32 @@ function bindEvents() {
   document.querySelectorAll("[data-breadth-period]").forEach((button) => {
     button.addEventListener("click", () => {
       activeBreadthPeriod = button.dataset.breadthPeriod || "1d";
-      updatePeriodTabs();
+      updateBreadthControls();
       renderBreadthStats();
+      scheduleBreadthDraw();
+    });
+  });
+  document.querySelectorAll("[data-breadth-window]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextWindow = button.dataset.breadthWindow || "all";
+      activeBreadthWindow = BREADTH_WINDOW_OPTIONS.has(nextWindow) ? nextWindow : "all";
+      saveBreadthUiPrefs();
+      updateBreadthControls();
+      renderBreadthStats();
+      scheduleBreadthDraw();
+    });
+  });
+  document.querySelectorAll("[data-ma-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const windowSize = Number(button.dataset.maToggle);
+      if (!BREADTH_MA_WINDOWS.includes(windowSize)) return;
+      if (activeMaWindows.has(windowSize)) {
+        activeMaWindows.delete(windowSize);
+      } else {
+        activeMaWindows.add(windowSize);
+      }
+      saveBreadthUiPrefs();
+      updateBreadthControls();
       scheduleBreadthDraw();
     });
   });
@@ -1379,6 +1485,7 @@ function initAutoRefresh() {
   });
 }
 
+loadBreadthUiPrefs();
 initRouting();
 bindEvents();
 initAutoRefresh();
