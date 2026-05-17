@@ -87,6 +87,13 @@ function updateMeta(data) {
   el("detail-count").textContent = text((data.stockDetails || []).length, 0);
   el("error-count").textContent = text((data.errors || []).length, 0);
 
+  const breadth = data.breadth || {};
+  if (breadth.up !== undefined && breadth.down !== undefined) {
+    el("market-state").textContent = `${text(breadth.up, 0)} 涨 / ${text(breadth.down, 0)} 跌`;
+    el("market-note").textContent = `全A ${text(breadth.total, "-")} 只，成交额 ${text(breadth.amount, "-")}`;
+    return;
+  }
+
   const marketRows = firstRows(data.market);
   const red = marketRows.some((row) => String(row["涨跌幅"] || row["涨跌幅(%)"] || "").includes("-"));
   el("market-state").textContent = red ? "防守/分化" : "可进攻";
@@ -219,6 +226,7 @@ function renderQuota(data) {
     <div class="quota-item">
       <h3>每日上限 ${escapeHtml(plan.dailyLimit || 500)} 次，预留 ${escapeHtml(plan.reserve || 20)} 次</h3>
       <div class="inline-meta">
+        <span>${escapeHtml(plan.freePublicData || "")}</span>
         <span>仓库策略：${escapeHtml(plan.storagePolicy?.repo || "-")}</span>
         <span>部署策略：${escapeHtml(plan.storagePolicy?.pagesArtifact || "-")}</span>
       </div>

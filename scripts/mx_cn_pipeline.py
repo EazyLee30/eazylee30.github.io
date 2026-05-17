@@ -18,12 +18,14 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 
 API_BASE = "https://mkapi2.dfcfs.com/finskillshub/api/claw"
+PUBLIC_QUOTE_BASE = "https://push2.eastmoney.com/api/qt"
 TIMEZONE = dt.timezone(dt.timedelta(hours=8), name="Asia/Shanghai")
 
 
@@ -65,6 +67,9 @@ NEWS_QUERIES = [
     ("政策催化", "今日A股政策催化 人工智能 半导体 机器人 电力 光伏"),
 ]
 
+PUBLIC_INDEX_SECIDS = "1.000001,0.399001,0.399006,1.000688,0.899050"
+PUBLIC_A_SHARE_FS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
+
 
 def now_cn() -> dt.datetime:
     return dt.datetime.now(TIMEZONE)
@@ -90,6 +95,166 @@ def compact(value: Any, max_len: int = 220) -> Any:
         text = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
         return text if len(text) <= max_len else text[: max_len - 1] + "..."
     return str(value)
+
+
+def public_get_json(path: str, params: dict[str, str | int], timeout: int = 12) -> dict[str, Any] | None:
+    query = urllib.parse.urlencode(params, safe=",:.+")
+    url = f"{PUBLIC_QUOTE_BASE}/{path}?{query}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json,text/plain,*/*",
+            "Referer": "https://quote.eastmoney.com/",
+        },
+    )
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception:
+            if attempt < 2:
+                time.sleep(0.5 * (attempt + 1))
+    return None
+
+
+def fmt_amount(value: Any) -> str:
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return ""
+    if abs(n) >= 1e12:
+        return f"{n / 1e12:.3f}万亿元"
+    if abs(n) >= 1e8:
+        return f"{n / 1e8:.2f}亿元"
+    if abs(n) >= 1e4:
+        return f"{n / 1e4:.2f}万元"
+    return f"{n:.0f}"
+
+
+def fetch_public_indices() -> list[dict[str, Any]]:
+    result = public_get_json(
+        "ulist.np/get",
+        {
+            "fltt": 2,
+            "fields": "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106",
+            "secids": PUBLIC_INDEX_SECIDS,
+        },
+    )
+    rows: list[dict[str, Any]] = []
+    for item in (result or {}).get("data", {}).get("diff", []) or []:
+        rows.append(
+            {
+                "date": compact(item.get("f14")),
+                "代码": compact(item.get("f12")),
+                "最新价": compact(item.get("f2")),
+                "涨跌幅": f"{item.get('f3')}%",
+                "涨跌额": compact(item.get("f4")),
+                "成交额": fmt_amount(item.get("f6")),
+                "上涨家数": compact(item.get("f104")),
+                "下跌家数": compact(item.get("f105")),
+                "平盘家数": compact(item.get("f106")),
+            }
+        )
+    return rows
+
+
+def fetch_public_breadth(page_size: int = 100) -> dict[str, Any]:
+    base_params: dict[str, str | int] = {
+        "pn": 1,
+        "pz": page_size,
+        "po": 1,
+        "np": 1,
+        "fltt": 2,
+        "invt": 2,
+        "fid": "f3",
+        "fs": PUBLIC_A_SHARE_FS,
+        "fields": "f12,f14,f2,f3,f4,f5,f6",
+    }
+    first = public_get_json("clist/get", base_params)
+    data = (first or {}).get("data", {})
+    total = int(data.get("total") or 0)
+    if total <= 0:
+        return {}
+    pages = max(1, (total + page_size - 1) // page_size)
+
+    rows: list[dict[str, Any]] = []
+    if isinstance(data.get("diff"), list):
+        rows.extend(data["diff"])
+    for page in range(2, pages + 1):
+        params = dict(base_params)
+        params["pn"] = page
+        result = public_get_json("clist/get", params)
+        diff = (result or {}).get("data", {}).get("diff", [])
+        if isinstance(diff, list):
+            rows.extend(diff)
+
+    up = down = flat = suspended = limit_up = limit_down = 0
+    amount = 0.0
+    for item in rows:
+        chg = item.get("f3")
+        try:
+            pct = float(chg)
+        except (TypeError, ValueError):
+            suspended += 1
+            continue
+        if pct > 0:
+            up += 1
+        elif pct < 0:
+            down += 1
+        else:
+            flat += 1
+        if pct >= 9.8:
+            limit_up += 1
+        if pct <= -9.8:
+            limit_down += 1
+        try:
+            amount += float(item.get("f6") or 0)
+        except (TypeError, ValueError):
+            pass
+
+    return {
+        "total": total or len(rows),
+        "sampled": len(rows),
+        "partial": bool(total and len(rows) < total * 0.9),
+        "up": up,
+        "down": down,
+        "flat": flat,
+        "suspended": suspended,
+        "limitUpApprox": limit_up,
+        "limitDownApprox": limit_down,
+        "amount": fmt_amount(amount),
+        "source": "Eastmoney public quote",
+    }
+
+
+def fetch_public_market() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    indices = fetch_public_indices()
+    breadth = fetch_public_breadth()
+    tables = []
+    if indices:
+        tables.append({"title": "公开行情-主要指数", "code": "public.indices", "rows": indices})
+    if breadth and breadth.get("total"):
+        tables.append(
+            {
+                "title": "公开行情-全A涨跌家数",
+                "code": "public.breadth",
+                "rows": [
+                    {
+                        "date": "全A",
+                        "总数": breadth.get("total"),
+                        "上涨家数": breadth.get("up"),
+                        "下跌家数": breadth.get("down"),
+                        "平盘家数": breadth.get("flat"),
+                        "停牌/无价": breadth.get("suspended"),
+                        "近似涨停": breadth.get("limitUpApprox"),
+                        "近似跌停": breadth.get("limitDownApprox"),
+                        "成交额": breadth.get("amount"),
+                    }
+                ],
+            }
+        )
+    return tables, breadth
 
 
 class MXClient:
@@ -303,7 +468,22 @@ def make_mock_payload(output: Path, mode: str) -> dict[str, Any]:
         },
         "market": [
             {"title": "A股主要指数", "rows": [{"date": "上证指数", "最新价": "4135.39", "涨跌幅": "-1.02%", "成交额": "1.519万亿元"}]},
+            {
+                "title": "全A涨跌家数",
+                "rows": [{"date": "全A", "总数": 5852, "上涨家数": 1200, "下跌家数": 4300, "平盘家数": 120, "成交额": "示例"}],
+            },
         ],
+        "breadth": {
+            "total": 5852,
+            "up": 1200,
+            "down": 4300,
+            "flat": 120,
+            "suspended": 0,
+            "limitUpApprox": 80,
+            "limitDownApprox": 20,
+            "amount": "示例",
+            "source": "seed",
+        },
         "themes": [
             {"title": "题材热度示例", "rows": [{"date": "消费电子", "涨跌幅": "-0.23%", "成交额": "示例"}]},
         ],
@@ -328,6 +508,7 @@ def quota_plan() -> dict[str, Any]:
     return {
         "dailyLimit": 500,
         "reserve": 20,
+        "freePublicData": "大盘指数、全A涨跌家数、近似涨停跌停使用东方财富公开行情接口，不消耗妙想额度。",
         "runs": [
             {"name": "premarket", "timeCN": "08:20", "budget": 120, "focus": "外围资讯、盘前题材、候选池预热"},
             {"name": "midday", "timeCN": "12:45", "budget": 120, "focus": "午间行情、题材温度、风险复核"},
@@ -354,8 +535,11 @@ def generate(
     generated_at = now_cn()
     trading_date = generated_at.date().isoformat()
 
-    market_query = "A股主要指数 上证指数 深证成指 创业板指 科创50 北证50 沪深300 中证500 中证1000 最新价 涨跌幅 成交额 成交量"
-    market = parse_data_tables(client.data(market_query, "market-index"), limit=40)
+    market, breadth = fetch_public_market()
+    if not market:
+        market_query = "A股主要指数 上证指数 深证成指 创业板指 科创50 北证50 沪深300 中证500 中证1000 最新价 涨跌幅 成交额 成交量"
+        market = parse_data_tables(client.data(market_query, "market-index"), limit=40)
+        breadth = {}
 
     themes: list[dict[str, Any]] = []
     for query in CORE_THEME_GROUPS:
@@ -414,8 +598,10 @@ def generate(
             "callBudget": call_budget,
             "detailCandidates": len(candidates),
             "source": "东方财富妙想 MX APIs",
+            "publicMarketSource": "Eastmoney public quote",
         },
         "market": market,
+        "breadth": breadth,
         "themes": themes[:12],
         "screeners": screeners,
         "news": news_groups,
