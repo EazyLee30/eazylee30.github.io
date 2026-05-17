@@ -1106,7 +1106,6 @@ function drawBreadthChart() {
     latest?.total || 0,
     ...points.map((point) => Math.max(
       point.up,
-      point.down,
       ...maKeys.map((key) => toNumber(point[key]) || 0)
     ))
   );
@@ -1177,7 +1176,6 @@ function drawBreadthChart() {
     ctx.textBaseline = "middle";
     ctx.fillText("等待历史宽度快照", width / 2, height / 2);
   } else {
-    drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#34d399", 1.35, 0.50);
     drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 1.55, 0.72);
     if (isMaVisible(250)) drawPolyline(ctx, points, (point) => point.ma250, scaleX, scaleY, "#a78bfa", 2.05, 0.96);
     if (isMaVisible(120)) drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#2dd4bf", 2.0, 0.96);

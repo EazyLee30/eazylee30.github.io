@@ -606,10 +606,6 @@ small {
   background: var(--red);
 }
 
-.down-line {
-  background: var(--green);
-}
-
 .ma20-line {
   background: var(--amber);
 }
