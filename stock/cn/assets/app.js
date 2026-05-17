@@ -7,6 +7,7 @@ const BREADTH_STORAGE_KEY = "stock-cn-breadth-series-v2";
 const BREADTH_POLL_MS = 15000;
 const BREADTH_MAX_POINTS = 1600;
 const BREADTH_MAX_AGE_DAYS = 390;
+const BREADTH_MA_WINDOWS = [20, 60, 120, 250];
 const VIEWS = new Set(["overview", "picks", "cross-section", "themes", "news", "system"]);
 const BREADTH_PERIODS = {
   "15s": { label: "15s", kind: "interval", ms: 15 * 1000 },
@@ -589,7 +590,6 @@ function seedBreadthFromDashboard(data) {
 }
 
 function weekKey(timestamp) {
-  const date = new Date(timestamp);
   const cnDate = new Date(`${cnDateKey(timestamp)}T00:00:00+08:00`);
   const day = cnDate.getUTCDay() || 7;
   cnDate.setUTCDate(cnDate.getUTCDate() + 4 - day);
@@ -606,10 +606,64 @@ function periodBucketKey(timestamp, periodKey) {
   return cnDateKey(timestamp);
 }
 
-function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
-  if (periodKey === "15s") return breadthSeries.slice(-BREADTH_MAX_POINTS);
+function movingAverageValues(points, windowSize, key = "up") {
+  let sum = 0;
+  return points.map((point, index) => {
+    const value = toNumber(point[key]) || 0;
+    sum += value;
+    if (index >= windowSize) sum -= toNumber(points[index - windowSize][key]) || 0;
+    return index >= windowSize - 1 ? sum / windowSize : null;
+  });
+}
+
+function buildDailyBreadthSeries() {
   const buckets = new Map();
   breadthSeries.forEach((point) => {
+    const key = cnDateKey(point.t);
+    const current = buckets.get(key);
+    if (!current || point.t >= current.t) {
+      buckets.set(key, { ...point, count: current?.count || 1 });
+    } else if (current) {
+      current.count = (current.count || 1) + 1;
+    }
+  });
+
+  const daily = [...buckets.values()].sort((a, b) => a.t - b.t);
+  const maSets = Object.fromEntries(BREADTH_MA_WINDOWS.map((windowSize) => [windowSize, movingAverageValues(daily, windowSize)]));
+  return daily.map((point, index) => ({
+    ...point,
+    ma20: maSets[20][index],
+    ma60: maSets[60][index],
+    ma120: maSets[120][index],
+    ma250: maSets[250][index],
+  }));
+}
+
+function latestTradingDaySamples() {
+  if (!breadthSeries.length) return [];
+  const latest = breadthSeries[breadthSeries.length - 1];
+  const latestDate = cnDateKey(latest.t);
+  return breadthSeries.filter((point) => cnDateKey(point.t) === latestDate).sort((a, b) => a.t - b.t);
+}
+
+function attachDailyMovingAverages(points, dailyPoints) {
+  const dailyByDate = new Map(dailyPoints.map((point) => [cnDateKey(point.t), point]));
+  return points.map((point) => {
+    const daily = dailyByDate.get(cnDateKey(point.t));
+    return {
+      ...point,
+      ma20: daily?.ma20 ?? null,
+      ma60: daily?.ma60 ?? null,
+      ma120: daily?.ma120 ?? null,
+      ma250: daily?.ma250 ?? null,
+    };
+  });
+}
+
+function aggregatePoints(points, periodKey) {
+  if (periodKey === "15s") return points.slice(-BREADTH_MAX_POINTS);
+  const buckets = new Map();
+  points.forEach((point) => {
     const key = periodBucketKey(point.t, periodKey);
     const current = buckets.get(key) || {
       t: point.t,
@@ -618,6 +672,10 @@ function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
       flat: 0,
       total: 0,
       count: 0,
+      ma20: null,
+      ma60: null,
+      ma120: null,
+      ma250: null,
       source: point.source,
       scope: point.scope,
     };
@@ -627,6 +685,14 @@ function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
     current.flat += point.flat || 0;
     current.total += point.total || 0;
     current.count += 1;
+    BREADTH_MA_WINDOWS.forEach((windowSize) => {
+      const keyName = `ma${windowSize}`;
+      if (point[keyName] !== null && point[keyName] !== undefined && point.t >= current.t) {
+        current[keyName] = point[keyName];
+      } else if (current[keyName] === null && point[keyName] !== null && point[keyName] !== undefined) {
+        current[keyName] = point[keyName];
+      }
+    });
     current.source = point.source || current.source;
     current.scope = point.scope || current.scope;
     buckets.set(key, current);
@@ -639,12 +705,54 @@ function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
       down: bucket.down / bucket.count,
       flat: bucket.flat / bucket.count,
       total: bucket.total / bucket.count,
+      ma20: bucket.ma20,
+      ma60: bucket.ma60,
+      ma120: bucket.ma120,
+      ma250: bucket.ma250,
       source: bucket.source,
       scope: bucket.scope,
       count: bucket.count,
     }))
     .sort((a, b) => a.t - b.t)
     .slice(-BREADTH_MAX_POINTS);
+}
+
+function getBreadthChartSeries(periodKey = activeBreadthPeriod) {
+  const dailyPoints = buildDailyBreadthSeries();
+  const period = BREADTH_PERIODS[periodKey] || BREADTH_PERIODS["1d"];
+  const intradayKeys = new Set(["15s", "15m", "4h"]);
+  const intradaySamples = latestTradingDaySamples();
+  const hasRealIntraday = intradaySamples.length > 1;
+
+  if (intradayKeys.has(periodKey) && hasRealIntraday) {
+    const pointsWithMa = attachDailyMovingAverages(intradaySamples, dailyPoints);
+    return {
+      points: aggregatePoints(pointsWithMa, periodKey),
+      label: period.label,
+      mode: "intraday",
+      note: "盘中实时采样",
+    };
+  }
+
+  if (intradayKeys.has(periodKey)) {
+    return {
+      points: aggregatePoints(dailyPoints, "1d"),
+      label: `${period.label} / 日收盘快照`,
+      mode: "daily-fallback",
+      note: "暂无真实盘中历史，显示日收盘宽度与日线MA",
+    };
+  }
+
+  return {
+    points: aggregatePoints(dailyPoints, periodKey),
+    label: period.label,
+    mode: period.kind,
+    note: periodKey === "1d" ? "日线MA" : `${period.label}聚合，MA沿用日线历史`,
+  };
+}
+
+function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
+  return getBreadthChartSeries(periodKey).points;
 }
 
 function updatePeriodTabs() {
@@ -659,7 +767,8 @@ function renderBreadthStats(message = "") {
   const upEl = el("pulse-up");
   if (!upEl) return;
 
-  const points = aggregateBreadthSeries();
+  const series = getBreadthChartSeries();
+  const points = series.points;
   const latest = points[points.length - 1];
   if (!latest) {
     upEl.textContent = "-";
@@ -672,8 +781,7 @@ function renderBreadthStats(message = "") {
   upEl.textContent = formatInteger(latest.up);
   setText("pulse-down", formatInteger(latest.down));
   setText("pulse-samples", formatInteger(points.length));
-  const periodLabel = BREADTH_PERIODS[activeBreadthPeriod]?.label || activeBreadthPeriod;
-  setText("pulse-updated", message || `${periodLabel} / ${latest.scope} / ${formatCnTick(latest.t, true)} / ${latest.source}`);
+  setText("pulse-updated", message || `${series.label} / ${latest.scope} / ${formatCnTick(latest.t, true)} / ${series.note}`);
 }
 
 function jsonpRequest(url, params, timeout = 7000) {
@@ -755,15 +863,6 @@ async function pollLiveBreadth() {
   }
 }
 
-function movingAverage(points, windowSize) {
-  let sum = 0;
-  return points.map((point, index) => {
-    sum += point.up;
-    if (index >= windowSize) sum -= points[index - windowSize].up;
-    return index >= windowSize - 1 ? sum / windowSize : null;
-  });
-}
-
 function drawPolyline(ctx, points, values, scaleX, scaleY, color, width, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -812,9 +911,19 @@ function drawBreadthChart() {
   const pad = { left: 14, right: 62, top: 18, bottom: 36 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
-  const points = aggregateBreadthSeries();
+  const series = getBreadthChartSeries();
+  const points = series.points;
   const latest = points[points.length - 1];
-  const maxObserved = Math.max(5000, latest?.total || 0, ...points.map((point) => Math.max(point.up, point.down)));
+  const maKeys = BREADTH_MA_WINDOWS.map((windowSize) => `ma${windowSize}`);
+  const maxObserved = Math.max(
+    5000,
+    latest?.total || 0,
+    ...points.map((point) => Math.max(
+      point.up,
+      point.down,
+      ...maKeys.map((key) => toNumber(point[key]) || 0)
+    ))
+  );
   const yMin = 0;
   const yMax = Math.ceil(maxObserved / 500) * 500;
   const axisLabels = [0, 1000, 2000, 3000, 4000, 5000].filter((value) => value <= yMax);
@@ -882,18 +991,18 @@ function drawBreadthChart() {
     ctx.textBaseline = "middle";
     ctx.fillText("等待历史宽度快照", width / 2, height / 2);
   } else {
-    drawPolyline(ctx, points, movingAverage(points, 250), scaleX, scaleY, "#a78bfa", 1.2, 0.78);
-    drawPolyline(ctx, points, movingAverage(points, 120), scaleX, scaleY, "#2dd4bf", 1.3, 0.76);
-    drawPolyline(ctx, points, movingAverage(points, 60), scaleX, scaleY, "#e2e8f0", 1.1, 0.58);
-    drawPolyline(ctx, points, movingAverage(points, 20), scaleX, scaleY, "#f59e0b", 1.2, 0.76);
-    drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#34d399", 1.7, 0.66);
-    drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 2.2);
+    drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#34d399", 1.35, 0.50);
+    drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 1.55, 0.72);
+    drawPolyline(ctx, points, (point) => point.ma250, scaleX, scaleY, "#a78bfa", 2.05, 0.96);
+    drawPolyline(ctx, points, (point) => point.ma120, scaleX, scaleY, "#2dd4bf", 2.0, 0.96);
+    drawPolyline(ctx, points, (point) => point.ma60, scaleX, scaleY, "#e2e8f0", 1.75, 0.88);
+    drawPolyline(ctx, points, (point) => point.ma20, scaleX, scaleY, "#f59e0b", 1.85, 0.96);
   }
 
   ctx.fillStyle = "rgba(203, 213, 225, 0.72)";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-    ctx.fillText(`${BREADTH_PERIODS[activeBreadthPeriod]?.label || activeBreadthPeriod} breadth`, pad.left, pad.top - 4);
+  ctx.fillText(`${series.label} breadth`, pad.left, pad.top - 4);
 
   if (points.length) {
     const includeDate = cnDateKey(points[0].t) !== cnDateKey(points[points.length - 1].t);
