@@ -829,10 +829,10 @@ function drawBreadthChart() {
     return pad.top + ((yMax - clamped) / (yMax - yMin)) * plotH;
   };
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#0b1220";
   ctx.fillRect(0, 0, width, height);
 
-  ctx.strokeStyle = "rgba(90, 104, 117, 0.16)";
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
   ctx.lineWidth = 1;
   ctx.font = "12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
@@ -843,7 +843,7 @@ function drawBreadthChart() {
     ctx.moveTo(pad.left, y);
     ctx.lineTo(width - pad.right + 6, y);
     ctx.stroke();
-    ctx.fillStyle = "rgba(63, 76, 91, 0.74)";
+    ctx.fillStyle = "rgba(203, 213, 225, 0.68)";
     ctx.fillText(String(value), width - pad.right + 12, y);
   });
 
@@ -851,7 +851,7 @@ function drawBreadthChart() {
     const mid = latest.total / 2;
     ctx.save();
     ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = "rgba(37, 99, 235, 0.28)";
+    ctx.strokeStyle = "rgba(96, 165, 250, 0.26)";
     ctx.beginPath();
     ctx.moveTo(pad.left, scaleY(mid));
     ctx.lineTo(width - pad.right, scaleY(mid));
@@ -863,34 +863,34 @@ function drawBreadthChart() {
     if (latest) {
       const x = pad.left + plotW / 2;
       const y = scaleY(latest.up);
-      ctx.strokeStyle = "rgba(217, 41, 41, 0.28)";
+      ctx.strokeStyle = "rgba(248, 113, 113, 0.28)";
       ctx.beginPath();
       ctx.moveTo(pad.left, y);
       ctx.lineTo(width - pad.right, y);
       ctx.stroke();
-      ctx.fillStyle = "#d92929";
+      ctx.fillStyle = "#fb5353";
       ctx.beginPath();
       ctx.arc(x, y, 4.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(17, 24, 39, 0.82)";
+      ctx.fillStyle = "rgba(248, 250, 252, 0.86)";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText(`上涨 ${formatInteger(latest.up)}`, x, y - 10);
     }
-    ctx.fillStyle = "rgba(63, 76, 91, 0.76)";
+    ctx.fillStyle = "rgba(203, 213, 225, 0.72)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("等待历史宽度快照", width / 2, height / 2);
   } else {
-    drawPolyline(ctx, points, movingAverage(points, 250), scaleX, scaleY, "#7c3aed", 1.2, 0.74);
-    drawPolyline(ctx, points, movingAverage(points, 120), scaleX, scaleY, "#0f766e", 1.3, 0.74);
-    drawPolyline(ctx, points, movingAverage(points, 60), scaleX, scaleY, "#111827", 1.1, 0.58);
-    drawPolyline(ctx, points, movingAverage(points, 20), scaleX, scaleY, "#b7791f", 1.2, 0.72);
-    drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#138a44", 1.7, 0.62);
-    drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#d92929", 2.2);
+    drawPolyline(ctx, points, movingAverage(points, 250), scaleX, scaleY, "#a78bfa", 1.2, 0.78);
+    drawPolyline(ctx, points, movingAverage(points, 120), scaleX, scaleY, "#2dd4bf", 1.3, 0.76);
+    drawPolyline(ctx, points, movingAverage(points, 60), scaleX, scaleY, "#e2e8f0", 1.1, 0.58);
+    drawPolyline(ctx, points, movingAverage(points, 20), scaleX, scaleY, "#f59e0b", 1.2, 0.76);
+    drawPolyline(ctx, points, (point) => point.down, scaleX, scaleY, "#34d399", 1.7, 0.66);
+    drawPolyline(ctx, points, (point) => point.up, scaleX, scaleY, "#fb5353", 2.2);
   }
 
-  ctx.fillStyle = "rgba(63, 76, 91, 0.76)";
+  ctx.fillStyle = "rgba(203, 213, 225, 0.72)";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
     ctx.fillText(`${BREADTH_PERIODS[activeBreadthPeriod]?.label || activeBreadthPeriod} breadth`, pad.left, pad.top - 4);
