@@ -1,6 +1,9 @@
 const DATA_URL = "/stock/cn/data/latest.json";
 const DATA_AUTO_REFRESH_MS = 60 * 1000;
-const BREADTH_ENDPOINT = "https://push2.eastmoney.com/api/qt/ulist.np/get";
+const BREADTH_ENDPOINTS = [
+  "https://push2.eastmoney.com/api/qt/ulist.np/get",
+  "https://push2delay.eastmoney.com/api/qt/ulist.np/get",
+];
 const BREADTH_FIELDS = "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106";
 const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
 const BREADTH_CODES = new Set(["000001", "399001", "899050"]);
@@ -1121,11 +1124,21 @@ function parseBreadthPayload(payload) {
 async function pollLiveBreadth() {
   if (!el("breadth-chart")) return;
   try {
-    const payload = await jsonpRequest(BREADTH_ENDPOINT, {
-      fltt: "2",
-      fields: BREADTH_FIELDS,
-      secids: BREADTH_SECIDS,
-    });
+    let payload = null;
+    let lastError = null;
+    for (const endpoint of BREADTH_ENDPOINTS) {
+      try {
+        payload = await jsonpRequest(endpoint, {
+          fltt: "2",
+          fields: BREADTH_FIELDS,
+          secids: BREADTH_SECIDS,
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!payload) throw lastError || new Error("实时接口暂不可用");
     const sample = parseBreadthPayload(payload);
     addBreadthSample(sample);
     applyLiveBreadthToDashboard(sample);
