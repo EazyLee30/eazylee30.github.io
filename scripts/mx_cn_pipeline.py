@@ -1151,9 +1151,10 @@ def quota_plan() -> dict[str, Any]:
         "reserve": 20,
         "freePublicData": "大盘指数、全A涨跌家数、近似涨停跌停使用东方财富公开行情接口，不消耗妙想额度。",
         "runs": [
-            {"name": "premarket", "timeCN": "08:20", "budget": 120, "focus": "外围资讯、盘前题材、候选池预热"},
-            {"name": "midday", "timeCN": "12:45", "budget": 120, "focus": "午间行情、题材温度、风险复核"},
-            {"name": "postclose", "timeCN": "15:45", "budget": 240, "focus": "收盘截面、题材排名、个股细查、次日候选"},
+            {"name": "premarket", "timeCN": "08:20", "budget": 90, "focus": "外围资讯、盘前题材、候选池预热"},
+            {"name": "open", "timeCN": "09:35", "budget": 80, "focus": "开盘后确认行情宽度、题材承接和候选池有效性"},
+            {"name": "midday", "timeCN": "12:45", "budget": 110, "focus": "午间行情、题材温度、风险复核"},
+            {"name": "postclose", "timeCN": "15:45", "budget": 200, "focus": "收盘截面、题材排名、个股细查、次日候选"},
             {"name": "weekend", "timeCN": "09:30", "budget": 80, "focus": "周末只刷新政策、公告、外围和下周事件，不更新盘中交易结论"},
         ],
         "storagePolicy": {
@@ -1232,6 +1233,8 @@ def generate(
         max_details = 0
     elif mode == "premarket":
         max_details = min(detail_limit, 150)
+    elif mode == "open":
+        max_details = min(detail_limit, 120)
     elif mode == "exhaustive":
         max_details = min(detail_limit, 440)
     elif mode == "midday":
@@ -1331,7 +1334,7 @@ def write_payload(output: Path, payload: dict[str, Any], history_days: int) -> N
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate stock/cn dashboard data with MX APIs.")
     parser.add_argument("--output", default="stock/cn/data/latest.json", help="Output JSON path")
-    parser.add_argument("--mode", choices=["premarket", "midday", "postclose", "weekend", "exhaustive", "mock"], default="postclose")
+    parser.add_argument("--mode", choices=["premarket", "open", "midday", "postclose", "weekend", "exhaustive", "mock"], default="postclose")
     parser.add_argument("--call-budget", type=int, default=300)
     parser.add_argument("--detail-limit", type=int, default=180)
     parser.add_argument("--history-days", type=int, default=20)

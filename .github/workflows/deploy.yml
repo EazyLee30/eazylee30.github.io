@@ -21,6 +21,7 @@ on:
         type: choice
         options:
           - premarket
+          - open
           - midday
           - postclose
           - weekend
@@ -37,6 +38,8 @@ on:
   schedule:
     # 08:20 Asia/Shanghai, weekday pre-market refresh.
     - cron: "20 0 * * 1-5"
+    # 09:35 Asia/Shanghai, weekday market-open refresh.
+    - cron: "35 1 * * 1-5"
     # 12:45 Asia/Shanghai, weekday mid-day refresh.
     - cron: "45 4 * * 1-5"
     # 15:45 Asia/Shanghai, weekday post-close refresh.
@@ -78,16 +81,20 @@ jobs:
             update="true"
             if [[ "${{ github.event.schedule }}" == "20 0 * * 1-5" ]]; then
               mode="premarket"
-              budget="120"
-              detail_limit="90"
+              budget="90"
+              detail_limit="60"
+            elif [[ "${{ github.event.schedule }}" == "35 1 * * 1-5" ]]; then
+              mode="open"
+              budget="80"
+              detail_limit="60"
             elif [[ "${{ github.event.schedule }}" == "45 4 * * 1-5" ]]; then
               mode="midday"
-              budget="120"
-              detail_limit="90"
+              budget="110"
+              detail_limit="80"
             else
               mode="postclose"
-              budget="240"
-              detail_limit="180"
+              budget="200"
+              detail_limit="150"
             fi
             if [[ "${{ github.event.schedule }}" == "30 1 * * 6,0" ]]; then
               mode="weekend"
@@ -102,16 +109,34 @@ jobs:
           elif [[ "${{ github.event_name }}" == "push" ]]; then
             update="true"
             cn_weekday="$(TZ=Asia/Shanghai date +%u)"
+            cn_hhmm="$(TZ=Asia/Shanghai date +%H%M)"
+            cn_minutes=$((10#${cn_hhmm:0:2} * 60 + 10#${cn_hhmm:2:2}))
             if [[ "${cn_weekday}" == "6" || "${cn_weekday}" == "7" ]]; then
               # Weekend mode preserves the previously deployed screener list for news-only refreshes.
               # On code pushes we need a full screener pass so newly added strategies reach latest.json.
               mode="exhaustive"
               budget="110"
               detail_limit="0"
+            elif (( cn_minutes < 570 )); then
+              mode="premarket"
+              budget="90"
+              detail_limit="60"
+            elif (( cn_minutes <= 690 )); then
+              mode="open"
+              budget="80"
+              detail_limit="60"
+            elif (( cn_minutes < 780 )); then
+              mode="midday"
+              budget="110"
+              detail_limit="80"
+            elif (( cn_minutes <= 900 )); then
+              mode="open"
+              budget="80"
+              detail_limit="60"
             else
               mode="postclose"
-              budget="180"
-              detail_limit="120"
+              budget="200"
+              detail_limit="150"
             fi
           fi
 

@@ -16,6 +16,10 @@ const BREADTH_INTRADAY_FALLBACK_POINTS = {
   "15m": 20,
   "4h": 60,
 };
+const CN_MARKET_WINDOWS = [
+  [9 * 60 + 30, 11 * 60 + 30],
+  [13 * 60, 15 * 60],
+];
 const VIEWS = new Set(["overview", "picks", "cross-section", "themes", "news", "system"]);
 const BREADTH_PERIODS = {
   "15s": { label: "15s", kind: "interval", ms: 15 * 1000 },
@@ -111,6 +115,31 @@ function formatCnClock(timestamp) {
   }).format(new Date(timestamp));
 }
 
+function cnClockMinutes(timestamp) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
+  return hour * 60 + minute;
+}
+
+function cnWeekday(timestamp) {
+  const [year, month, day] = cnDateKey(timestamp).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCDay() || 7;
+}
+
+function isCnMarketSessionNow(timestamp = Date.now()) {
+  const day = cnWeekday(timestamp);
+  if (day < 1 || day > 5) return false;
+  const minute = cnClockMinutes(timestamp);
+  return CN_MARKET_WINDOWS.some(([start, end]) => minute >= start && minute <= end);
+}
+
 function formatRefreshInterval(ms) {
   const seconds = Math.round(ms / 1000);
   return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60}min` : `${seconds}s`;
@@ -161,6 +190,10 @@ function formatCnTick(timestamp, includeDate = false) {
   const clock = formatCnClock(timestamp);
   if (!includeDate) return clock;
   return `${cnDateKey(timestamp).slice(5)} ${clock.slice(0, 5)}`;
+}
+
+function formatCnDateTime(timestamp) {
+  return `${cnDateKey(timestamp)} ${formatCnClock(timestamp)}`;
 }
 
 function numberLike(value) {
@@ -681,6 +714,7 @@ function addBreadthSample(sample, persist = true) {
 
   const flat = toNumber(sample.flat) || 0;
   const total = toNumber(sample.total) || up + down + flat;
+  if (total <= 0) return false;
   const sampleTime = Number(sample.t) || parseCnTimestamp(sample.time || sample.generatedAt, NaN);
   if (!Number.isFinite(sampleTime)) return false;
 
@@ -731,6 +765,61 @@ function seedBreadthFromDashboard(data) {
     source: breadth.source || "latest.json",
     scope: breadth.scope || "沪深京",
   });
+}
+
+function applyLiveBreadthToDashboard(sample) {
+  if (!dashboardData) return;
+  const timeText = formatCnDateTime(sample.t);
+  const tradeDate = cnDateKey(sample.t);
+  dashboardData.breadth = {
+    ...(dashboardData.breadth || {}),
+    total: sample.total,
+    up: sample.up,
+    down: sample.down,
+    flat: sample.flat,
+    source: sample.source,
+    scope: sample.scope,
+  };
+
+  const pulse = dashboardData.breadthPulse || {};
+  const rows = Array.isArray(pulse.rows) ? pulse.rows : [];
+  const liveRow = {
+    time: timeText,
+    up: sample.up,
+    down: sample.down,
+    flat: sample.flat,
+    total: sample.total,
+    source: sample.source,
+    scope: sample.scope,
+  };
+  const sameIndex = rows.findIndex((row) => Math.abs(parseCnTimestamp(row.time, 0) - sample.t) < 1000);
+  if (sameIndex >= 0) {
+    rows[sameIndex] = liveRow;
+  } else {
+    rows.push(liveRow);
+  }
+  dashboardData.breadthPulse = { ...pulse, rows: rows.slice(-BREADTH_MAX_POINTS) };
+
+  const meta = dashboardData.meta || {};
+  const marketClock = meta.marketClock || {};
+  const recentTradingDates = Array.isArray(marketClock.recentTradingDates)
+    ? [...new Set([...marketClock.recentTradingDates, tradeDate])].slice(-10)
+    : [tradeDate];
+  dashboardData.meta = {
+    ...meta,
+    tradingDate: tradeDate,
+    dataCutoffAt: timeText,
+    marketClock: {
+      ...marketClock,
+      isOpen: true,
+      session: "open",
+      sessionText: "交易中",
+      lastTradingDate: tradeDate,
+      dataCutoffAt: timeText,
+      recentTradingDates,
+    },
+  };
+  updateMeta(dashboardData);
 }
 
 function weekKey(timestamp) {
@@ -1037,7 +1126,9 @@ async function pollLiveBreadth() {
       fields: BREADTH_FIELDS,
       secids: BREADTH_SECIDS,
     });
-    addBreadthSample(parseBreadthPayload(payload));
+    const sample = parseBreadthPayload(payload);
+    addBreadthSample(sample);
+    applyLiveBreadthToDashboard(sample);
     renderBreadthStats();
     scheduleBreadthDraw();
   } catch (error) {
@@ -1206,7 +1297,12 @@ function scheduleBreadthDraw() {
 }
 
 function shouldPollLiveBreadth(data) {
-  return data?.meta?.marketClock?.isOpen === true && data?.meta?.runFocus !== "news_only";
+  const meta = data?.meta || {};
+  if (meta.runFocus === "news_only") return false;
+  if (meta.marketClock?.isOpen === true) return true;
+  const session = meta.marketClock?.session;
+  if (session === "non_trading_day" || session === "market_holiday_or_no_quote") return false;
+  return isCnMarketSessionNow();
 }
 
 function initBreadthPulse(data) {
