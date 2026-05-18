@@ -1,8 +1,8 @@
 const DATA_URL = "/stock/cn/data/latest.json";
 const DATA_AUTO_REFRESH_MS = 60 * 1000;
 const BREADTH_ENDPOINTS = [
-  "https://push2.eastmoney.com/api/qt/ulist.np/get",
   "https://push2delay.eastmoney.com/api/qt/ulist.np/get",
+  "https://push2.eastmoney.com/api/qt/ulist.np/get",
 ];
 const BREADTH_FIELDS = "f12,f14,f2,f3,f4,f5,f6,f104,f105,f106";
 const BREADTH_SECIDS = "1.000001,0.399001,0.899050";
