@@ -15,12 +15,20 @@
     <nav class="nav" aria-label="A股面板导航">
       <a href="#overview" data-view-link="overview">总览</a>
       <a href="#picks" data-view-link="picks">优选</a>
+      <a href="#confidence" data-view-link="confidence">信心</a>
       <a href="#cross-section" data-view-link="cross-section">截面</a>
       <a href="#themes" data-view-link="themes">题材</a>
       <a href="#news" data-view-link="news">资讯</a>
       <a href="#system" data-view-link="system">系统</a>
     </nav>
   </header>
+
+  <div id="session-ticker" class="session-ticker" aria-label="交易时段">
+    <div class="ticker-cell" id="ticker-phase"><span class="label">时段</span> <span class="value">--</span></div>
+    <div class="ticker-cell" id="ticker-countdown"><span class="label">倒计时</span> <span class="countdown">--:--:--</span></div>
+    <div class="ticker-cell" id="ticker-clock"><span class="label">北京时间</span> <span class="value">--:--:--</span></div>
+    <div class="ticker-cell" id="ticker-pipeline"><span class="label">数据刷新</span> <span class="value">--</span></div>
+  </div>
 
   <main id="dashboard" class="shell">
     <section class="sentiment-stage overview-only">
@@ -70,6 +78,10 @@
         <div>
           <span>自动刷新</span>
           <strong id="refresh-mode">60s / 页面可见</strong>
+        </div>
+        <div>
+          <span>数据新鲜度</span>
+          <strong id="freshness-summary">-</strong>
         </div>
       </aside>
     </section>
@@ -209,6 +221,24 @@
           </div>
         </div>
         <div id="stock-details" class="detail-list"></div>
+      </article>
+    </section>
+
+    <section id="confidence" class="page-view" data-view="confidence">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">multi-strategy conviction</p>
+            <h2>信心排名</h2>
+          </div>
+          <div class="confidence-legend">
+            <span class="legend-item"><i class="conf-high"></i>强信心 ≥70</span>
+            <span class="legend-item"><i class="conf-mid"></i>中信心 40-69</span>
+            <span class="legend-item"><i class="conf-low"></i>弱信心 &lt;40</span>
+          </div>
+        </div>
+        <div id="confidence-cards" class="confidence-cards"></div>
+        <div id="confidence-table" class="table-wrap large"></div>
       </article>
     </section>
 

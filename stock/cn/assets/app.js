@@ -23,7 +23,7 @@ const CN_MARKET_WINDOWS = [
   [9 * 60 + 30, 11 * 60 + 30],
   [13 * 60, 15 * 60],
 ];
-const VIEWS = new Set(["overview", "picks", "cross-section", "themes", "news", "system"]);
+const VIEWS = new Set(["overview", "picks", "confidence", "cross-section", "themes", "news", "system"]);
 const BREADTH_PERIODS = {
   "15s": { label: "15s", kind: "interval", ms: 15 * 1000 },
   "15m": { label: "15min", kind: "interval", ms: 15 * 60 * 1000 },
@@ -45,6 +45,59 @@ let activeBreadthWindow = "all";
 let activeMaWindows = new Set(BREADTH_MA_WINDOWS);
 let dataLoadInFlight = false;
 let dataRefreshTimer = null;
+let dailyBreadthCache = null;
+let dailyBreadthDirty = true;
+let chartSeriesCache = {};
+let chartSeriesDirty = true;
+let cachedBreadthPeriodBtns = null;
+let cachedBreadthWindowBtns = null;
+let cachedMaToggleBtns = null;
+let cachedMaLegendItems = null;
+
+// --- Live market data layer ---
+const INDEX_SECIDS = "1.000001,0.399001,0.399006,1.000688,0.899050";
+const INDEX_POLL_BASE_MS = 15000;
+const INDEX_FIELDS = "f12,f14,f2,f3,f4,f6";
+const STOCK_BATCH_SIZE = 40;
+const STOCK_POLL_BASE_MS = 30000;
+const STOCK_FIELDS = "f12,f14,f2,f3";
+const FRESHNESS_THRESHOLDS = { live: 20000, stale: 300000 };
+const SESSION_PHASE_LABELS = {
+  premarket: "盘前", opening: "开盘", open_am: "上午交易",
+  lunch: "午休", open_pm: "午后交易", postclose: "已收盘", weekend: "周末",
+};
+const PIPELINE_SCHEDULE = [
+  { hh: 8, mm: 20, mode: "premarket", weekdays: true },
+  { hh: 9, mm: 35, mode: "open", weekdays: true },
+  { hh: 12, mm: 45, mode: "midday", weekdays: true },
+  { hh: 15, mm: 45, mode: "postclose", weekdays: true },
+  { hh: 9, mm: 30, mode: "weekend", weekdays: false },
+];
+
+const liveState = {
+  indices: {},
+  stockQuotes: {},
+  screenerCodes: null,
+  freshness: {
+    breadth: { ts: 0, ok: false },
+    indices: { ts: 0, ok: false },
+    stocks: { ts: 0, ok: false },
+    pipeline: { ts: 0, ok: false },
+  },
+  session: { phase: "unknown", nextEvent: null, countdown: 0 },
+  errors: [],
+  polling: {
+    breadth: { interval: 15000, timer: null, backoff: 1, consecutiveErrors: 0 },
+    indices: { interval: 15000, timer: null, backoff: 1, consecutiveErrors: 0 },
+    stocks: { interval: 30000, timer: null, backoff: 1, consecutiveErrors: 0 },
+  },
+  sessionTickerTimer: null,
+  lastPipelineCutoff: null,
+};
+
+let breadthDrawTimer = null;
+let gaugeDrawTimer = null;
+const DRAW_DEBOUNCE_MS = 200;
 
 const el = (id) => document.getElementById(id);
 
@@ -148,6 +201,238 @@ function formatRefreshInterval(ms) {
   return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60}min` : `${seconds}s`;
 }
 
+function codeToSecid(code) {
+  const raw = String(code || "").trim();
+  if (!raw) return "";
+  return raw.startsWith("5") || raw.startsWith("6") || raw.startsWith("9") ? `1.${raw}` : `0.${raw}`;
+}
+
+function getSessionPhase(timestamp = Date.now()) {
+  const day = cnWeekday(timestamp);
+  if (day >= 6) return "weekend";
+  const minute = cnClockMinutes(timestamp);
+  if (minute < 9 * 60 + 15) return "premarket";
+  if (minute < 9 * 60 + 30) return "opening";
+  if (minute <= 11 * 60 + 30) return "open_am";
+  if (minute < 13 * 60) return "lunch";
+  if (minute <= 15 * 60) return "open_pm";
+  return "postclose";
+}
+
+function getNextSessionEvent(phase, timestamp = Date.now()) {
+  const dateKey = cnDateKey(timestamp);
+  const makeTs = (hh, mm, dayOffset = 0) => {
+    const d = new Date(`${dateKey}T00:00:00+08:00`);
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(hh, mm, 0, 0);
+    return d.getTime();
+  };
+  const nextWeekday = (from) => {
+    const d = new Date(from);
+    const day = d.getDay();
+    if (day === 5) return from + 3 * 86400000;
+    if (day === 6) return from + 2 * 86400000;
+    return from + 86400000;
+  };
+  switch (phase) {
+    case "premarket":
+    case "opening":
+      return { type: "open", at: makeTs(9, 30) };
+    case "open_am":
+      return { type: "lunch", at: makeTs(11, 30) };
+    case "lunch":
+      return { type: "open_pm", at: makeTs(13, 0) };
+    case "open_pm":
+      return { type: "close", at: makeTs(15, 0) };
+    case "postclose":
+    case "weekend":
+    default: {
+      const now = timestamp;
+      const today930 = makeTs(9, 30);
+      const target = now < today930 ? today930 : nextWeekday(makeTs(9, 30, 1));
+      return { type: "open", at: target };
+    }
+  }
+}
+
+function tickSession() {
+  if (document.hidden) return;
+  const now = Date.now();
+  const phase = getSessionPhase(now);
+  const prevPhase = liveState.session.phase;
+  const nextEvent = getNextSessionEvent(phase, now);
+  const countdown = Math.max(0, nextEvent.at - now);
+  liveState.session = { phase, nextEvent, countdown };
+  renderSessionTicker();
+  renderPipelineCountdown();
+  if (phase !== prevPhase) adjustPollingIntervals();
+}
+
+function updateFreshness(source, ok, error) {
+  const entry = liveState.freshness[source];
+  if (!entry) return;
+  entry.ts = Date.now();
+  entry.ok = ok;
+  if (!ok && error) {
+    liveState.errors.push({ source, message: error, ts: Date.now() });
+    if (liveState.errors.length > 20) liveState.errors.shift();
+  }
+  renderFreshnessBadges();
+}
+
+function renderSessionTicker() {
+  const { phase, countdown } = liveState.session;
+  const phaseEl = el("ticker-phase");
+  const countdownEl = el("ticker-countdown");
+  const clockEl = el("ticker-clock");
+  if (phaseEl) phaseEl.querySelector(".value").textContent = SESSION_PHASE_LABELS[phase] || phase;
+  if (countdownEl) {
+    const totalSec = Math.floor(countdown / 1000);
+    const h = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+    const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+    const s = String(totalSec % 60).padStart(2, "0");
+    countdownEl.querySelector(".countdown").textContent = `${h}:${m}:${s}`;
+    countdownEl.classList.toggle("is-warning", totalSec < 300 && totalSec > 0);
+  }
+  if (clockEl) clockEl.querySelector(".value").textContent = formatCnClock(Date.now());
+}
+
+function getNextPipelineRun() {
+  const now = new Date();
+  const cnNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
+  const hh = cnNow.getHours();
+  const mm = cnNow.getMinutes();
+  const day = cnNow.getDay();
+  const isWeekend = day === 0 || day === 6;
+  const todayStr = cnDateKey(Date.now());
+
+  const candidates = PIPELINE_SCHEDULE.filter((s) => {
+    if (isWeekend) return !s.weekdays;
+    return s.weekdays;
+  });
+
+  for (const sched of candidates) {
+    const targetMin = sched.hh * 60 + sched.mm;
+    const currentMin = hh * 60 + mm;
+    if (currentMin < targetMin) {
+      return { time: new Date(`${todayStr}T${String(sched.hh).padStart(2, "0")}:${String(sched.mm).padStart(2, "0")}:00+08:00`).getTime(), mode: sched.mode };
+    }
+  }
+  // All today's runs passed — next is tomorrow's first applicable
+  const tomorrow = new Date(cnNow);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDay = tomorrow.getDay();
+  const tomorrowIsWeekend = tomorrowDay === 0 || tomorrowDay === 6;
+  const nextSched = PIPELINE_SCHEDULE.find((s) => tomorrowIsWeekend ? !s.weekdays : s.weekdays);
+  if (!nextSched) return null;
+  const tomorrowStr = cnDateKey(tomorrow.getTime());
+  return { time: new Date(`${tomorrowStr}T${String(nextSched.hh).padStart(2, "0")}:${String(nextSched.mm).padStart(2, "0")}:00+08:00`).getTime(), mode: nextSched.mode };
+}
+
+function renderPipelineCountdown() {
+  const el_ = el("ticker-pipeline");
+  if (!el_) return;
+  const next = getNextPipelineRun();
+  if (!next) {
+    el_.querySelector(".value").textContent = "--";
+    return;
+  }
+  const ms = next.time - Date.now();
+  if (ms < 0 && ms > -180000) {
+    el_.querySelector(".value").textContent = "刷新中";
+    el_.classList.add("is-active");
+    return;
+  }
+  el_.classList.remove("is-active");
+  if (ms <= 0) {
+    el_.querySelector(".value").textContent = "--";
+    return;
+  }
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  el_.querySelector(".value").textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function renderFreshnessBadges() {
+  const now = Date.now();
+  const summaryEl = el("freshness-summary");
+  if (!summaryEl) return;
+  const sources = Object.entries(liveState.freshness);
+  const liveCount = sources.filter(([, v]) => v.ok && (now - v.ts) < FRESHNESS_THRESHOLDS.live).length;
+  const totalCount = sources.length;
+  if (liveCount === totalCount) {
+    summaryEl.innerHTML = '<span class="freshness-badge live">全部实时</span>';
+  } else if (liveCount > 0) {
+    summaryEl.innerHTML = `<span class="freshness-badge stale">${liveCount}/${totalCount} 实时</span>`;
+  } else {
+    const oldest = sources.reduce((min, [, v]) => v.ts && v.ts < min ? v.ts : min, Infinity);
+    const age = oldest < Infinity ? now - oldest : 0;
+    const ageText = age < 60000 ? `${Math.floor(age / 1000)}s` : age < 3600000 ? `${Math.floor(age / 60000)}m` : `${Math.floor(age / 3600000)}h`;
+    summaryEl.innerHTML = `<span class="freshness-badge old">${ageText} ago</span>`;
+  }
+}
+
+function startSessionTicker() {
+  tickSession();
+  liveState.sessionTickerTimer = setInterval(tickSession, 1000);
+}
+
+// --- Smart polling ---
+
+function getAdaptiveInterval(source) {
+  const phase = liveState.session.phase;
+  const now = Date.now();
+  const minute = cnClockMinutes(now);
+  const isFirstLast30 = (minute >= 9 * 60 + 30 && minute < 10 * 60) || (minute >= 14 * 60 + 30 && minute <= 15 * 60);
+
+  if (phase === "weekend" || phase === "postclose") return 0;
+  if (phase === "lunch") return 60000;
+
+  if (source === "breadth" || source === "indices") {
+    return isFirstLast30 ? 10000 : 15000;
+  }
+  if (source === "stocks") {
+    return isFirstLast30 ? 20000 : 30000;
+  }
+  return 30000;
+}
+
+function adjustPollingIntervals() {
+  ["breadth", "indices", "stocks"].forEach((source) => {
+    const newInterval = getAdaptiveInterval(source);
+    const poll = liveState.polling[source];
+    if (!poll) return;
+    if (newInterval === poll.interval) return;
+    poll.interval = newInterval;
+    if (poll.timer) {
+      clearInterval(poll.timer);
+      poll.timer = null;
+    }
+    if (newInterval > 0) {
+      const fn = source === "breadth" ? pollLiveBreadth : source === "indices" ? pollLiveIndices : pollLiveStockQuotes;
+      poll.timer = setInterval(() => {
+        if (!document.hidden) fn();
+      }, newInterval);
+    }
+  });
+}
+
+function pauseAllPolling() {
+  Object.values(liveState.polling).forEach((poll) => {
+    if (poll.timer) { clearInterval(poll.timer); poll.timer = null; }
+  });
+}
+
+function resumeAllPolling() {
+  adjustPollingIntervals();
+  if (!document.hidden) {
+    pollLiveBreadth();
+    pollLiveIndices();
+    pollLiveStockQuotes();
+  }
+}
+
 function loadBreadthUiPrefs() {
   try {
     const stored = JSON.parse(localStorage.getItem(BREADTH_UI_STORAGE_KEY) || "{}");
@@ -197,10 +482,6 @@ function formatCnTick(timestamp, includeDate = false) {
 
 function formatCnDateTime(timestamp) {
   return `${cnDateKey(timestamp)} ${formatCnClock(timestamp)}`;
-}
-
-function numberLike(value) {
-  return /(^|[^0-9])-?\d+(\.\d+)?%?/.test(String(value || ""));
 }
 
 function valueClass(value) {
@@ -334,7 +615,7 @@ function pickColumns(rows, preferred, options = {}) {
   rows.forEach((row) => Object.keys(row || {}).forEach((key) => available.add(key)));
   const picked = preferred.filter((key) => available.has(key));
   if (picked.length) return picked.slice(0, maxColumns);
-  return [...available].slice(0, maxColumns);
+  return [...available].filter((key) => !key.startsWith("_")).slice(0, maxColumns);
 }
 
 function renderTable(target, rows, preferred = [], limit = 80, options = {}) {
@@ -351,7 +632,7 @@ function renderTable(target, rows, preferred = [], limit = 80, options = {}) {
   const body = visibleRows.map((row) => {
     const cells = columns.map((col) => {
       const value = text(row[col]);
-      const klass = numberLike(value) ? valueClass(value) : "neutral";
+      const klass = valueClass(value);
       return `<td class="${klass}">${escapeHtml(value)}</td>`;
     }).join("");
     return `<tr>${cells}</tr>`;
@@ -408,7 +689,19 @@ function inferMarketBias(data) {
   const breadth = getLatestBreadth(data);
   const active = (breadth.up || 0) + (breadth.down || 0);
   const upRatio = active > 0 ? breadth.up / active : null;
-  const indexPcts = getIndexRows(data).map((row) => parsePercent(pickValue(row, ["涨跌幅", "涨跌幅(%)"]))).filter((value) => value !== null);
+
+  // Merge live index data when available and newer than pipeline
+  const pipelineCutoff = parseCnTimestamp(data?.meta?.dataCutoffAt || data?.meta?.generatedAt, 0);
+  const liveEntries = Object.values(liveState.indices);
+  const hasLiveIndices = liveEntries.some((e) => e.ts > pipelineCutoff && e.changePct != null);
+  let indexPcts;
+  if (hasLiveIndices) {
+    indexPcts = liveEntries
+      .filter((e) => e.changePct != null)
+      .map((e) => Number(e.changePct));
+  } else {
+    indexPcts = getIndexRows(data).map((row) => parsePercent(pickValue(row, ["涨跌幅", "涨跌幅(%)"]))).filter((value) => value !== null);
+  }
   const avgPct = indexPcts.length ? indexPcts.reduce((sum, value) => sum + value, 0) / indexPcts.length : null;
   const pulseRows = data?.breadthPulse?.rows || [];
   const latestPulse = pulseRows[pulseRows.length - 1] || breadth;
@@ -545,6 +838,42 @@ function updateMeta(data) {
   renderInsight(currentInsight);
 }
 
+function updateMetaLight(data) {
+  currentInsight = analyzeDashboard(data);
+  setText("fg-score", currentInsight.score);
+  setText("fg-label", currentInsight.sentimentLabel);
+  setText("fg-tier", currentInsight.sentimentLabel);
+  setText("hero-stance", `${currentInsight.sentimentLabel} / ${currentInsight.bias}`);
+  setText("hero-action", currentInsight.action);
+  setText("market-state", currentInsight.stance);
+  setText("breadth-ratio", currentInsight.upRatio !== null ? formatPercentValue(currentInsight.upRatio) : "-");
+  setText("breadth-note", currentInsight.breadth.up !== null ? `${formatInteger(currentInsight.breadth.up)} 涨 / ${formatInteger(currentInsight.breadth.down)} 跌 / ${formatInteger(currentInsight.breadth.flat)} 平` : "暂无宽度");
+  setText("trend-score", currentInsight.score);
+  setText("trend-note", currentInsight.avgPct !== null ? `指数均值 ${currentInsight.avgPct.toFixed(2)}%` : "指数方向缺失");
+  setText("action-bias", currentInsight.actionShort);
+  const sessionBadge = el("session-badge");
+  const riskBadge = el("risk-badge");
+  if (sessionBadge) {
+    sessionBadge.textContent = currentInsight.sessionText;
+    sessionBadge.className = `badge ${currentInsight.newsOnly ? "neutral" : currentInsight.tone}`;
+  }
+  if (riskBadge) {
+    riskBadge.textContent = currentInsight.bias;
+    riskBadge.className = `badge ${currentInsight.tone}`;
+  }
+  renderFactorStrip(currentInsight);
+  scheduleGaugeDraw(currentInsight);
+  renderInsight(currentInsight);
+}
+
+function scheduleGaugeDraw(insight) {
+  if (gaugeDrawTimer) clearTimeout(gaugeDrawTimer);
+  gaugeDrawTimer = setTimeout(() => {
+    gaugeDrawTimer = null;
+    drawFearGreedGauge(insight);
+  }, DRAW_DEBOUNCE_MS);
+}
+
 function renderFactorStrip(insight) {
   const root = el("factor-strip");
   if (!root) return;
@@ -667,17 +996,19 @@ function renderMarketCards(data) {
   }
   root.innerHTML = rows.map((row) => {
     const name = pickValue(row, ["date", "名称", "指数"]);
+    const code = pickValue(row, ["代码", "code"]);
     const pct = pickValue(row, ["涨跌幅", "涨跌幅(%)"]);
     const price = pickValue(row, ["最新价", "最新价(元)"]);
     const amount = pickValue(row, ["成交额", "成交额(元)"]);
     return `
-      <div class="market-card">
+      <div class="market-card" data-index-code="${escapeHtml(text(code))}">
         <span>${escapeHtml(name || "-")}</span>
-        <strong class="${valueClass(pct)}">${escapeHtml(text(pct))}</strong>
-        <small>${escapeHtml(text(price))} / ${escapeHtml(text(amount))}</small>
+        <strong class="${valueClass(pct)}" data-live-pct>${escapeHtml(text(pct))}</strong>
+        <small><span data-live-price>${escapeHtml(text(price))}</span> / ${escapeHtml(text(amount))}</small>
       </div>
     `;
   }).join("");
+  renderLiveIndices();
 }
 
 function loadBreadthSeries() {
@@ -743,6 +1074,8 @@ function addBreadthSample(sample, persist = true) {
     breadthSeries = breadthSeries.slice(-BREADTH_MAX_POINTS);
   }
   if (persist) saveBreadthSeries();
+  dailyBreadthDirty = true;
+  chartSeriesDirty = true;
   return true;
 }
 
@@ -822,7 +1155,7 @@ function applyLiveBreadthToDashboard(sample) {
       recentTradingDates,
     },
   };
-  updateMeta(dashboardData);
+  updateMetaLight(dashboardData);
 }
 
 function weekKey(timestamp) {
@@ -853,6 +1186,7 @@ function movingAverageValues(points, windowSize, key = "up") {
 }
 
 function buildDailyBreadthSeries() {
+  if (!dailyBreadthDirty && dailyBreadthCache) return dailyBreadthCache;
   const buckets = new Map();
   breadthSeries.forEach((point) => {
     const key = cnDateKey(point.t);
@@ -866,13 +1200,15 @@ function buildDailyBreadthSeries() {
 
   const daily = [...buckets.values()].sort((a, b) => a.t - b.t);
   const maSets = Object.fromEntries(BREADTH_MA_WINDOWS.map((windowSize) => [windowSize, movingAverageValues(daily, windowSize)]));
-  return daily.map((point, index) => ({
+  dailyBreadthCache = daily.map((point, index) => ({
     ...point,
     ma20: maSets[20][index],
     ma60: maSets[60][index],
     ma120: maSets[120][index],
     ma250: maSets[250][index],
   }));
+  dailyBreadthDirty = false;
+  return dailyBreadthCache;
 }
 
 function latestTradingDaySamples() {
@@ -954,26 +1290,26 @@ function aggregatePoints(points, periodKey) {
 }
 
 function getBreadthChartSeries(periodKey = activeBreadthPeriod) {
+  if (!chartSeriesDirty && chartSeriesCache[periodKey]) return chartSeriesCache[periodKey];
   const dailyPoints = buildDailyBreadthSeries();
   const period = BREADTH_PERIODS[periodKey] || BREADTH_PERIODS["1d"];
   const intradayKeys = new Set(["15s", "15m", "4h"]);
   const intradaySamples = latestTradingDaySamples();
   const hasRealIntraday = intradaySamples.length > 1;
 
+  let result;
   if (intradayKeys.has(periodKey) && hasRealIntraday) {
     const pointsWithMa = attachDailyMovingAverages(intradaySamples, dailyPoints);
-    return {
+    result = {
       points: aggregatePoints(pointsWithMa, periodKey),
       label: period.label,
       mode: "intraday",
       note: "盘中实时采样",
     };
-  }
-
-  if (intradayKeys.has(periodKey)) {
+  } else if (intradayKeys.has(periodKey)) {
     const fallbackCount = BREADTH_INTRADAY_FALLBACK_POINTS[periodKey] || 60;
     const fallbackPoints = aggregatePoints(dailyPoints, "1d").slice(-fallbackCount);
-    return {
+    result = {
       points: fallbackPoints,
       label: `${period.label} / 收盘参照`,
       mode: "daily-fallback",
@@ -981,14 +1317,17 @@ function getBreadthChartSeries(periodKey = activeBreadthPeriod) {
         ? "暂无真实15s盘中历史，显示最新收盘快照"
         : `暂无真实${period.label}盘中历史，显示近${fallbackCount}个交易日收盘参照`,
     };
+  } else {
+    result = {
+      points: aggregatePoints(dailyPoints, periodKey),
+      label: period.label,
+      mode: period.kind,
+      note: periodKey === "1d" ? "日线MA" : `${period.label}聚合，MA沿用日线历史`,
+    };
   }
-
-  return {
-    points: aggregatePoints(dailyPoints, periodKey),
-    label: period.label,
-    mode: period.kind,
-    note: periodKey === "1d" ? "日线MA" : `${period.label}聚合，MA沿用日线历史`,
-  };
+  chartSeriesCache[periodKey] = result;
+  chartSeriesDirty = false;
+  return result;
 }
 
 function aggregateBreadthSeries(periodKey = activeBreadthPeriod) {
@@ -1006,8 +1345,15 @@ function breadthWindowLabel() {
   return activeBreadthWindow === "all" ? "全量" : `近${activeBreadthWindow}`;
 }
 
+function cacheDomRefs() {
+  cachedBreadthPeriodBtns = document.querySelectorAll("[data-breadth-period]");
+  cachedBreadthWindowBtns = document.querySelectorAll("[data-breadth-window]");
+  cachedMaToggleBtns = document.querySelectorAll("[data-ma-toggle]");
+  cachedMaLegendItems = document.querySelectorAll("[data-ma-legend]");
+}
+
 function updatePeriodTabs() {
-  document.querySelectorAll("[data-breadth-period]").forEach((button) => {
+  (cachedBreadthPeriodBtns || document.querySelectorAll("[data-breadth-period]")).forEach((button) => {
     const active = button.dataset.breadthPeriod === activeBreadthPeriod;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
@@ -1015,7 +1361,7 @@ function updatePeriodTabs() {
 }
 
 function updateBreadthWindowTabs() {
-  document.querySelectorAll("[data-breadth-window]").forEach((button) => {
+  (cachedBreadthWindowBtns || document.querySelectorAll("[data-breadth-window]")).forEach((button) => {
     const active = button.dataset.breadthWindow === activeBreadthWindow;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
@@ -1023,12 +1369,12 @@ function updateBreadthWindowTabs() {
 }
 
 function updateMaToggles() {
-  document.querySelectorAll("[data-ma-toggle]").forEach((button) => {
+  (cachedMaToggleBtns || document.querySelectorAll("[data-ma-toggle]")).forEach((button) => {
     const active = isMaVisible(button.dataset.maToggle);
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
   });
-  document.querySelectorAll("[data-ma-legend]").forEach((item) => {
+  (cachedMaLegendItems || document.querySelectorAll("[data-ma-legend]")).forEach((item) => {
     item.classList.toggle("is-muted", !isMaVisible(item.dataset.maLegend));
   });
 }
@@ -1144,11 +1490,179 @@ async function pollLiveBreadth() {
     applyLiveBreadthToDashboard(sample);
     renderBreadthStats();
     scheduleBreadthDraw();
+    updateFreshness("breadth", true);
+    liveState.polling.breadth.consecutiveErrors = 0;
+    liveState.polling.breadth.backoff = 1;
   } catch (error) {
     const latest = breadthSeries[breadthSeries.length - 1];
     const prefix = latest ? `${latest.scope} / 最近 ${formatCnTick(latest.t, true)}` : "宽度快照";
     renderBreadthStats(`${prefix} / ${error.message}，沿用最新快照`);
+    updateFreshness("breadth", false, error.message);
+    recordError("breadth", error.message);
   }
+}
+
+// --- Live index quote polling ---
+
+async function pollLiveIndices() {
+  if (document.hidden) return;
+  const phase = liveState.session.phase;
+  if (phase === "weekend" || phase === "postclose") return;
+  try {
+    let payload = null;
+    for (const endpoint of BREADTH_ENDPOINTS) {
+      try {
+        payload = await jsonpRequest(endpoint, {
+          fltt: "2", fields: INDEX_FIELDS, secids: INDEX_SECIDS,
+        });
+        break;
+      } catch (_) {}
+    }
+    if (!payload?.data?.diff) throw new Error("无数据");
+    const rows = payload.data.diff;
+    rows.forEach((row) => {
+      const code = String(row.f12 || "");
+      const secid = codeToSecid(code);
+      liveState.indices[secid] = {
+        price: row.f2, changePct: row.f3, changeAmt: row.f4,
+        name: row.f14, code, turnover: row.f6, ts: Date.now(),
+      };
+    });
+    updateFreshness("indices", true);
+    liveState.polling.indices.consecutiveErrors = 0;
+    liveState.polling.indices.backoff = 1;
+    renderLiveIndices();
+    updateFearGreedWithLiveData();
+  } catch (error) {
+    updateFreshness("indices", false, error.message);
+    recordError("indices", error.message);
+  }
+}
+
+function renderLiveIndices() {
+  const cards = document.querySelectorAll(".market-card[data-index-code]");
+  if (!cards.length) return;
+  cards.forEach((card) => {
+    const code = card.dataset.indexCode;
+    const secid = codeToSecid(code);
+    const live = liveState.indices[secid];
+    if (!live || live.price === undefined) return;
+    const priceEl = card.querySelector("[data-live-price]");
+    const pctEl = card.querySelector("[data-live-pct]");
+    if (priceEl) priceEl.textContent = text(live.price);
+    if (pctEl) {
+      const pctText = live.changePct != null ? `${live.changePct}%` : "-";
+      pctEl.textContent = pctText;
+      pctEl.className = `value ${valueClass(pctText)}`;
+    }
+    const badge = card.querySelector(".freshness-badge") || document.createElement("span");
+    badge.className = "freshness-badge live";
+    badge.textContent = "live";
+    if (!card.querySelector(".freshness-badge")) card.appendChild(badge);
+  });
+}
+
+// --- Live stock quote polling for screener candidates ---
+
+function collectScreenerCodes() {
+  if (liveState.screenerCodes) return liveState.screenerCodes;
+  const codes = new Set();
+  (dashboardData?.screeners || []).forEach((group) => {
+    (group.rows || []).forEach((row) => {
+      const code = findRowCode(row);
+      if (code) codes.add(code);
+    });
+  });
+  liveState.screenerCodes = [...codes].map((code) => ({ code, secid: codeToSecid(code) }));
+  return liveState.screenerCodes;
+}
+
+async function pollLiveStockQuotes() {
+  if (document.hidden) return;
+  const phase = liveState.session.phase;
+  if (phase === "weekend" || phase === "postclose") return;
+  const stockList = collectScreenerCodes();
+  if (!stockList.length) return;
+  try {
+    const batches = [];
+    for (let i = 0; i < stockList.length; i += STOCK_BATCH_SIZE) {
+      batches.push(stockList.slice(i, i + STOCK_BATCH_SIZE));
+    }
+    for (let b = 0; b < batches.length; b++) {
+      const batch = batches[b];
+      const secids = batch.map((s) => s.secid).join(",");
+      let payload = null;
+      for (const endpoint of BREADTH_ENDPOINTS) {
+        try {
+          payload = await jsonpRequest(endpoint, {
+            fltt: "2", fields: STOCK_FIELDS, secids,
+          });
+          break;
+        } catch (_) {}
+      }
+      if (payload?.data?.diff) {
+        payload.data.diff.forEach((row) => {
+          const code = String(row.f12 || "");
+          liveState.stockQuotes[code] = {
+            price: row.f2, changePct: row.f3, name: row.f14, ts: Date.now(),
+          };
+        });
+      }
+      if (b < batches.length - 1) await new Promise((r) => setTimeout(r, 200));
+    }
+    updateFreshness("stocks", true);
+    liveState.polling.stocks.consecutiveErrors = 0;
+    liveState.polling.stocks.backoff = 1;
+    enrichScreenerDisplay();
+  } catch (error) {
+    updateFreshness("stocks", false, error.message);
+    recordError("stocks", error.message);
+  }
+}
+
+function enrichScreenerDisplay() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll("[data-code]").forEach((el) => {
+      const code = el.dataset.code;
+      const live = liveState.stockQuotes[code];
+      if (!live || live.price === undefined) return;
+      const priceEl = el.querySelector("[data-live-price]");
+      if (priceEl) priceEl.textContent = text(live.price);
+      const pctEl = el.querySelector("[data-live-pct]");
+      if (pctEl) {
+        const pctText = live.changePct != null ? `${live.changePct}%` : "-";
+        pctEl.textContent = pctText;
+        pctEl.className = `${pctEl.className.replace(/\b(positive|negative|neutral)\b/g, "").trim()} ${valueClass(pctText)}`.trim();
+      }
+      const badge = el.querySelector(".freshness-badge") || (() => {
+        const b = document.createElement("span");
+        b.className = "freshness-badge live";
+        b.textContent = "live";
+        const heading = el.querySelector("h3, .conf-header");
+        if (heading) heading.appendChild(b);
+        return b;
+      })();
+      badge.className = "freshness-badge live";
+      badge.textContent = "live";
+    });
+  });
+}
+
+function updateFearGreedWithLiveData() {
+  if (!dashboardData || document.hidden) return;
+  const view = getCurrentView();
+  if (view !== "overview") return;
+  updateMeta(dashboardData);
+}
+
+function recordError(source, message) {
+  const polling = liveState.polling[source];
+  if (polling) {
+    polling.consecutiveErrors++;
+    polling.backoff = Math.min(32, Math.pow(2, polling.consecutiveErrors));
+  }
+  liveState.errors.push({ source, message, ts: Date.now() });
+  if (liveState.errors.length > 20) liveState.errors.shift();
 }
 
 function drawPolyline(ctx, points, values, scaleX, scaleY, color, width, alpha = 1) {
@@ -1181,7 +1695,7 @@ function drawPolyline(ctx, points, values, scaleX, scaleY, color, width, alpha =
 
 function drawBreadthChart() {
   const canvas = el("breadth-chart");
-  if (!canvas) return;
+  if (!canvas || canvas.offsetParent === null) return;
 
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(320, Math.floor(rect.width));
@@ -1301,12 +1815,11 @@ function drawBreadthChart() {
 }
 
 function scheduleBreadthDraw() {
-  if (breadthDrawQueued) return;
-  breadthDrawQueued = true;
-  requestAnimationFrame(() => {
-    breadthDrawQueued = false;
-    drawBreadthChart();
-  });
+  if (breadthDrawTimer) clearTimeout(breadthDrawTimer);
+  breadthDrawTimer = setTimeout(() => {
+    breadthDrawTimer = null;
+    requestAnimationFrame(drawBreadthChart);
+  }, DRAW_DEBOUNCE_MS);
 }
 
 function shouldPollLiveBreadth(data) {
@@ -1343,6 +1856,14 @@ function initBreadthPulse(data) {
   if (shouldPollLiveBreadth(data)) {
     pollLiveBreadth();
     breadthTimer = window.setInterval(pollLiveBreadth, BREADTH_POLL_MS);
+    // Start live index polling
+    if (liveState.polling.indices.timer) window.clearInterval(liveState.polling.indices.timer);
+    pollLiveIndices();
+    liveState.polling.indices.timer = window.setInterval(pollLiveIndices, INDEX_POLL_BASE_MS);
+    // Start live stock quote polling
+    if (liveState.polling.stocks.timer) window.clearInterval(liveState.polling.stocks.timer);
+    pollLiveStockQuotes();
+    liveState.polling.stocks.timer = window.setInterval(pollLiveStockQuotes, STOCK_POLL_BASE_MS);
   } else {
     renderBreadthStats();
   }
@@ -1374,13 +1895,13 @@ function renderCandidateCards(rows, strategyName) {
     const turnover = pickValue(row, ["换手率(%)", "换手率"]);
     const rowTone = valueClass(pct);
     return `
-      <div class="candidate-card">
+      <div class="candidate-card" data-code="${escapeHtml(code)}">
         <div>
           <span class="rank">#${index + 1}</span>
           <h3>${escapeHtml(name)} <small>${escapeHtml(code)}</small></h3>
           <p>${escapeHtml(strategyName || "策略候选")}</p>
         </div>
-        <strong class="${rowTone}">${escapeHtml(text(pct))}</strong>
+        <strong class="${rowTone}" data-live-pct>${escapeHtml(text(pct))}</strong>
         <dl>
           <div><dt>主力</dt><dd class="${valueClass(flow)}">${escapeHtml(text(flow))}</dd></div>
           <div><dt>成交</dt><dd>${escapeHtml(text(amount))}</dd></div>
@@ -1389,6 +1910,7 @@ function renderCandidateCards(rows, strategyName) {
       </div>
     `;
   }).join("");
+  enrichScreenerDisplay();
 }
 
 function renderTopCandidates() {
@@ -1406,15 +1928,97 @@ function renderTopCandidates() {
   );
 }
 
+function parseAmount(value) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).replace(/,/g, "").trim();
+  const match = raw.match(/(-?[\d.]+)\s*(万亿|亿|万)?/);
+  if (!match) return null;
+  let n = Number(match[1]);
+  if (!Number.isFinite(n)) return null;
+  const unit = match[2];
+  if (unit === "万亿") n *= 10000;
+  else if (unit === "亿") n *= 1;
+  else if (unit === "万") n *= 0.0001;
+  return n;
+}
+
+function scoreConfidence(stock) {
+  let score = 0;
+
+  // 策略覆盖 (30分): 出现在越多策略中，信心越高
+  const strategyCount = stock._strategies.length;
+  score += Math.min(30, (strategyCount / 5) * 30);
+
+  // 排名表现 (20分): 平均排名越靠前越好
+  const avgRank = stock._strategies.reduce((sum, s) => sum + s.rank, 0) / strategyCount;
+  score += Math.max(0, 20 * (1 - (avgRank - 1) / 29));
+
+  // 资金动量 (20分): 主力净流入越大越好
+  const flow = parseAmount(stock._bestFlow);
+  if (flow !== null) {
+    if (flow >= 10) score += 20;
+    else if (flow >= 5) score += 16;
+    else if (flow >= 2) score += 12;
+    else if (flow >= 1) score += 8;
+    else if (flow > 0) score += 4;
+  }
+
+  // 价格动量 (15分): 当日涨幅
+  const pct = parsePercent(stock._bestPct);
+  if (pct !== null) {
+    score += clamp(pct * 3, -10, 15);
+  }
+
+  // 换手率 (15分): 适中换手率最佳 (5-15%)
+  const turnover = parsePercent(stock._bestTurnover);
+  if (turnover !== null) {
+    if (turnover >= 3 && turnover <= 20) score += 15;
+    else if (turnover >= 1 && turnover <= 30) score += 10;
+    else score += 5;
+  }
+
+  return Math.round(clamp(score, 0, 100));
+}
+
+function buildConfidenceRanking(data) {
+  const stockMap = new Map();
+  (data.screeners || []).forEach((group) => {
+    (group.rows || []).forEach((row, idx) => {
+      const code = findRowCode(row);
+      if (!code) return;
+      if (!stockMap.has(code)) {
+        stockMap.set(code, {
+          code,
+          name: findRowName(row) || code,
+          _strategies: [],
+          _bestPct: pickValue(row, ["涨跌幅(%)", "涨跌幅"]),
+          _bestFlow: pickValue(row, ["主力净额(元)", "主力净额", "主力资金净流入"]),
+          _bestTurnover: pickValue(row, ["换手率(%)", "换手率"]),
+          _bestAmount: pickValue(row, ["成交额(元)", "成交额"]),
+          _bestPrice: pickValue(row, ["最新价(元)", "最新价"]),
+        });
+      }
+      const stock = stockMap.get(code);
+      stock._strategies.push({ name: group.name || "", rank: idx + 1 });
+    });
+  });
+
+  return [...stockMap.values()]
+    .map((stock) => ({ ...stock, confidence: scoreConfidence(stock) }))
+    .sort((a, b) => b.confidence - a.confidence);
+}
+
 function flattenRanking(data) {
   const rows = [];
   (data.screeners || []).forEach((group) => {
     (group.rows || []).forEach((row, idx) => {
-      rows.push({
+      const enriched = {
         "策略": group.name || "",
         "Rank": idx + 1,
         ...row,
-      });
+      };
+      enriched._search = JSON.stringify(enriched).toLowerCase();
+      rows.push(enriched);
     });
   });
   return rows;
@@ -1423,7 +2027,7 @@ function flattenRanking(data) {
 function renderRanking(filter = "") {
   const q = filter.trim().toLowerCase();
   const rows = q
-    ? flatRows.filter((row) => JSON.stringify(row).toLowerCase().includes(q))
+    ? flatRows.filter((row) => row._search.includes(q))
     : flatRows;
   renderTable(
     "ranking-table",
@@ -1476,6 +2080,60 @@ function renderDetails(data) {
       </div>
     `;
   }).join("");
+}
+
+let confidenceRanking = [];
+
+function renderConfidence(data) {
+  confidenceRanking = buildConfidenceRanking(data);
+  const root = el("confidence-cards");
+  const tableRoot = el("confidence-table");
+  if (!root) return;
+
+  const top = confidenceRanking.slice(0, 20);
+  if (!top.length) {
+    root.innerHTML = '<div class="empty">暂无候选数据</div>';
+    return;
+  }
+
+  root.innerHTML = top.slice(0, 10).map((stock, i) => {
+    const confTone = stock.confidence >= 70 ? "conf-high" : stock.confidence >= 40 ? "conf-mid" : "conf-low";
+    const stratTags = stock._strategies.map((s) => `<span class="conf-strat">${escapeHtml(s.name)} #${s.rank}</span>`).join("");
+    return `
+      <div class="confidence-card ${confTone}">
+        <div class="conf-header">
+          <span class="conf-rank">#${i + 1}</span>
+          <div class="conf-score-ring" style="--conf:${stock.confidence}">
+            <strong>${stock.confidence}</strong>
+          </div>
+        </div>
+        <h3>${escapeHtml(stock.name)} <small>${escapeHtml(stock.code)}</small></h3>
+        <div class="conf-metrics">
+          <span class="${valueClass(stock._bestPct)}">${escapeHtml(text(stock._bestPct))}</span>
+          <span>换手 ${escapeHtml(text(stock._bestTurnover))}</span>
+          <span>${escapeHtml(text(stock._bestAmount))}</span>
+        </div>
+        <div class="conf-strats">${stratTags}</div>
+        <div class="conf-bar"><b style="width:${stock.confidence}%"></b></div>
+      </div>
+    `;
+  }).join("");
+
+  if (tableRoot) {
+    const tableRows = top.map((stock) => ({
+      "信心分": stock.confidence,
+      "代码": stock.code,
+      "名称": stock.name,
+      "策略数": stock._strategies.length,
+      "平均排名": (stock._strategies.reduce((sum, s) => sum + s.rank, 0) / stock._strategies.length).toFixed(1),
+      "策略明细": stock._strategies.map((s) => `${s.name}#${s.rank}`).join(", "),
+      "涨跌幅": stock._bestPct,
+      "主力净额": stock._bestFlow,
+      "换手率": stock._bestTurnover,
+      "成交额": stock._bestAmount,
+    }));
+    renderTable(tableRoot, tableRows, ["信心分", "代码", "名称", "策略数", "平均排名", "涨跌幅", "主力净额", "换手率", "成交额", "策略明细"], 30, { maxColumns: 10 });
+  }
 }
 
 function flattenNews(data) {
@@ -1615,6 +2273,24 @@ function initRouting() {
   setView(getCurrentView());
 }
 
+function renderAll(data) {
+  flatRows = flattenRanking(data);
+  liveState.screenerCodes = null; // invalidate cached screener codes
+  updateMeta(data);
+  renderMarket(data);
+  renderStrategySelect(data);
+  renderTopCandidates();
+  renderConfidence(data);
+  renderRanking();
+  renderThemes(data);
+  renderDetails(data);
+  renderNews(data);
+  renderQuota(data);
+  renderErrors(data);
+  initBreadthPulse(data);
+  updateFreshness("pipeline", true);
+}
+
 async function loadData() {
   if (dataLoadInFlight) return dashboardData;
   dataLoadInFlight = true;
@@ -1622,20 +2298,22 @@ async function loadData() {
   try {
     const response = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    dashboardData = await response.json();
-    flatRows = flattenRanking(dashboardData);
-    updateMeta(dashboardData);
-    renderMarket(dashboardData);
-    renderStrategySelect(dashboardData);
-    renderTopCandidates();
-    renderRanking();
-    renderThemes(dashboardData);
-    renderDetails(dashboardData);
-    renderNews(dashboardData);
-    renderQuota(dashboardData);
-    renderErrors(dashboardData);
-    initBreadthPulse(dashboardData);
+    const newData = await response.json();
+    const newCutoff = newData?.meta?.dataCutoffAt || newData?.meta?.generatedAt || "";
+    const prevCutoff = liveState.lastPipelineCutoff || "";
+    dashboardData = newData;
+
+    if (newCutoff !== prevCutoff) {
+      liveState.lastPipelineCutoff = newCutoff;
+      renderAll(dashboardData);
+    } else {
+      // Pipeline data unchanged — just refresh live data layer
+      updateMetaLight(dashboardData);
+    }
     setRefreshStatus("idle");
+    return dashboardData;
+  } catch (error) {
+    handleLoadError(error);
     return dashboardData;
   } finally {
     dataLoadInFlight = false;
@@ -1645,7 +2323,7 @@ async function loadData() {
 function bindEvents() {
   const searchInput = el("search-input");
   if (searchInput) searchInput.addEventListener("input", (event) => renderRanking(event.target.value));
-  document.querySelectorAll("[data-breadth-period]").forEach((button) => {
+  (cachedBreadthPeriodBtns || document.querySelectorAll("[data-breadth-period]")).forEach((button) => {
     button.addEventListener("click", () => {
       activeBreadthPeriod = button.dataset.breadthPeriod || "1d";
       updateBreadthControls();
@@ -1653,7 +2331,7 @@ function bindEvents() {
       scheduleBreadthDraw();
     });
   });
-  document.querySelectorAll("[data-breadth-window]").forEach((button) => {
+  (cachedBreadthWindowBtns || document.querySelectorAll("[data-breadth-window]")).forEach((button) => {
     button.addEventListener("click", () => {
       const nextWindow = button.dataset.breadthWindow || "all";
       activeBreadthWindow = BREADTH_WINDOW_OPTIONS.has(nextWindow) ? nextWindow : "all";
@@ -1663,7 +2341,7 @@ function bindEvents() {
       scheduleBreadthDraw();
     });
   });
-  document.querySelectorAll("[data-ma-toggle]").forEach((button) => {
+  (cachedMaToggleBtns || document.querySelectorAll("[data-ma-toggle]")).forEach((button) => {
     button.addEventListener("click", () => {
       const windowSize = Number(button.dataset.maToggle);
       if (!BREADTH_MA_WINDOWS.includes(windowSize)) return;
@@ -1686,12 +2364,19 @@ function initAutoRefresh() {
     if (!document.hidden) loadData().catch(handleLoadError);
   }, DATA_AUTO_REFRESH_MS);
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) loadData().catch(handleLoadError);
+    if (document.hidden) {
+      pauseAllPolling();
+    } else {
+      resumeAllPolling();
+      loadData().catch(handleLoadError);
+    }
   });
 }
 
 loadBreadthUiPrefs();
+cacheDomRefs();
 initRouting();
 bindEvents();
+startSessionTicker();
 initAutoRefresh();
 loadData().catch(handleLoadError);
