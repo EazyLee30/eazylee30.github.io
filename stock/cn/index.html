@@ -19,7 +19,6 @@
       <a href="#cross-section" data-view-link="cross-section">截面</a>
       <a href="#themes" data-view-link="themes">题材</a>
       <a href="#news" data-view-link="news">资讯</a>
-      <a href="#system" data-view-link="system">系统</a>
     </nav>
   </header>
 
@@ -268,25 +267,36 @@
     </section>
 
     <section id="news" class="page-view" data-view="news">
-      <div class="grid two">
+      <article class="panel news-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">market intelligence</p>
+            <h2>资讯与公告风险</h2>
+          </div>
+          <div class="news-tabs" id="news-tabs" aria-label="资讯分类"></div>
+        </div>
+        <div id="news-list" class="news-list"></div>
+      </article>
+
+      <div class="grid two news-bottom">
         <article class="panel">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">news</p>
-              <h2>资讯与公告风险</h2>
+              <p class="eyebrow">risk events</p>
+              <h2>风险提醒</h2>
             </div>
           </div>
-          <div id="news-list" class="news-list"></div>
+          <div id="news-risks" class="news-risks"></div>
         </article>
 
         <article class="panel">
           <div class="panel-head">
             <div>
               <p class="eyebrow">guardrails</p>
-              <h2>A股风控规则</h2>
+              <h2>风控规则</h2>
             </div>
           </div>
-          <ul class="rules">
+          <ul class="rules compact">
             <li>ST、退市风险、停牌、新股短期高波动默认剔除。</li>
             <li>高位连续异动、澄清公告、主力大幅流出进入风险提醒。</li>
             <li>涨停不可追价，跌停不做流动性假设；先确认成交与盘口。</li>
@@ -296,30 +306,17 @@
       </div>
     </section>
 
-    <section id="system" class="page-view" data-view="system">
-      <div class="grid two">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">automation</p>
-              <h2>额度分配</h2>
-            </div>
-          </div>
-          <div id="quota-plan" class="quota-grid"></div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">diagnostics</p>
-              <h2>接口状态</h2>
-            </div>
-          </div>
-          <div id="error-list" class="error-list"></div>
-        </article>
-      </div>
-    </section>
   </main>
+
+  <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="modal-title">详情</h2>
+        <button class="modal-close" id="modal-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
 
   <footer class="footer">
     <span>数据来源：东方财富妙想与公开行情。页面仅供研究和交易辅助，不构成投资建议。</span>

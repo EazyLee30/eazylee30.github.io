@@ -23,7 +23,7 @@ const CN_MARKET_WINDOWS = [
   [9 * 60 + 30, 11 * 60 + 30],
   [13 * 60, 15 * 60],
 ];
-const VIEWS = new Set(["overview", "picks", "confidence", "cross-section", "themes", "news", "system"]);
+const VIEWS = new Set(["overview", "picks", "confidence", "cross-section", "themes", "news"]);
 const BREADTH_PERIODS = {
   "15s": { label: "15s", kind: "interval", ms: 15 * 1000 },
   "15m": { label: "15min", kind: "interval", ms: 15 * 60 * 1000 },
@@ -630,15 +630,18 @@ function renderTable(target, rows, preferred = [], limit = 80, options = {}) {
   const columns = pickColumns(visibleRows, preferred, options);
   const head = columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("");
   const body = visibleRows.map((row) => {
+    const code = row["代码"] || row["code"] || "";
+    const codeAttr = code ? ` data-stock-code="${escapeHtml(String(code))}"` : "";
     const cells = columns.map((col) => {
       const value = text(row[col]);
       const klass = valueClass(value);
       return `<td class="${klass}">${escapeHtml(value)}</td>`;
     }).join("");
-    return `<tr>${cells}</tr>`;
+    return `<tr${codeAttr}>${cells}</tr>`;
   }).join("");
 
   container.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  bindStockClicks();
 }
 
 function getIndexRows(data) {
@@ -1895,7 +1898,7 @@ function renderCandidateCards(rows, strategyName) {
     const turnover = pickValue(row, ["换手率(%)", "换手率"]);
     const rowTone = valueClass(pct);
     return `
-      <div class="candidate-card" data-code="${escapeHtml(code)}">
+      <div class="candidate-card" data-code="${escapeHtml(code)}" data-stock-code="${escapeHtml(code)}">
         <div>
           <span class="rank">#${index + 1}</span>
           <h3>${escapeHtml(name)} <small>${escapeHtml(code)}</small></h3>
@@ -1911,6 +1914,7 @@ function renderCandidateCards(rows, strategyName) {
     `;
   }).join("");
   enrichScreenerDisplay();
+  bindStockClicks();
 }
 
 function renderTopCandidates() {
@@ -2073,13 +2077,14 @@ function renderDetails(data) {
     const mini = document.createElement("div");
     renderTable(mini, rows, ["date", "最新价", "涨跌幅", "成交额", "换手率", "主力净流入"], 6, { maxColumns: 6 });
     return `
-      <div class="detail-item">
+      <div class="detail-item" data-stock-code="${escapeHtml(item.code || "")}">
         <h3>${escapeHtml(item.name || item.code)} <span class="tag">${escapeHtml(item.code || "")}</span></h3>
         <div class="inline-meta"><span>来源：${escapeHtml(item.source || "-")}</span></div>
         <div class="mini-table">${mini.innerHTML}</div>
       </div>
     `;
   }).join("");
+  bindStockClicks();
 }
 
 let confidenceRanking = [];
@@ -2100,7 +2105,7 @@ function renderConfidence(data) {
     const confTone = stock.confidence >= 70 ? "conf-high" : stock.confidence >= 40 ? "conf-mid" : "conf-low";
     const stratTags = stock._strategies.map((s) => `<span class="conf-strat">${escapeHtml(s.name)} #${s.rank}</span>`).join("");
     return `
-      <div class="confidence-card ${confTone}">
+      <div class="confidence-card ${confTone}" data-stock-code="${escapeHtml(stock.code)}" style="cursor:pointer">
         <div class="conf-header">
           <span class="conf-rank">#${i + 1}</span>
           <div class="conf-score-ring" style="--conf:${stock.confidence}">
@@ -2134,6 +2139,7 @@ function renderConfidence(data) {
     }));
     renderTable(tableRoot, tableRows, ["信心分", "代码", "名称", "策略数", "平均排名", "涨跌幅", "主力净额", "换手率", "成交额", "策略明细"], 30, { maxColumns: 10 });
   }
+  bindStockClicks();
 }
 
 function flattenNews(data) {
@@ -2148,72 +2154,114 @@ function renderNewsPreview(data) {
     root.innerHTML = '<div class="empty">暂无资讯数据。周末运行会优先刷新政策、公告和外围变量。</div>';
     return;
   }
-  root.innerHTML = items.map((item) => `
-    <div class="news-brief">
+  root.innerHTML = items.map((item, idx) => `
+    <div class="news-brief" data-news-flat-idx="${idx}" style="cursor:pointer">
       <span>${escapeHtml(item.group || "资讯")}</span>
       <strong>${escapeHtml(item.title || "-")}</strong>
       <small>${escapeHtml(item.date || "")} ${escapeHtml(item.source || "")}</small>
     </div>
   `).join("");
+  root.querySelectorAll("[data-news-flat-idx]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const idx = parseInt(node.dataset.newsFlatIdx, 10);
+      const flat = flattenNews(dashboardData);
+      if (flat[idx]) openNewsDetail(flat[idx]);
+    });
+  });
 }
+
+let activeNewsTab = null;
 
 function renderNews(data) {
   const root = el("news-list");
+  const tabsRoot = el("news-tabs");
+  const risksRoot = el("news-risks");
   const groups = data.news || [];
   if (!root) return;
   renderNewsPreview(data);
+
   if (!groups.length) {
-    root.innerHTML = '<div class="empty">暂无资讯数据</div>';
+    root.innerHTML = '<div class="empty">暂无资讯数据。周末运行会优先刷新政策、公告和外围变量。</div>';
+    if (tabsRoot) tabsRoot.innerHTML = "";
+    if (risksRoot) risksRoot.innerHTML = '<div class="neutral">暂无风险提醒。</div>';
     return;
   }
-  root.innerHTML = groups.map((group) => `
-    <div class="news-item">
-      <h3>${escapeHtml(group.name || "资讯")}</h3>
-      ${(group.items || []).slice(0, 5).map((item) => `
-        <article>
-          <p><strong>${escapeHtml(item.title || "-")}</strong></p>
-          <div class="inline-meta">
-            <span>${escapeHtml(item.date || "")}</span>
-            <span>${escapeHtml(item.source || "")}</span>
-            <span>${escapeHtml(item.type || "")}</span>
-          </div>
-          <p class="neutral">${escapeHtml(item.content || "")}</p>
-        </article>
-      `).join("")}
-    </div>
-  `).join("");
+
+  // Category tabs
+  if (tabsRoot) {
+    const tabNames = groups.map((g) => g.name || "资讯");
+    if (!activeNewsTab || !tabNames.includes(activeNewsTab)) {
+      activeNewsTab = tabNames[0];
+    }
+    tabsRoot.innerHTML = tabNames.map((name) =>
+      `<button type="button" data-news-tab="${escapeHtml(name)}" class="${name === activeNewsTab ? "is-active" : ""}">${escapeHtml(name)}</button>`
+    ).join("");
+  }
+
+  // Render active tab's news
+  const activeGroup = groups.find((g) => (g.name || "资讯") === activeNewsTab) || groups[0];
+  const items = (activeGroup.items || []).slice(0, 10);
+  root.innerHTML = items.length
+    ? items.map((item, idx) => {
+        const riskLevel = detectNewsRisk(item);
+        return `
+          <article class="news-article ${riskLevel ? "risk-" + riskLevel : ""}" data-news-idx="${idx}">
+            <div class="news-article-head">
+              <strong>${escapeHtml(item.title || "-")}</strong>
+              ${riskLevel ? `<span class="risk-tag risk-${riskLevel}">${riskLevel === "high" ? "高风险" : "关注"}</span>` : ""}
+            </div>
+            <div class="inline-meta">
+              <span>${escapeHtml(item.date || "")}</span>
+              <span>${escapeHtml(item.source || "")}</span>
+            </div>
+            <p class="neutral">${escapeHtml(truncate(item.content || "", 180))}</p>
+          </article>`;
+      }).join("")
+    : '<div class="empty">该分类暂无资讯。</div>';
+  bindNewsClicks();
+
+  // Extract risk items from announcement group
+  if (risksRoot) {
+    const riskGroups = groups.filter((g) => {
+      const name = (g.name || "").toLowerCase();
+      return name.includes("公告") || name.includes("风险");
+    });
+    const riskItems = riskGroups.flatMap((g) => (g.items || [])).slice(0, 5);
+    if (riskItems.length) {
+      risksRoot.innerHTML = riskItems.map((item) => `
+        <div class="risk-item">
+          <strong>${escapeHtml(item.title || "-")}</strong>
+          <small>${escapeHtml(item.date || "")} · ${escapeHtml(item.source || "")}</small>
+        </div>
+      `).join("");
+    } else {
+      risksRoot.innerHTML = '<div class="neutral">暂无公告风险提醒。</div>';
+    }
+  }
+
+  // Bind tab clicks
+  if (tabsRoot) {
+    tabsRoot.querySelectorAll("[data-news-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeNewsTab = btn.dataset.newsTab;
+        renderNews(data);
+      });
+    });
+  }
 }
 
-function renderQuota(data) {
-  const root = el("quota-plan");
-  const plan = data.quotaPlan || {};
-  const runs = plan.runs || [];
-  if (!root) return;
-  root.innerHTML = `
-    <div class="quota-item">
-      <h3>每日上限 ${escapeHtml(plan.dailyLimit || 500)} 次，预留 ${escapeHtml(plan.reserve || 20)} 次</h3>
-      <div class="inline-meta">
-        <span>${escapeHtml(plan.freePublicData || "")}</span>
-        <span>仓库策略：${escapeHtml(plan.storagePolicy?.repo || "-")}</span>
-        <span>部署策略：${escapeHtml(plan.storagePolicy?.pagesArtifact || "-")}</span>
-      </div>
-    </div>
-    ${runs.map((run) => `
-      <div class="quota-item">
-        <h3>${escapeHtml(run.name)} / ${escapeHtml(run.timeCN)} / ${escapeHtml(run.budget)} 次</h3>
-        <p class="neutral">${escapeHtml(run.focus || "")}</p>
-      </div>
-    `).join("")}
-  `;
+function detectNewsRisk(item) {
+  const text = `${item.title || ""} ${item.content || ""}`;
+  const highKeywords = ["退市", "ST", "停牌", "减持", "违规", "立案", "暴跌", "跌停", "实控人减持", "大跌"];
+  const midKeywords = ["澄清", "异动", "波动", "流出", "风险", "下跌", "亏损", "利空"];
+  if (highKeywords.some((k) => text.includes(k))) return "high";
+  if (midKeywords.some((k) => text.includes(k))) return "mid";
+  return "";
 }
 
-function renderErrors(data) {
-  const errors = data.errors || [];
-  const root = el("error-list");
-  if (!root) return;
-  root.innerHTML = errors.length
-    ? errors.slice(0, 12).map((err) => `<div>${escapeHtml(err.label || "")}: ${escapeHtml(err.error || "")}</div>`).join("")
-    : '<div class="neutral">暂无接口错误。实时宽度只在交易时段尝试采样，失败时沿用 latest.json 快照。</div>';
+function truncate(str, max) {
+  if (!str) return "";
+  return str.length > max ? str.slice(0, max) + "…" : str;
 }
 
 function setRefreshStatus(state = "idle") {
@@ -2285,8 +2333,6 @@ function renderAll(data) {
   renderThemes(data);
   renderDetails(data);
   renderNews(data);
-  renderQuota(data);
-  renderErrors(data);
   initBreadthPulse(data);
   updateFreshness("pipeline", true);
 }
@@ -2373,10 +2419,106 @@ function initAutoRefresh() {
   });
 }
 
+// ── Modal system ──
+const modalState = { overlay: null, title: null, body: null };
+
+function initModal() {
+  modalState.overlay = el("modal-overlay");
+  modalState.title = el("modal-title");
+  modalState.body = el("modal-body");
+  if (!modalState.overlay) return;
+  el("modal-close")?.addEventListener("click", closeModal);
+  modalState.overlay.addEventListener("click", (e) => {
+    if (e.target === modalState.overlay) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+}
+
+function openModal(title, html) {
+  if (!modalState.overlay) return;
+  if (modalState.title) modalState.title.textContent = title;
+  if (modalState.body) modalState.body.innerHTML = html;
+  modalState.overlay.classList.add("is-open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  if (!modalState.overlay) return;
+  modalState.overlay.classList.remove("is-open");
+  document.body.style.overflow = "";
+}
+
+function openNewsDetail(item) {
+  const riskLevel = detectNewsRisk(item);
+  const html = `
+    <h3>${escapeHtml(item.title || "-")}</h3>
+    <div class="meta-row">
+      <span>${escapeHtml(item.date || "")}</span>
+      <span>${escapeHtml(item.source || "")}</span>
+      <span>${escapeHtml(item.type || "")}</span>
+      ${riskLevel ? `<span style="color:${riskLevel === "high" ? "var(--red)" : "var(--amber)"}">● ${riskLevel === "high" ? "高风险" : "关注"}</span>` : ""}
+    </div>
+    <div class="content-text">${escapeHtml(item.content || "暂无详细内容。")}</div>
+  `;
+  openModal(item.title || "资讯详情", html);
+}
+
+function openStockDetail(code) {
+  const row = flatRows.find((r) => String(r["代码"] || r.code) === String(code));
+  if (!row) {
+    openModal("个股详情", `<p>未找到代码 ${escapeHtml(code)} 的详细数据。</p>`);
+    return;
+  }
+  const name = row["名称"] || row.name || code;
+  const strategy = row["策略"] || row.strategy || "";
+  const fields = [
+    ["代码", row["代码"] || row.code],
+    ["名称", name],
+    ["策略", strategy],
+    ["涨跌幅", row["涨跌幅(%)"] || row["涨跌幅"] || row.changePct],
+    ["最新价", row["最新价(元)"] || row["最新价"] || row.price],
+    ["成交额", row["成交额(元)"] || row["成交额"] || row.amount],
+    ["换手率", row["换手率(%)"] || row["换手率"] || row.turnover],
+    ["主力净额", row["主力净额(元)"] || row["主力净额"] || row.flow],
+    ["总市值", row["总市值(元)"] || row["总市值"]],
+    ["Rank", row["Rank"]],
+  ].filter(([, v]) => v != null && v !== "");
+  const dataGrid = fields.map(([label, value]) =>
+    `<div class="data-cell"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(String(value))}</span></div>`
+  ).join("");
+  const html = `
+    <div class="data-grid">${dataGrid}</div>
+  `;
+  openModal(`${name} · 个股详情`, html);
+}
+
+function bindNewsClicks() {
+  document.querySelectorAll(".news-article[data-news-idx]").forEach((article) => {
+    article.addEventListener("click", () => {
+      const idx = parseInt(article.dataset.newsIdx, 10);
+      const group = (dashboardData?.news || []).find((g) => (g.name || "资讯") === activeNewsTab);
+      const item = (group?.items || [])[idx];
+      if (item) openNewsDetail(item);
+    });
+  });
+}
+
+function bindStockClicks() {
+  document.querySelectorAll("[data-stock-code]").forEach((node) => {
+    node.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openStockDetail(node.dataset.stockCode);
+    });
+  });
+}
+
 loadBreadthUiPrefs();
 cacheDomRefs();
 initRouting();
 bindEvents();
+initModal();
 startSessionTicker();
 initAutoRefresh();
 loadData().catch(handleLoadError);
