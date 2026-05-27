@@ -938,7 +938,7 @@ def parse_data_tables(result: dict[str, Any] | None, limit: int = 120) -> list[d
     if not result or result.get("status") != 0:
         return []
     dto_list = (
-        (result.get("data") or {})
+        (((result.get("data") or {})
         .get("data") or {})
         .get("searchDataResultDTO") or {})
         .get("dataTableDTOList") or []
