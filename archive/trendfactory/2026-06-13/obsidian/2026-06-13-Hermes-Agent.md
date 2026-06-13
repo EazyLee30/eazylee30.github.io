@@ -1,7 +1,7 @@
 ---
 type: content-brief
 status: idea
-topic: 苹果
+topic: Hermes Agent
 source_type: trendradar
 captured: 2026-06-13
 updated: 2026-06-13
@@ -16,15 +16,15 @@ channels:
 cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 ---
 
-# 2026-06-13 苹果 选题卡
+# 2026-06-13 Hermes Agent 选题卡
 
 ## One-Line Angle
 
-- 把「苹果」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
+- 把「Hermes Agent」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
 
 ## Why Now
 
-- `微博 #22` [原特斯拉厂长首次代表小米发言](https://s.weibo.com/weibo?q=%23%E5%8E%9F%E7%89%B9%E6%96%AF%E6%8B%89%E5%8E%82%E9%95%BF%E9%A6%96%E6%AC%A1%E4%BB%A3%E8%A1%A8%E5%B0%8F%E7%B1%B3%E5%8F%91%E8%A8%80%23&t=31&band_rank=22&Refer=top)
+- `bilibili 热搜 #17` [ARCRaiders国服首测PV](https://search.bilibili.com/all?keyword=ARCRaiders%E5%9B%BD%E6%9C%8D%E9%A6%96%E6%B5%8BPV)
 
 ## Draft Direction
 
@@ -34,7 +34,7 @@ cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 
 ## Evidence Pool
 
-- `微博 #22` [原特斯拉厂长首次代表小米发言](https://s.weibo.com/weibo?q=%23%E5%8E%9F%E7%89%B9%E6%96%AF%E6%8B%89%E5%8E%82%E9%95%BF%E9%A6%96%E6%AC%A1%E4%BB%A3%E8%A1%A8%E5%B0%8F%E7%B1%B3%E5%8F%91%E8%A8%80%23&t=31&band_rank=22&Refer=top)
+- `bilibili 热搜 #17` [ARCRaiders国服首测PV](https://search.bilibili.com/all?keyword=ARCRaiders%E5%9B%BD%E6%9C%8D%E9%A6%96%E6%B5%8BPV)
 
 ## Cover Brief
 
