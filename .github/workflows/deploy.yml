@@ -59,6 +59,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: read
+      actions: write
       pages: write
       id-token: write
     env:
@@ -189,7 +190,22 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '_site'
+          retention-days: 1
       
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Clean up Pages artifacts
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate \
+            "/repos/${{ github.repository }}/actions/artifacts" \
+            --jq '.artifacts[] | select(.name == "github-pages") | .id' |
+          while read -r artifact_id; do
+            gh api --method DELETE \
+              "/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+          done
