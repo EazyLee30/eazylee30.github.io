@@ -1,7 +1,7 @@
 ---
 type: content-brief
 status: idea
-topic: 自媒体
+topic: Hermes Agent
 source_type: trendradar
 captured: 2026-07-01
 updated: 2026-07-01
@@ -16,16 +16,15 @@ channels:
 cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 ---
 
-# 2026-07-01 自媒体 选题卡
+# 2026-07-01 Hermes Agent 选题卡
 
 ## One-Line Angle
 
-- 把「自媒体」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
+- 把「Hermes Agent」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
 
 ## Why Now
 
-- `bilibili 热搜 #16` [magixx残局1v4纪念彩蛋](https://search.bilibili.com/all?keyword=magixx%E6%AE%8B%E5%B1%801v4%E7%BA%AA%E5%BF%B5%E5%BD%A9%E8%9B%8B)
-- `抖音 #28` [谁不想在抖音养一只霸王龙](https://www.douyin.com/hot/2554660)
+- `bilibili 热搜 #6` [Openclaw 移动版APP发布](https://search.bilibili.com/all?keyword=Openclaw%20%E7%A7%BB%E5%8A%A8%E7%89%88APP%E5%8F%91%E5%B8%83)
 
 ## Draft Direction
 
@@ -35,8 +34,7 @@ cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 
 ## Evidence Pool
 
-- `bilibili 热搜 #16` [magixx残局1v4纪念彩蛋](https://search.bilibili.com/all?keyword=magixx%E6%AE%8B%E5%B1%801v4%E7%BA%AA%E5%BF%B5%E5%BD%A9%E8%9B%8B)
-- `抖音 #28` [谁不想在抖音养一只霸王龙](https://www.douyin.com/hot/2554660)
+- `bilibili 热搜 #6` [Openclaw 移动版APP发布](https://search.bilibili.com/all?keyword=Openclaw%20%E7%A7%BB%E5%8A%A8%E7%89%88APP%E5%8F%91%E5%B8%83)
 
 ## Cover Brief
 
