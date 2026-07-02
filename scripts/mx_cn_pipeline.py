@@ -977,9 +977,22 @@ def build_column_map(columns: list[dict[str, Any]]) -> tuple[dict[str, str], lis
 def parse_screen_rows(result: dict[str, Any] | None, limit: int = 80) -> list[dict[str, Any]]:
     if not result or result.get("status") != 0:
         return []
-    inner = result.get("data", {}).get("data", {})
-    data_list = inner.get("allResults", {}).get("result", {}).get("dataList", [])
-    columns = inner.get("allResults", {}).get("result", {}).get("columns", [])
+
+    outer = result.get("data")
+    if not isinstance(outer, dict):
+        return []
+    inner = outer.get("data")
+    if not isinstance(inner, dict):
+        return []
+    all_results = inner.get("allResults")
+    if not isinstance(all_results, dict):
+        return []
+    screen_result = all_results.get("result")
+    if not isinstance(screen_result, dict):
+        return []
+
+    data_list = screen_result.get("dataList", [])
+    columns = screen_result.get("columns", [])
     if not isinstance(data_list, list) or not data_list:
         return []
     column_map, column_order = build_column_map(columns if isinstance(columns, list) else [])
