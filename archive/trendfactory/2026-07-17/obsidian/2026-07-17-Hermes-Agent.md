@@ -1,7 +1,7 @@
 ---
 type: content-brief
 status: idea
-topic: 自媒体
+topic: Hermes Agent
 source_type: trendradar
 captured: 2026-07-17
 updated: 2026-07-17
@@ -16,15 +16,15 @@ channels:
 cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 ---
 
-# 2026-07-17 自媒体 选题卡
+# 2026-07-17 Hermes Agent 选题卡
 
 ## One-Line Angle
 
-- 把「自媒体」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
+- 把「Hermes Agent」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
 
 ## Why Now
 
-- `抖音 #22` [跟着抖音网友吃一天](https://www.douyin.com/hot/2574085)
+- `bilibili 热搜 #1` [硅谷101对谈OpenClaw向涛](https://search.bilibili.com/all?keyword=%E7%A1%85%E8%B0%B7101%E5%AF%B9%E8%B0%88OpenClaw%E5%90%91%E6%B6%9B)
 
 ## Draft Direction
 
@@ -34,7 +34,7 @@ cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 
 ## Evidence Pool
 
-- `抖音 #22` [跟着抖音网友吃一天](https://www.douyin.com/hot/2574085)
+- `bilibili 热搜 #1` [硅谷101对谈OpenClaw向涛](https://search.bilibili.com/all?keyword=%E7%A1%85%E8%B0%B7101%E5%AF%B9%E8%B0%88OpenClaw%E5%90%91%E6%B6%9B)
 
 ## Cover Brief
 
