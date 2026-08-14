@@ -1,7 +1,7 @@
 ---
 type: content-brief
 status: idea
-topic: 自媒体
+topic: Hermes Agent
 source_type: trendradar
 captured: 2026-08-14
 updated: 2026-08-14
@@ -16,17 +16,15 @@ channels:
 cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 ---
 
-# 2026-08-14 自媒体 选题卡
+# 2026-08-14 Hermes Agent 选题卡
 
 ## One-Line Angle
 
-- 把「自媒体」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
+- 把「Hermes Agent」从热搜噪音拆成一个清晰判断：它为什么现在值得写，和普通读者有什么关系。
 
 ## Why Now
 
-- `bilibili 热搜 #8` [跟着TXT乱闯上海](https://search.bilibili.com/all?keyword=%E8%B7%9F%E7%9D%80TXT%E4%B9%B1%E9%97%AF%E4%B8%8A%E6%B5%B7)
-- `华尔街见闻 #8` [DeepSeek Harness 来了，它不想做下一个Codex](https://wallstreetcn.com/articles/3779390)
-- `抖音 #23` [CORTIS抖音粉丝破500万](https://www.douyin.com/hot/2608724)
+- `知乎 #18` [Manus 与 Meta 终分手，将恢复独立运营，这意味着什么？该公司未来前景如何？](https://www.zhihu.com/question/2070808774667921064)
 
 ## Draft Direction
 
@@ -36,9 +34,7 @@ cover_ratio: "wechat:900x383, x:1600x900, xhs:1080x1440"
 
 ## Evidence Pool
 
-- `bilibili 热搜 #8` [跟着TXT乱闯上海](https://search.bilibili.com/all?keyword=%E8%B7%9F%E7%9D%80TXT%E4%B9%B1%E9%97%AF%E4%B8%8A%E6%B5%B7)
-- `华尔街见闻 #8` [DeepSeek Harness 来了，它不想做下一个Codex](https://wallstreetcn.com/articles/3779390)
-- `抖音 #23` [CORTIS抖音粉丝破500万](https://www.douyin.com/hot/2608724)
+- `知乎 #18` [Manus 与 Meta 终分手，将恢复独立运营，这意味着什么？该公司未来前景如何？](https://www.zhihu.com/question/2070808774667921064)
 
 ## Cover Brief
 
