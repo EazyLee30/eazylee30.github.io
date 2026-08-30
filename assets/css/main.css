@@ -444,6 +444,198 @@ a.matrix-link:hover::after {
   }
 }
 
+/* WeChat QR detail pages */
+body.wechat-detail-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.wechat-detail-main {
+  width: min(100%, 760px);
+}
+
+.wechat-detail-panel {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid #00ff00;
+  background: #000000;
+  box-shadow: 0 0 32px rgba(0, 255, 0, 0.12);
+}
+
+.wechat-detail-panel::before {
+  content: 'WECHAT://LINK';
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  color: rgba(0, 255, 0, 0.42);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.wechat-detail-top-nav {
+  margin-bottom: 1rem;
+}
+
+.wechat-detail-top-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #00ff00;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.wechat-detail-top-back:hover {
+  color: #ffffff;
+}
+
+.wechat-detail-top-back:focus-visible {
+  outline: 1px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.wechat-detail-header {
+  margin-bottom: 1.5rem;
+}
+
+.wechat-detail-kicker {
+  margin-bottom: 0.6rem;
+  color: #00ff00;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+}
+
+.wechat-detail-title {
+  margin-bottom: 0.3rem;
+  font-size: clamp(1.8rem, 6vw, 2.7rem);
+  line-height: 1.15;
+}
+
+.wechat-detail-name {
+  margin-bottom: 1rem;
+  color: #ffffff;
+  font-size: 1.05rem;
+}
+
+.wechat-detail-copy {
+  max-width: 620px;
+  color: #b8ffb8;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.wechat-detail-copy span {
+  color: rgba(184, 255, 184, 0.7);
+}
+
+.wechat-detail-qr {
+  width: min(100%, 380px);
+  margin: 0 auto;
+  padding: 0.75rem;
+  border: 1px solid #00ff00;
+  background: #000000;
+}
+
+.wechat-detail-qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #ffffff;
+}
+
+.wechat-detail-qr figcaption {
+  margin-top: 0.75rem;
+  color: #00ff00;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.wechat-detail-guide {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(0, 255, 0, 0.45);
+  background: rgba(0, 255, 0, 0.035);
+}
+
+.wechat-detail-guide h2 {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.35);
+  color: #00ff00;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+}
+
+.wechat-detail-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wechat-detail-steps li {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  color: #ffffff;
+}
+
+.wechat-detail-steps li + li {
+  border-top: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.wechat-detail-step-number {
+  color: #00ff00;
+}
+
+.wechat-detail-step-text span {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(184, 255, 184, 0.68);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.wechat-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.wechat-detail-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  text-decoration: none;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.wechat-detail-button--secondary {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+}
+
+.wechat-detail-button:hover {
+  background: #00ff00;
+  color: #000000;
+}
+
+.wechat-detail-button:focus-visible {
+  outline: 1px solid #ffffff;
+  outline-offset: 4px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .w {
@@ -494,12 +686,39 @@ a.matrix-link:hover::after {
     display: block;
     transform: none;
   }
+
+  body.wechat-detail-page {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .wechat-detail-panel {
+    padding: 2.5rem 1rem 1rem;
+  }
+
+  .wechat-detail-panel::before {
+    right: 0.75rem;
+  }
+
+  .wechat-detail-actions {
+    flex-direction: column;
+  }
+
+  .wechat-detail-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) and (hover: hover) and (pointer: fine) {
   .wechat-link-item:hover .wechat-preview {
     display: block;
     transform: none;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .wechat-link-item:focus-within .wechat-preview {
+    display: none;
   }
 }
 
