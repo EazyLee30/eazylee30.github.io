@@ -382,6 +382,7 @@ a.matrix-link:hover::after {
 
 .wechat-preview {
   position: absolute;
+  display: none;
   z-index: 20;
   top: 50%;
   left: calc(100% + 1rem);
@@ -421,6 +422,7 @@ a.matrix-link:hover::after {
 }
 
 .wechat-link-item:focus-within .wechat-preview {
+  display: block;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -434,6 +436,7 @@ a.matrix-link:hover::after {
 
 @media (hover: hover) and (pointer: fine) {
   .wechat-link-item:hover .wechat-preview {
+    display: block;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
