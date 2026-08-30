@@ -373,6 +373,74 @@ a.matrix-link:hover::after {
   width: 100%;
 }
 
+/* WeChat QR previews */
+.wechat-link-item {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.wechat-preview {
+  position: absolute;
+  z-index: 20;
+  top: 50%;
+  left: calc(100% + 1rem);
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #00ff00;
+  background: #000000;
+  box-shadow: 0 0 24px rgba(0, 255, 0, 0.22);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(0.75rem, -50%);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+
+.wechat-link-item--official .wechat-preview {
+  width: min(236px, calc(100vw - 3rem));
+}
+
+.wechat-link-item--channels .wechat-preview {
+  width: min(272px, calc(100vw - 3rem));
+}
+
+.wechat-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #ffffff;
+}
+
+.wechat-preview figcaption {
+  margin-top: 0.5rem;
+  color: #00ff00;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.wechat-link-item:focus-within .wechat-preview {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(0, -50%);
+}
+
+.wechat-link-item > a.matrix-link:focus-visible {
+  outline: 1px solid #00ff00;
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wechat-link-item:hover .wechat-preview {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(0, -50%);
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .w {
@@ -401,6 +469,35 @@ a.matrix-link:hover::after {
   p {
     font-size: 0.9rem;
   }
+
+  .wechat-link-item {
+    width: 100%;
+  }
+
+  .wechat-preview,
+  .wechat-link-item--official .wechat-preview,
+  .wechat-link-item--channels .wechat-preview {
+    position: static;
+    display: none;
+    width: min(280px, calc(100vw - 6rem));
+    margin: 0.75rem 0 1rem 1.9rem;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .wechat-link-item:focus-within .wechat-preview {
+    display: block;
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) and (hover: hover) and (pointer: fine) {
+  .wechat-link-item:hover .wechat-preview {
+    display: block;
+    transform: none;
+  }
 }
 
 /* Cursor effect */
@@ -418,4 +515,3 @@ body {
   background: rgba(0, 255, 0, 0.3);
   color: #00ff00;
 }
-
