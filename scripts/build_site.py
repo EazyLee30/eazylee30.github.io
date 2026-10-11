@@ -130,7 +130,7 @@ def build_traditional_pages():
                 name=tag[1].lower() if tag else ''
                 if name in ('script','style','pre','code'):
                     protected+= -1 if token.startswith('</') else 1
-                token=token.replace('lang="zh-CN"','lang="zh-TW"').replace('href="/cn/','href="/tw/')
+                token=token.replace('lang="zh-CN"','lang="zh-TW"').replace('href="/cn/','href="/tw/').replace('href="/reberry/zh-CN/','href="/reberry/zh-TW/')
                 for attribute in ('alt','title','aria-label'):
                     token=re.sub(r'('+attribute+r'=")([^"]*)(")',lambda m:m[1]+converter.convert(m[2])+m[3],token)
                 parts.append(token)
