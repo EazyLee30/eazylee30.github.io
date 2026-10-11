@@ -1,21 +1,21 @@
-/* Mobile drawer navigation: hamburger toggle, scrim/Esc/link close, theme shortcut. */
+/* Mobile top-sheet navigation: hamburger morphs to X, sheet drops from header. */
 (() => {
   const root = document.documentElement;
   const toggle = document.querySelector('.mobile-nav-toggle');
   const drawer = document.getElementById('mobile-drawer');
   if (!toggle || !drawer) return;
   const scrim = document.querySelector('.nav-scrim');
-  const closeBtn = drawer.querySelector('.drawer-close');
   const isOpen = () => root.dataset.navOpen === 'true';
   function open() {
     root.dataset.navOpen = 'true';
     toggle.setAttribute('aria-expanded', 'true');
-    if (closeBtn) closeBtn.focus({ preventScroll: true });
+    if (toggle.dataset.labelClose) toggle.setAttribute('aria-label', toggle.dataset.labelClose);
   }
   function close(returnFocus) {
     if (!isOpen()) return;
     delete root.dataset.navOpen;
     toggle.setAttribute('aria-expanded', 'false');
+    if (toggle.dataset.labelOpen) toggle.setAttribute('aria-label', toggle.dataset.labelOpen);
     if (returnFocus) toggle.focus({ preventScroll: true });
   }
   toggle.addEventListener('click', () => (isOpen() ? close(true) : open()));
