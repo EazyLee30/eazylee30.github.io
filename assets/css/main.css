@@ -287,6 +287,8 @@ body.wechat-detail-page { padding: 0 0 50px; }
   .site-header .page-nav { display: none; }
   .site-header .mobile-nav-toggle { display: block; }
   .site-header { border-bottom: 0; }
+  .hero { border-bottom: 0; }
+  .about-section { border-bottom: 0; }
   .header-actions { gap: 13px; }
   .site-header .header-github { display: none; }
   .site-header [data-theme-control] { display: none; }
