@@ -1,0 +1,226 @@
+/* ============================================================
+   Site themes for eazylee.github.io
+   Each theme overrides the token set declared in main.css.
+   html[data-theme="…"] wins over :root by specificity — no
+   !important needed. Add a new theme by copying one block and
+   registering it in assets/js/theme.js (THEMES + SWATCHES).
+   ============================================================ */
+
+/* Amber terminal */
+html[data-theme="amber"] {
+  --bg: #0b0700;
+  --bg-rgb: 11, 7, 0;
+  --text: #ffb000;
+  --accent: #ffb000;
+  --accent-rgb: 255, 176, 0;
+  --link: #fff3d6;
+  --bright: #fff8e7;
+  --bright-rgb: 255, 248, 231;
+  --muted: #c98f3d;
+  --muted-rgb: 201, 143, 61;  --text-dim: #d19400;  --warn: #ffd23f;
+  --warn-rgb: 255, 210, 63;
+}
+
+/* Cyan terminal */
+html[data-theme="cyan"] {
+  --bg: #001014;
+  --bg-rgb: 0, 16, 20;
+  --text: #00e5ff;
+  --accent: #00e5ff;
+  --accent-rgb: 0, 229, 255;
+  --link: #e8feff;
+  --bright: #f2feff;
+  --bright-rgb: 242, 254, 255;
+  --muted: #7fd4e0;
+  --muted-rgb: 127, 212, 224;  --text-dim: #00b3cc;  --warn: #ffff00;
+  --warn-rgb: 255, 255, 0;
+}
+
+/* Tokyo Night */
+html[data-theme="tokyo-night"] {
+  --bg: #1a1b26;
+  --bg-rgb: 26, 27, 38;
+  --text: #c0caf5;
+  --accent: #7aa2f7;
+  --accent-rgb: 122, 162, 247;
+  --link: #e8ecff;
+  --bright: #ffffff;
+  --bright-rgb: 255, 255, 255;
+  --muted: #9aa5ce;
+  --muted-rgb: 154, 165, 206;  --text-dim: #a9b1d6;  --warn: #e0af68;
+  --warn-rgb: 224, 175, 104;
+}
+
+/* Catppuccin Mocha */
+html[data-theme="catppuccin"] {
+  --bg: #1e1e2e;
+  --bg-rgb: 30, 30, 46;
+  --text: #cdd6f4;
+  --accent: #a6e3a1;
+  --accent-rgb: 166, 227, 161;
+  --link: #f5f0ff;
+  --bright: #ffffff;
+  --bright-rgb: 255, 255, 255;
+  --muted: #a6adc8;
+  --muted-rgb: 166, 173, 200;  --text-dim: #bac2de;  --warn: #f9e2af;
+  --warn-rgb: 249, 226, 175;
+}
+
+/* Gruvbox Dark */
+html[data-theme="gruvbox"] {
+  --bg: #282828;
+  --bg-rgb: 40, 40, 40;
+  --text: #ebdbb2;
+  --accent: #b8bb26;
+  --accent-rgb: 184, 187, 38;
+  --link: #fbf1c7;
+  --bright: #fbf1c7;
+  --bright-rgb: 251, 241, 199;
+  --muted: #a89984;
+  --muted-rgb: 168, 153, 132;  --text-dim: #d5c4a1;  --warn: #fabd2f;
+  --warn-rgb: 250, 189, 47;
+}
+
+/* Paper — the light theme */
+html[data-theme="paper"] {
+  --bg: #f2efe6;
+  --bg-rgb: 242, 239, 230;
+  --text: #1c2b22;
+  --accent: #0d7a3f;
+  --accent-rgb: 13, 122, 63;
+  --link: #0f4fd8;
+  --bright: #111111;
+  --bright-rgb: 17, 17, 17;
+  --muted: #5a6e60;
+  --muted-rgb: 90, 110, 96;  --text-dim: #2e4a3a;  --warn: #8a6d00;
+  --warn-rgb: 138, 109, 0;
+}
+
+/* ============================================================
+   Theme switcher UI — terminal-styled, fixed bottom-right.
+   Built by assets/js/theme.js; styled here so it follows the
+   active theme like everything else.
+   ============================================================ */
+#theme-switcher {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9000;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  user-select: none;
+}
+
+#theme-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.18);
+}
+
+#theme-switcher-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+#theme-switcher-btn .cursor-blink {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: var(--accent);
+  vertical-align: -0.15em;
+  animation: theme-cursor-blink 1s step-end infinite;
+}
+
+#theme-switcher-btn:hover .cursor-blink {
+  background: var(--bg);
+}
+
+@keyframes theme-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+#theme-switcher-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.6rem);
+  min-width: 230px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.22);
+  padding: 0.6rem;
+  display: none;
+}
+
+#theme-switcher.open #theme-switcher-panel {
+  display: block;
+}
+
+#theme-switcher-panel .ts-title {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.5rem 0.5rem;
+}
+
+#theme-switcher-panel .ts-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+#theme-switcher-panel .ts-option:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+#theme-switcher-panel .ts-option .ts-marker {
+  width: 1.2em;
+  color: var(--accent);
+}
+
+#theme-switcher-panel .ts-option .ts-swatches {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+#theme-switcher-panel .ts-option .ts-swatches i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  display: inline-block;
+}
+
+#theme-switcher-panel .ts-hint {
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 0.5rem 0.5rem 0.2rem;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 768px) {
+  #theme-switcher {
+    right: 0.6rem;
+    bottom: 0.6rem;
+  }
+  #theme-switcher-panel {
+    min-width: 200px;
+  }
+}

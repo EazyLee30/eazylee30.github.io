@@ -1,5 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+/* ============================================================
+   Theme tokens. Defaults = "matrix" (the original look).
+   Per-theme overrides live in themes.css as html[data-theme="…"].
+   Components must use these variables — never hard-code colors.
+   ============================================================ */
+:root,
+html[data-theme="matrix"] {
+  --bg: #000000;
+  --bg-rgb: 0, 0, 0;
+  --text: #00ff00;
+  --text-dim: #00cc00;
+  --warn: #ffff00;
+  --warn-rgb: 255, 255, 0;
+  --accent: #00ff00;
+  --accent-rgb: 0, 255, 0;
+  --link: #ffffff;
+  --bright: #ffffff;
+  --bright-rgb: 255, 255, 255;
+  --muted: #b8ffb8;
+  --muted-rgb: 184, 255, 184;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,7 +35,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: #000000;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,8 +47,8 @@
   max-width: 600px;
   width: 90%;
   padding: 2rem;
-  border: 1px solid #00ff00;
-  background: #000000;
+  border: 1px solid var(--accent);
+  background: var(--bg);
 }
 
 .terminal-output {
@@ -34,7 +56,7 @@
   overflow-y: auto;
   margin-bottom: 1rem;
   scrollbar-width: thin;
-  scrollbar-color: #00ff00 #000000;
+  scrollbar-color: var(--accent) var(--bg);
 }
 
 .terminal-output::-webkit-scrollbar {
@@ -42,16 +64,16 @@
 }
 
 .terminal-output::-webkit-scrollbar-track {
-  background: #000000;
+  background: var(--bg);
 }
 
 .terminal-output::-webkit-scrollbar-thumb {
-  background: #00ff00;
-  border: 1px solid #00ff00;
+  background: var(--accent);
+  border: 1px solid var(--accent);
 }
 
 .terminal-line {
-  color: #00ff00;
+  color: var(--text);
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   font-size: 0.9rem;
   margin-bottom: 0.2rem;
@@ -66,7 +88,7 @@
 }
 
 .terminal-text {
-  color: #00ff00;
+  color: var(--text);
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   font-size: 1rem;
   margin-bottom: 0.5rem;
@@ -76,15 +98,15 @@
 .progress-bar {
   width: 100%;
   height: 20px;
-  border: 1px solid #00ff00;
+  border: 1px solid var(--accent);
   margin: 1rem 0;
-  background: #000000;
+  background: var(--bg);
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: #00ff00;
+  background: var(--accent);
   width: 0%;
   transition: width 0.1s ease;
 }
@@ -104,8 +126,8 @@
 }
 
 body {
-  background-color: #000000;
-  color: #00ff00;
+  background-color: var(--bg);
+  color: var(--text);
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   line-height: 1.6;
   overflow-x: hidden;
@@ -123,10 +145,10 @@ body::before {
   background: 
     repeating-linear-gradient(
       0deg,
-      rgba(0, 255, 0, 0.03) 0px,
+      rgba(var(--accent-rgb), 0.03) 0px,
       transparent 1px,
       transparent 2px,
-      rgba(0, 255, 0, 0.03) 3px
+      rgba(var(--accent-rgb), 0.03) 3px
     );
   pointer-events: none;
   z-index: -1;
@@ -145,8 +167,8 @@ body::before {
   width: 100%;
   margin: 0 auto;
   padding: 2rem;
-  border: 1px solid #00ff00;
-  background: #000000;
+  border: 1px solid var(--accent);
+  background: var(--bg);
   position: relative;
 }
 
@@ -191,8 +213,8 @@ body::before {
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 255, 0, 0.1) 2px,
-      rgba(0, 255, 0, 0.1) 4px
+      rgba(var(--accent-rgb), 0.1) 2px,
+      rgba(var(--accent-rgb), 0.1) 4px
     );
   pointer-events: none;
   mix-blend-mode: screen;
@@ -209,7 +231,7 @@ body::before {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(0, 255, 0, 0.1) 50%,
+    rgba(var(--accent-rgb), 0.1) 50%,
     transparent 100%
   );
   pointer-events: none;
@@ -260,7 +282,7 @@ header {
 
 h1 {
   font-size: 2.5rem;
-  color: #00ff00;
+  color: var(--text);
   margin-bottom: 1rem;
   letter-spacing: 2px;
   animation: textFlicker 3s infinite;
@@ -276,13 +298,13 @@ h1 {
 }
 
 p {
-  color: #00ff00;
+  color: var(--text);
   font-size: 1rem;
   line-height: 1.8;
 }
 
 .matrix-text {
-  color: #00ff00;
+  color: var(--text);
   font-size: 1.2em;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -297,7 +319,7 @@ p {
 }
 
 .matrix-symbol {
-  color: #00ff00;
+  color: var(--accent);
   font-size: 1.5em;
   margin: 0 0.5rem;
 }
@@ -305,7 +327,7 @@ p {
 ul {
   list-style: none;
   margin-top: 2rem;
-  color: #00ff00;
+  color: var(--text);
 }
 
 ul ul {
@@ -315,16 +337,16 @@ ul ul {
 
 li {
   margin: 0.5rem 0;
-  color: #00ff00;
+  color: var(--text);
 }
 
 b {
-  color: #00ff00;
+  color: var(--text);
   font-weight: bold;
 }
 
 .link-icon {
-  color: #00ff00;
+  color: var(--accent);
   margin-right: 0.5rem;
   font-size: 0.9em;
   display: inline-block;
@@ -332,21 +354,21 @@ b {
 
 .lang-switch {
   font-size: 0.35em;
-  color: #00ff00;
+  color: var(--text);
   text-decoration: none;
   margin-left: 0.8rem;
-  border: 1px solid #00ff00;
+  border: 1px solid var(--accent);
   padding: 0.15rem 0.4rem;
   transition: all 0.3s ease;
 }
 
 .lang-switch:hover {
-  background: #00ff00;
-  color: #000000;
+  background: var(--accent);
+  color: var(--bg);
 }
 
 a.matrix-link {
-  color: #ffffff;
+  color: var(--link);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: all 0.3s ease;
@@ -354,8 +376,8 @@ a.matrix-link {
 }
 
 a.matrix-link:hover {
-  color: #ffffff;
-  border-bottom: 1px solid #ffffff;
+  color: var(--link);
+  border-bottom: 1px solid var(--link);
 }
 
 a.matrix-link::after {
@@ -365,7 +387,7 @@ a.matrix-link::after {
   left: 0;
   width: 0;
   height: 1px;
-  background: #ffffff;
+  background: var(--link);
   transition: width 0.3s ease;
 }
 
@@ -388,9 +410,9 @@ a.matrix-link:hover::after {
   left: calc(100% + 1rem);
   margin: 0;
   padding: 0.5rem;
-  border: 1px solid #00ff00;
-  background: #000000;
-  box-shadow: 0 0 24px rgba(0, 255, 0, 0.22);
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.22);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -410,12 +432,12 @@ a.matrix-link:hover::after {
   display: block;
   width: 100%;
   height: auto;
-  background: #ffffff;
+  background: #ffffff; /* QR codes must stay on white to remain scannable */
 }
 
 .wechat-preview figcaption {
   margin-top: 0.5rem;
-  color: #00ff00;
+  color: var(--text);
   font-size: 0.75rem;
   line-height: 1.4;
   text-align: center;
@@ -430,7 +452,7 @@ a.matrix-link:hover::after {
 }
 
 .wechat-link-item > a.matrix-link:focus-visible {
-  outline: 1px solid #00ff00;
+  outline: 1px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -461,9 +483,9 @@ body.wechat-detail-page {
   position: relative;
   overflow: hidden;
   padding: clamp(1.5rem, 5vw, 3rem);
-  border: 1px solid #00ff00;
-  background: #000000;
-  box-shadow: 0 0 32px rgba(0, 255, 0, 0.12);
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.12);
 }
 
 .wechat-detail-panel::before {
@@ -471,7 +493,7 @@ body.wechat-detail-page {
   position: absolute;
   top: 0.75rem;
   right: 1rem;
-  color: rgba(0, 255, 0, 0.42);
+  color: rgba(var(--accent-rgb), 0.42);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
 }
@@ -484,18 +506,18 @@ body.wechat-detail-page {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  color: #00ff00;
+  color: var(--text);
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-decoration: none;
 }
 
 .wechat-detail-top-back:hover {
-  color: #ffffff;
+  color: var(--link);
 }
 
 .wechat-detail-top-back:focus-visible {
-  outline: 1px solid #ffffff;
+  outline: 1px solid var(--link);
   outline-offset: 4px;
 }
 
@@ -505,7 +527,7 @@ body.wechat-detail-page {
 
 .wechat-detail-kicker {
   margin-bottom: 0.6rem;
-  color: #00ff00;
+  color: var(--text);
   font-size: 0.78rem;
   letter-spacing: 0.12em;
 }
@@ -518,39 +540,39 @@ body.wechat-detail-page {
 
 .wechat-detail-name {
   margin-bottom: 1rem;
-  color: #ffffff;
+  color: var(--bright);
   font-size: 1.05rem;
 }
 
 .wechat-detail-copy {
   max-width: 620px;
-  color: #b8ffb8;
+  color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.7;
 }
 
 .wechat-detail-copy span {
-  color: rgba(184, 255, 184, 0.7);
+  color: rgba(var(--muted-rgb), 0.7);
 }
 
 .wechat-detail-qr {
   width: min(100%, 380px);
   margin: 0 auto;
   padding: 0.75rem;
-  border: 1px solid #00ff00;
-  background: #000000;
+  border: 1px solid var(--accent);
+  background: var(--bg);
 }
 
 .wechat-detail-qr img {
   display: block;
   width: 100%;
   height: auto;
-  background: #ffffff;
+  background: #ffffff; /* QR codes must stay on white to remain scannable */
 }
 
 .wechat-detail-qr figcaption {
   margin-top: 0.75rem;
-  color: #00ff00;
+  color: var(--text);
   font-size: 0.78rem;
   line-height: 1.5;
   text-align: center;
@@ -558,14 +580,14 @@ body.wechat-detail-page {
 
 .wechat-detail-guide {
   margin-top: 1.5rem;
-  border: 1px solid rgba(0, 255, 0, 0.45);
-  background: rgba(0, 255, 0, 0.035);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.035);
 }
 
 .wechat-detail-guide h2 {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(0, 255, 0, 0.35);
-  color: #00ff00;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.35);
+  color: var(--text);
   font-size: 0.86rem;
   letter-spacing: 0.08em;
 }
@@ -583,21 +605,21 @@ body.wechat-detail-page {
   align-items: start;
   margin: 0;
   padding: 0.9rem 1rem;
-  color: #ffffff;
+  color: var(--bright);
 }
 
 .wechat-detail-steps li + li {
-  border-top: 1px solid rgba(0, 255, 0, 0.2);
+  border-top: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
 .wechat-detail-step-number {
-  color: #00ff00;
+  color: var(--accent);
 }
 
 .wechat-detail-step-text span {
   display: block;
   margin-top: 0.2rem;
-  color: rgba(184, 255, 184, 0.68);
+  color: rgba(var(--muted-rgb), 0.68);
   font-size: 0.78rem;
   line-height: 1.5;
 }
@@ -615,24 +637,24 @@ body.wechat-detail-page {
   align-items: center;
   justify-content: center;
   padding: 0.65rem 1rem;
-  border: 1px solid #00ff00;
-  color: #00ff00;
+  border: 1px solid var(--accent);
+  color: var(--text);
   text-decoration: none;
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 .wechat-detail-button--secondary {
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #ffffff;
+  border-color: rgba(var(--bright-rgb), 0.55);
+  color: var(--bright);
 }
 
 .wechat-detail-button:hover {
-  background: #00ff00;
-  color: #000000;
+  background: var(--accent);
+  color: var(--bg);
 }
 
 .wechat-detail-button:focus-visible {
-  outline: 1px solid #ffffff;
+  outline: 1px solid var(--bright);
   outline-offset: 4px;
 }
 
@@ -729,11 +751,11 @@ body {
 
 /* Selection color */
 ::selection {
-  background: rgba(0, 255, 0, 0.3);
-  color: #00ff00;
+  background: rgba(var(--accent-rgb), 0.3);
+  color: var(--text);
 }
 
 ::-moz-selection {
-  background: rgba(0, 255, 0, 0.3);
-  color: #00ff00;
+  background: rgba(var(--accent-rgb), 0.3);
+  color: var(--text);
 }
