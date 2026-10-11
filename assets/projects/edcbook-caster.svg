@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <g stroke="currentColor" stroke-width="3"><rect x="105" y="115" width="430" height="280" rx="7"/><path d="M130 144h380v222H130zM320 395v52m-74 0h148"/><rect x="860" y="113" width="220" height="340" rx="17"/><path d="M881 140h178v274H881z"/><path d="M884 315h102m-102 22h154m-154 22h137M156 214h180m-180 22h290m-290 22h225"/><path d="M580 229h209m-19-15 20 15-20 15M789 322H580m19-15-20 15 20 15" stroke-dasharray="8 5"/></g>
+  <g fill="currentColor" font-family="monospace" font-size="19" letter-spacing="2"><text x="611" y="205">SCREEN</text><text x="622" y="371">TOUCH</text><text x="105" y="535">COMPUTER</text><text x="860" y="535">E-INK</text></g>
+  <text x="105" y="600" fill="currentColor" opacity=".5" font-family="monospace" font-size="19" letter-spacing="3">EDCBOOK CASTER / WINDOWS + macOS</text>
+</svg>

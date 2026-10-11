@@ -5,60 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>搭建自动化媒体栈 - eazylee</title>
   <meta name="description" content="使用 Radarr、Prowlarr、qBittorrent 和 Jellyfin 在 Proxmox VE 家庭服务器上搭建全自动电影下载和串流管线。" />
-  <link rel="stylesheet" href="/assets/css/main.css" />
+  <script src="/assets/js/theme.js?v=20261011l"></script>
+  <link rel="stylesheet" href="/assets/css/main.css?v=20261011" />
   <style>
     .article { max-width: 800px; margin: 0 auto; padding: 2rem 0; }
     .article h1 { font-size: 1.6rem; margin-bottom: 0.3rem; animation: none; letter-spacing: 1px; }
-    .article-meta { color: #00ff00; opacity: 0.6; font-size: 0.85rem; margin-bottom: 2rem; }
-    .article h2 { font-size: 1.15rem; color: #00ff00; margin: 2.5rem 0 0.8rem; letter-spacing: 1px; border-bottom: 1px solid rgba(0,255,0,0.15); padding-bottom: 0.4rem; }
-    .article h3 { font-size: 1rem; color: #00ff00; margin: 1.5rem 0 0.5rem; }
-    .article p { font-size: 0.9rem; margin-bottom: 1rem; color: #00cc00; line-height: 1.9; }
+    .article-meta { color: var(--accent); opacity: 0.6; font-size: 0.85rem; margin-bottom: 2rem; }
+    .article h2 { font-size: 1.15rem; color: var(--accent); margin: 2.5rem 0 0.8rem; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+    .article h3 { font-size: 1rem; color: var(--accent); margin: 1.5rem 0 0.5rem; }
+    .article p { font-size: 0.9rem; margin-bottom: 1rem; color: var(--text); line-height: 1.9; }
     .article ul { margin: 0.5rem 0 1rem 1.2rem; list-style: none; }
-    .article li { font-size: 0.9rem; color: #00cc00; margin: 0.3rem 0; line-height: 1.7; }
-    .article li::before { content: '> '; color: #00ff00; }
+    .article li { font-size: 0.9rem; color: var(--text); margin: 0.3rem 0; line-height: 1.7; }
+    .article li::before { content: '> '; color: var(--accent); }
     .article pre {
-      background: rgba(0,255,0,0.04);
-      border: 1px solid rgba(0,255,0,0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       padding: 1rem;
       margin: 1rem 0;
       overflow-x: auto;
       font-size: 0.8rem;
       line-height: 1.6;
-      color: #00ff00;
+      color: var(--accent);
       scrollbar-width: thin;
-      scrollbar-color: #00ff00 #000;
+      scrollbar-color: var(--accent) var(--bg);
     }
     .article code {
-      font-family: 'Share Tech Mono', monospace;
-      background: rgba(0,255,0,0.06);
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      background: var(--surface);
       padding: 0.1rem 0.35rem;
       font-size: 0.85rem;
-      color: #00ff00;
+      color: var(--accent);
     }
     .article pre code { background: none; padding: 0; }
-    .article .highlight { color: #ffffff; font-weight: bold; }
+    .article .highlight { color: var(--text); font-weight: bold; }
     .article .dim { opacity: 0.5; }
     .article .section-icon { margin-right: 0.5rem; }
-    .article a { color: #ffffff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); transition: all 0.2s; }
-    .article a:hover { border-bottom-color: #ffffff; }
+    .article a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); transition: all 0.2s; }
+    .article a:hover { border-bottom-color: var(--text); }
     .back-link { font-size: 0.85rem; margin-bottom: 2rem; display: block; }
     .arch-box {
-      border: 1px solid rgba(0,255,0,0.2);
+      border: 1px solid var(--border);
       padding: 1.2rem;
       margin: 1.5rem 0;
-      background: rgba(0,255,0,0.02);
+      background: var(--surface);
     }
-    .arch-box .label { color: #00ff00; font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem; }
-    .arch-flow { font-size: 0.85rem; color: #00cc00; line-height: 2; }
-    .arch-flow .arrow { color: #00ff00; }
+    .arch-box .label { color: var(--accent); font-size: 0.8rem; opacity: 0.6; margin-bottom: 0.5rem; }
+    .arch-flow { font-size: 0.85rem; color: var(--text); line-height: 2; }
+    .arch-flow .arrow { color: var(--accent); }
     .table-wrap { overflow-x: auto; margin: 1rem 0; }
     .table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .table-wrap th { text-align: left; color: #00ff00; border-bottom: 1px solid rgba(0,255,0,0.3); padding: 0.5rem 0.8rem; }
-    .table-wrap td { color: #00cc00; padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(0,255,0,0.07); }
+    .table-wrap th { text-align: left; color: var(--accent); border-bottom: 1px solid var(--border); padding: 0.5rem 0.8rem; }
+    .table-wrap td { color: var(--text); padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); }
     .lang-nav { font-size: 0.8rem; margin-bottom: 0.5rem; opacity: 0.6; }
-    .lang-nav a { margin-left: 0.8rem; border: 1px solid rgba(0,255,0,0.3); padding: 0.1rem 0.5rem; }
-    .lang-nav a:hover { background: #00ff00; color: #000; border-color: #00ff00; }
+    .lang-nav a { margin-left: 0.8rem; border: 1px solid var(--border); padding: 0.1rem 0.5rem; }
+    .lang-nav a:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
   </style>
+  <link rel="stylesheet" href="/assets/css/portfolio.css?v=20261011l">
 </head>
 <body>
   <main class="page-content" aria-label="Content">
@@ -66,8 +68,8 @@
       <div class="article">
         <a href="/cn/archive.html" class="back-link matrix-link">cd ../archive</a>
         <div class="lang-nav">
-          lang: <a href="/archive/nas-stack.html" style="color:#00ff00;">EN</a>
-          <a href="/cn/archive/nas-stack.html" style="color:#00ff00;">CN</a>
+          lang: <a href="/archive/nas-stack.html" style="color:var(--accent);">EN</a>
+          <a href="/cn/archive/nas-stack.html" style="color:var(--accent);">CN</a>
         </div>
 
         <h1>搭建自动化媒体栈</h1>

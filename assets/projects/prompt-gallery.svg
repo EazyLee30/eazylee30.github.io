@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <g stroke="currentColor" stroke-width="2" opacity=".25"><path d="M70 100h1140v440H70zM70 180h1140M464 180v360M842 180v360"/><path d="M100 132h10m20 0h10m20 0h10"/><path d="M105 425h285m-285 26h242m-242 26h269M503 477h292M881 425h275m-275 26h229m-229 26h261"/></g>
+  <g fill="currentColor"><text x="105" y="300" font-family="Arial,sans-serif" font-size="76" letter-spacing="-5">Prompt.</text><text x="504" y="300" font-family="Arial,sans-serif" font-size="76" letter-spacing="-5">Image.</text><text x="881" y="300" font-family="Arial,sans-serif" font-size="76" letter-spacing="-5">Copy.</text></g>
+  <g stroke="currentColor" stroke-width="3"><rect x="503" y="333" width="126" height="100"/><circle cx="595" cy="355" r="7"/><path d="m503 425 36-41 29 25 23-19 38 35"/><path d="M105 351h250m-250 18h185m-185 18h208"/></g>
+  <text x="70" y="600" fill="currentColor" opacity=".5" font-family="monospace" font-size="19" letter-spacing="3">GPT IMAGE 2 / SEARCH · FILTER · COPY</text>
+</svg>

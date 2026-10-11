@@ -1,0 +1,203 @@
+{
+  "fetched_at": "2026-10-11T14:09:55.682066+00:00",
+  "repositories": [
+    {
+      "name": "eazylee30.github.io",
+      "description": null,
+      "html_url": "https://github.com/EazyLee30/eazylee30.github.io",
+      "homepage": null,
+      "pushed_at": "2026-10-11T12:09:44Z",
+      "language": "HTML",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "reberry",
+      "description": "The keyboard remembers. BlackBerry Classic restoration field notes, reusable agent skill and a trilingual journal.",
+      "html_url": "https://github.com/EazyLee30/reberry",
+      "homepage": "https://eazylee.xyz/reberry/",
+      "pushed_at": "2026-10-11T07:03:30Z",
+      "language": "HTML",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "whooper-2.0",
+      "description": "Your WHOOP recovery, sleep and training coach — authenticated ChatGPT and Codex plugin",
+      "html_url": "https://github.com/EazyLee30/whooper-2.0",
+      "homepage": "https://whooper-peach.vercel.app",
+      "pushed_at": "2026-10-10T12:37:28Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "venue-booking-audit-skill",
+      "description": "Reusable skill: venue booking audit workflow for the 师悦 campus platform (poll, present, approve/reject, calendar sync)",
+      "html_url": "https://github.com/EazyLee30/venue-booking-audit-skill",
+      "homepage": null,
+      "pushed_at": "2026-10-10T10:38:20Z",
+      "language": "Python",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "muse-charm",
+      "description": "Muse voice gadget port for Waveshare ESP32-S3-RLCD-4.2 (ST7305 reflective LCD)",
+      "html_url": "https://github.com/EazyLee30/muse-charm",
+      "homepage": null,
+      "pushed_at": "2026-10-06T12:35:28Z",
+      "language": "C",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "EazyLee30",
+      "description": "readme",
+      "html_url": "https://github.com/EazyLee30/EazyLee30",
+      "homepage": null,
+      "pushed_at": "2026-10-06T09:06:50Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "berrybrowser-cjk",
+      "description": "Chinese text in Berry Browser for BlackBerry 10 — repack the official .bar with a bundled CJK font (no Chromium rebuild)",
+      "html_url": "https://github.com/EazyLee30/berrybrowser-cjk",
+      "homepage": null,
+      "pushed_at": "2026-10-04T15:32:31Z",
+      "language": "Python",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "luck-ring",
+      "description": "iOS app for Luck Ring on Coolwear's BluetoothLibrary BLE SDK",
+      "html_url": "https://github.com/EazyLee30/luck-ring",
+      "homepage": null,
+      "pushed_at": "2026-10-04T14:48:14Z",
+      "language": "Swift",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "whooper",
+      "description": "Own your signal. A portable agent skill for building and repairing your personal WHOOP coach in ChatGPT.",
+      "html_url": "https://github.com/EazyLee30/whooper",
+      "homepage": null,
+      "pushed_at": "2026-09-03T00:17:20Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 1
+    },
+    {
+      "name": "whooper-privacy",
+      "description": "Privacy policy for the private whooper WHOOP health coach integration",
+      "html_url": "https://github.com/EazyLee30/whooper-privacy",
+      "homepage": null,
+      "pushed_at": "2026-06-20T04:50:46Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "xfxmd",
+      "description": "新复兴 Markdown 平台 — 多人实时协作 Markdown 编辑器",
+      "html_url": "https://github.com/EazyLee30/xfxmd",
+      "homepage": "https://md.shxfx.top/",
+      "pushed_at": "2026-05-12T01:21:41Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "gpt-image2-gallery",
+      "description": "2700+ curated GPT Image 2 prompts — brutalist gallery with search, filter, copy. Auto-synced daily.",
+      "html_url": "https://github.com/EazyLee30/gpt-image2-gallery",
+      "homepage": "https://eazylee.xyz/gpt-image2-gallery/",
+      "pushed_at": "2026-05-07T07:21:31Z",
+      "language": "CSS",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "xfxcode-project",
+      "description": "XFXCode 官网｜新复兴 AI IDE｜vibe coding 编程教学工具",
+      "html_url": "https://github.com/EazyLee30/xfxcode-project",
+      "homepage": "https://shxfx.top/xfxcode/",
+      "pushed_at": "2026-05-05T14:00:07Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "shadow-mirror",
+      "description": null,
+      "html_url": "https://github.com/EazyLee30/shadow-mirror",
+      "homepage": null,
+      "pushed_at": "2026-05-02T07:41:29Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "edcbook-caster",
+      "description": "PC 投屏到墨水屏，支持 EDC Book / M5Stack Paper。Firmware via M5Burner. 致谢梦西游啊游。",
+      "html_url": "https://github.com/EazyLee30/edcbook-caster",
+      "homepage": "https://github.com/EazyLee30/edcbook-caster/releases",
+      "pushed_at": "2026-02-25T06:37:59Z",
+      "language": "Python",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 5
+    },
+    {
+      "name": "xalibre-zh",
+      "description": "Xalibre 汉化版：EPUB 书库管理与 XTC 转换工具，适配 Xteink X4 等电纸书",
+      "html_url": "https://github.com/EazyLee30/xalibre-zh",
+      "homepage": null,
+      "pushed_at": "2026-02-23T14:35:49Z",
+      "language": "Python",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 1
+    },
+    {
+      "name": "location-voting-app",
+      "description": "基于地理位置 (GPS) 的防刷票投票系统。支持地图选点、距离校验、设备指纹防刷和实时统计。Built with Next.js, Prisma & Baidu Map.",
+      "html_url": "https://github.com/EazyLee30/location-voting-app",
+      "homepage": null,
+      "pushed_at": "2025-12-09T12:25:37Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 1
+    },
+    {
+      "name": "EBYZ",
+      "description": "EveryBody YingZheng - 人均嬴政白皮书 智能棺材全栈物联网教学平台",
+      "html_url": "https://github.com/EazyLee30/EBYZ",
+      "homepage": "https://ebyz.vercel.app",
+      "pushed_at": "2025-11-26T07:05:52Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 3
+    }
+  ]
+}

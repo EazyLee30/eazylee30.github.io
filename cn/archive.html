@@ -5,27 +5,29 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>归档 - eazylee</title>
-  <link rel="stylesheet" href="/assets/css/main.css" />
+  <script src="/assets/js/theme.js?v=20261011l"></script>
+  <link rel="stylesheet" href="/assets/css/main.css?v=20261011" />
   <style>
     .archive-list { margin-top: 1rem; list-style: none; }
     .archive-list li { margin: 0; padding: 0; }
     .archive-item {
       display: block;
       padding: 0.8rem 0;
-      border-bottom: 1px solid rgba(0,255,0,0.1);
+      border-bottom: 1px solid var(--border);
       text-decoration: none;
       transition: all 0.3s ease;
     }
     .archive-item:hover {
       padding-left: 0.5rem;
-      border-bottom-color: #00ff00;
+      border-bottom-color: var(--accent);
     }
     .archive-item:last-child { border-bottom: none; }
-    .archive-title { color: #ffffff; font-size: 1rem; }
-    .archive-meta { color: #00ff00; font-size: 0.75rem; opacity: 0.5; }
-    .archive-desc { color: #00cc00; font-size: 0.85rem; margin-top: 0.2rem; }
-    .archive-tags { color: #00ff00; font-size: 0.7rem; opacity: 0.35; margin-top: 0.2rem; }
+    .archive-title { color: var(--text); font-size: 1rem; }
+    .archive-meta { color: var(--accent); font-size: 0.75rem; opacity: 0.5; }
+    .archive-desc { color: var(--text); font-size: 0.85rem; margin-top: 0.2rem; }
+    .archive-tags { color: var(--accent); font-size: 0.7rem; opacity: 0.35; margin-top: 0.2rem; }
   </style>
+  <link rel="stylesheet" href="/assets/css/portfolio.css?v=20261011l">
 </head>
 <body>
   <main class="page-content" aria-label="Content">

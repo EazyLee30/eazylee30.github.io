@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <g stroke="currentColor" stroke-width="2" opacity=".15"><path d="M70 105h620v405H70zM70 189h620M70 296h620M70 404h620M193 105v405M328 105v405M465 105v405M596 105v405"/><path d="m70 487 425-382m-302 405 437-405" stroke-width="18"/></g>
+  <g stroke="currentColor" stroke-width="3"><circle cx="380" cy="308" r="160" stroke-dasharray="6 8"/><circle cx="380" cy="308" r="18"/><path d="M380 285v-43m0 113v-25m-23-22h-43m133 0h-43M397 304h143"/><path d="M853 216h290v207H853zM820 423h356M995 216v-51m-38 77 38 38 60-70"/><path d="M890 351h164m-164 20h128"/></g>
+  <g fill="currentColor" font-family="monospace" font-size="19" letter-spacing="2"><text x="441" y="286">RADIUS</text><text x="269" y="535">GPS CHECK</text><text x="883" y="535">LOCAL VOTE</text></g>
+  <text x="70" y="600" fill="currentColor" opacity=".5" font-family="monospace" font-size="19" letter-spacing="3">LOCATION VOTING / NEXT.JS + PRISMA</text>
+</svg>

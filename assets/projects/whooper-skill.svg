@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="480" viewBox="0 0 1280 480" role="img" aria-labelledby="title desc">
+  <title id="title">whooper — Own your signal.</title>
+  <desc id="desc">Open-source agent skill by Eazy Lee. Build a personal WHOOP coach with your AI agent. Six read-only actions, OAuth 2.0, no extra backend. Recovery, sleep, strain, and training feed your own coach.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101920"/>
+      <stop offset=".55" stop-color="#0b1015"/>
+      <stop offset="1" stop-color="#15251b"/>
+    </linearGradient>
+    <radialGradient id="halo">
+      <stop stop-color="#c6ff6b" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#c6ff6b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#d6ff86"/>
+      <stop offset="1" stop-color="#6ef2b0"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0v32" fill="none" stroke="#a4c8aa" stroke-opacity=".055"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1280" height="480" rx="24"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="480" fill="url(#background)"/>
+    <rect width="1280" height="480" fill="url(#grid)"/>
+    <circle cx="1000" cy="240" r="290" fill="url(#halo)"/>
+    <path d="M750 0 616 480M768 0 634 480" stroke="#c6ff6b" stroke-opacity=".055"/>
+    <path d="M64 60h24" stroke="#c6ff6b" stroke-width="3"/>
+    <text x="102" y="65" fill="#b5c4b8" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="13" letter-spacing="2.5">OPEN-SOURCE AGENT SKILL</text>
+
+    <rect x="64" y="104" width="76" height="76" rx="20" fill="#18281c" stroke="#405735"/>
+    <path d="M76 142h10l8 17 14-35 9 25 8-14h13" fill="none" stroke="url(#signal)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="158" y="162" fill="#f0f6ed" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="68" font-weight="750" letter-spacing="-3">whooper</text>
+
+    <text x="64" y="253" fill="#c6ff6b" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="53" font-weight="800" letter-spacing="-1.7">OWN YOUR SIGNAL.</text>
+    <text x="66" y="292" fill="#d3ded6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="21">Build a personal WHOOP coach with your AI agent.</text>
+    <text x="66" y="324" fill="#8b9c91" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19">A reusable setup. Your account. Verified reads.</text>
+
+    <g font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="11" letter-spacing=".7">
+      <rect x="64" y="366" width="184" height="33" rx="7" fill="#16231b" stroke="#395237"/>
+      <circle cx="79" cy="383" r="3" fill="#c6ff6b"/>
+      <text x="91" y="387" fill="#cdeba8">6 READ-ONLY ACTIONS</text>
+      <rect x="258" y="366" width="120" height="33" rx="7" fill="#111c23" stroke="#30434e"/>
+      <text x="278" y="387" fill="#b3d7eb">OAUTH 2.0</text>
+      <rect x="388" y="366" width="176" height="33" rx="7" fill="#151d23" stroke="#354247"/>
+      <text x="406" y="387" fill="#c3ceca">NO EXTRA BACKEND</text>
+    </g>
+    <text x="66" y="443" fill="#77877d" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="11" letter-spacing="1.6">BY EAZY LEE  /  MIT LICENSE</text>
+
+    <g fill="none">
+      <circle cx="1000" cy="219" r="145" stroke="#bddbab" stroke-opacity=".18"/>
+      <circle cx="1000" cy="219" r="115" stroke="#bddbab" stroke-opacity=".09"/>
+      <circle cx="1000" cy="219" r="174" stroke="#bddbab" stroke-opacity=".12" stroke-dasharray="2 12"/>
+      <path d="M886 129a145 145 0 0 1 229 1M1083 338a145 145 0 0 1-165 0" stroke="#baf877" stroke-width="3" stroke-linecap="round"/>
+      <path d="M810 219h60M1130 219h60M1000 30v42M1000 366v22" stroke="#68845a" stroke-opacity=".45"/>
+      <path d="M858 222h44l30 59 55-122 37 91 33-53h84" stroke="#c6ff6b" stroke-width="29" stroke-linecap="round" stroke-linejoin="round" opacity=".07"/>
+      <path d="M858 222h44l30 59 55-122 37 91 33-53h84" stroke="url(#signal)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle cx="1141" cy="197" r="5" fill="#edffda"/>
+    <g font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="11" letter-spacing="1.5" text-anchor="middle">
+      <text x="1000" y="115" fill="#8ba181">YOUR DATA</text>
+      <text x="1000" y="317" fill="#c3d4b9">YOUR COACH</text>
+      <rect x="941" y="25" width="118" height="25" rx="12" fill="#19251c" stroke="#354831"/>
+      <text x="1000" y="42" fill="#b4cca6">RECOVERY</text>
+      <rect x="1148" y="207" width="86" height="25" rx="12" fill="#19251c" stroke="#354831"/>
+      <text x="1191" y="224" fill="#b4cca6">SLEEP</text>
+      <rect x="774" y="207" width="98" height="25" rx="12" fill="#19251c" stroke="#354831"/>
+      <text x="823" y="224" fill="#b4cca6">STRAIN</text>
+      <rect x="941" y="377" width="118" height="25" rx="12" fill="#19251c" stroke="#354831"/>
+      <text x="1000" y="394" fill="#b4cca6">TRAINING</text>
+      <text x="1000" y="444" fill="#8d9e88">CONNECT  /  VERIFY  /  COACH</text>
+    </g>
+    <rect x=".5" y=".5" width="1279" height="479" rx="24" fill="none" stroke="#344037"/>
+  </g>
+</svg>
+

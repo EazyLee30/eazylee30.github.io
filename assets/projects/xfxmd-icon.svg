@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a73e8"/>
+      <stop offset="100%" stop-color="#0d47a1"/>
+    </linearGradient>
+    <linearGradient id="doc" x1="30" y1="20" x2="90" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e8f0fe"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <!-- Document body -->
+  <rect x="28" y="16" width="64" height="88" rx="4" fill="url(#doc)" stroke="#fff" stroke-width="1.5" opacity="0.95"/>
+  <!-- Folded corner -->
+  <path d="M72 16v16h16" fill="none" stroke="#c4d7f0" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M72 16l16 16" fill="#d2e3fc" stroke="#c4d7f0" stroke-width="1"/>
+  <!-- Markdown text lines -->
+  <rect x="36" y="30" width="28" height="3" rx="1.5" fill="#1a73e8"/>
+  <rect x="36" y="38" width="48" height="2" rx="1" fill="#5f6368" opacity="0.5"/>
+  <rect x="36" y="44" width="44" height="2" rx="1" fill="#5f6368" opacity="0.5"/>
+  <rect x="36" y="50" width="40" height="2" rx="1" fill="#5f6368" opacity="0.5"/>
+  <rect x="36" y="56" width="36" height="2" rx="1" fill="#5f6368" opacity="0.35"/>
+  <!-- Cursor A (red) -->
+  <rect x="62" y="44" width="2" height="14" rx="1" fill="#ea4335"/>
+  <circle cx="66" cy="42" r="5" fill="#ea4335" opacity="0.85"/>
+  <text x="66" y="44.5" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="6" font-weight="bold">A</text>
+  <!-- Cursor B (green) -->
+  <rect x="76" y="38" width="2" height="14" rx="1" fill="#34a853"/>
+  <circle cx="80" cy="36" r="5" fill="#34a853" opacity="0.85"/>
+  <text x="80" y="38.5" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="6" font-weight="bold">B</text>
+  <!-- Cursor C (orange) -->
+  <rect x="44" y="56" width="2" height="14" rx="1" fill="#fbbc04"/>
+  <circle cx="48" cy="54" r="5" fill="#fbbc04" opacity="0.85"/>
+  <text x="48" y="56.5" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="6" font-weight="bold">C</text>
+  <!-- Collaboration dots (bottom right) -->
+  <circle cx="76" cy="86" r="4" fill="#fff" opacity="0.3"/>
+  <circle cx="84" cy="86" r="4" fill="#fff" opacity="0.5"/>
+  <circle cx="92" cy="86" r="4" fill="#fff" opacity="0.7"/>
+  <path d="M92 86l-8-2" stroke="#fff" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+  <path d="M92 86l-6 3" stroke="#fff" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+</svg>
+

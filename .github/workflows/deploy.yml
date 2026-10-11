@@ -172,6 +172,18 @@ jobs:
             "https://eazylee.xyz/stock/cn/data/latest.json?t=$(date +%s)" \
             -o stock/cn/data/latest.json || true
       
+      - name: Set up Python for site generation
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Build portfolio and language pages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 -m pip install -r requirements-site.txt
+          python3 scripts/build_site.py --refresh-github
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
@@ -183,6 +195,12 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='.DS_Store' \
+            --exclude='content' \
+            --exclude='scripts' \
+            --exclude='tests' \
+            --exclude='requirements-site.txt' \
+            --exclude='DESIGN.md' \
+            --exclude='__pycache__' \
             --exclude='_site' \
             -cf - . | tar -xf - -C _site
       
