@@ -20,7 +20,19 @@
   <style>
     .wechat-preview { display: none; }
   </style>
-  <link rel="stylesheet" href="/assets/css/main.css?v=35bfd011" />
+  <script>
+/* theme pre-paint: set data-theme before first paint (no flash) */
+(function(){try{var T=['matrix','amber','cyan','tokyo-night','catppuccin','gruvbox','paper'];
+var q=null;try{q=new URLSearchParams(location.search).get('theme');}catch(e){}
+if(q&&T.indexOf(q)>-1){document.documentElement.setAttribute('data-theme',q);return;}
+var s=null;try{s=localStorage.getItem('eazylee-theme');}catch(e){}
+if(s&&T.indexOf(s)>-1){document.documentElement.setAttribute('data-theme',s);return;}
+document.documentElement.setAttribute('data-theme',
+(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'paper':'matrix');
+}catch(e){}})();
+</script>
+<link rel="stylesheet" href="/assets/css/main.css?v=20261011" />
+<link rel="stylesheet" href="/assets/css/themes.css?v=20261011" />
 </head>
 <body>
   <!-- Loading Screen -->
@@ -162,5 +174,6 @@
       }
     }, 100);
   </script>
+<script src="/assets/js/theme.js?v=20261011"></script>
 </body>
 </html>
