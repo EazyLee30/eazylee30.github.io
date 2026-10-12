@@ -14,11 +14,17 @@ The gallery includes fourteen substantive public repositories. Eleven use real R
 
 The browser refreshes public repository metadata on entry, on returning to the page and every five minutes while visible. It updates dates and language and sorts cards by the actual last push. API failures retain the saved public snapshot. New repositories can be added to `content/projects.json` with suitable artwork. The contribution calendar uses GitHub's actual dated contribution cells and counts, refreshed during deployment.
 
+## Navigation
+
+Clicking the header avatar opens a command menu in all three languages. Its geometry and keyboard behavior follow Omarchy's published SearchPalette: a 340px panel, 13px monospace search, 40px rows, persistent input focus, highlighted selection, and a back arrow beside the current submenu's placeholder. Works lists the fourteen projects; Writing lists the three published articles; Workout links its overview, Whooper and Luck Ring. Root search covers these items; submenu search filters that submenu. Escape clears the query, returns to the root menu, then closes. Arrow keys select or enter branches, Enter opens the selection, and Cmd/Ctrl K or / opens the menu.
+
+The document scrollbar stays visible during command navigation, so opening the menu does not resize the hero or redraw the logo's layout. The mobile drawer header shares its solid theme background, with no shadow bleeding into it. The three desktop section dividers around the header, hero and introduction are removed.
+
 ## Typography, themes and motion
 
 The EAZYLEE outline is derived from the supplied [Omarchy-Font](https://github.com/markcuda/Omarchy-Font), bundled with its MIT license. Geist and JetBrains Mono are bundled with their font licenses. Omarchy's [ttfx](https://github.com/omacom/ttfx) engine is bundled with its MIT license and original notice, driven by this site's own adapter and font bitmap.
 
-Fifteen randomly selected entry effects assemble the wordmark. The animation and settled text share the same spatial color field and pointer lighting. Sparse background pixels, scanlines, subtle text flicker and a brief session boot are retained. Reduced-motion preferences suppress continuous decorative animation.
+Fifteen randomly selected entry effects assemble the wordmark. Clicking EAZYLEE replays a different effect without opening the theme picker. The animation and settled text share the same spatial color field and pointer lighting. A denser pixel field builds along the sides and a slowly shifting bank at the bottom, with clear space around the copy. Scanlines, subtle text flicker and a brief session boot are retained. Reduced-motion preferences suppress continuous decorative animation.
 
 Eight palettes include Flexoki Light (the default), Monochrome and Matrix. The modal theme deck supports pointer, keyboard and mobile swipes and remembers the selection. Workout remains an empty state until WHOOP publication is configured; private health data is currently unpublished.
 

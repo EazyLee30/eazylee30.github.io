@@ -3,10 +3,10 @@ import init,{Session} from '/assets/vendor/ttfx/ttfx.js';
 let ready;const cache=new Map();
 const effects=['beams','decrypt','expand','fireworks','laseretch','middleout','print','rain','randomsequence','scattered','slice','slide','sweep','waves','wipe'];
 const speeds={beams:450,decrypt:600,expand:160,fireworks:550,laseretch:720,middleout:150,print:720,rain:600,randomsequence:250,scattered:260,slice:180,slide:180,sweep:250,waves:450,wipe:160};
-export async function createEffect(glyph,palette){
+export async function createEffect(glyph,palette,{exclude,random=false}={}){
   ready??=init({module_or_path:'/assets/vendor/ttfx/all.wasm'});await ready;
   let last='';try{last=sessionStorage.getItem('eazylee-last-effect')||'';}catch(_){}
-  const requested=new URLSearchParams(location.search).get('effect'),pool=effects.filter(e=>e!==last);
+  const requested=random?null:new URLSearchParams(location.search).get('effect'),pool=effects.filter(e=>e!==last&&e!==exclude);
   const name=effects.includes(requested)?requested:pool[Math.floor(Math.random()*pool.length)];try{sessionStorage.setItem('eazylee-last-effect',name);}catch(_){}
   const width=glyph.width+12,height=glyph.height+8,blank=' '.repeat(width),text=[...Array(4).fill(blank),...glyph.rows.map(row=>' '.repeat(6)+row.replaceAll('1','█').replaceAll('0',' ')+' '.repeat(6)),...Array(4).fill(blank)].join('\n');
   function buffers(session){const n=session.width()*session.height();return {symbols:new Uint32Array(n),fg:new Uint32Array(n),bg:new Uint32Array(n),flags:new Uint8Array(n)};}

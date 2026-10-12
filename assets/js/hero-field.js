@@ -24,9 +24,9 @@
   const mix=(a,b,n)=>'rgb('+a.map((v,i)=>Math.round(v*(1-n)+b[i]*n)).join(',')+')';
   let palette,visible=true,frame=0,last=0,origin=performance.now()+180,geom,quiet=[];
   let effect=null,effectPending=!motion.matches,effectToken=0,effectModule;
-  async function restartEffect(){
-    const token=++effectToken;effect?.free();effect=null;if(motion.matches){effectPending=false;return;}effectPending=true;
-    try{effectModule??=import('/assets/js/word-effects.js?v=20261011l');const mod=await effectModule;const next=await mod.createEffect(glyph,palette.bands);if(token!==effectToken){next.free();return;}effect=next;effectPending=false;canvas.dataset.effect=next.name;start();}
+  async function restartEffect(random=false){
+    const token=++effectToken,previous=canvas.dataset.effect;effect?.free();effect=null;if(motion.matches){effectPending=false;return;}effectPending=true;
+    try{effectModule??=import('/assets/js/word-effects.js?v=20261012h');const mod=await effectModule;const next=await mod.createEffect(glyph,palette.bands,{exclude:previous,random});if(token!==effectToken){next.free();return;}effect=next;effectPending=false;canvas.dataset.effect=next.name;start();}
     catch(_){if(token!==effectToken)return;effectPending=false;origin=performance.now();start();}
   }
   const pointer={x:-1000,y:-1000,power:0,target:0};let pings=[];
@@ -100,5 +100,5 @@
   host.addEventListener('pointermove',event=>{const box=host.getBoundingClientRect();pointer.x=event.clientX-box.left;pointer.y=event.clientY-box.top;pointer.target=1;});
   host.addEventListener('pointerleave',()=>{pointer.target=0;});
   host.addEventListener('pointerdown',event=>{if(event.target.closest('a,button,header'))return;const box=host.getBoundingClientRect();pings.push({x:event.clientX-box.left,y:event.clientY-box.top,born:performance.now()});});
-  target.addEventListener('click',()=>{document.querySelector('.theme-trigger')?.click();});
+  target.addEventListener('click',()=>{origin=performance.now();restartEffect(true);start();});
 })();

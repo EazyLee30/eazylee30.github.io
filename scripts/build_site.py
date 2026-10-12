@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCALES = json.loads((ROOT/'content/site.json').read_text())
 OWNER = 'EazyLee30'
 def esc(value): return html.escape(str(value), quote=True)
-def icon(name): return f'<svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#{name}"/></svg>'
+def icon(name): return f'<svg class="icon" aria-hidden="true"><use href="/assets/icons.svg?v=20261012h#{name}"/></svg>'
 def arrow(): return icon('arrow-up-right')
 def save(path, content):
     path=ROOT/path; path.parent.mkdir(parents=True,exist_ok=True); path.write_text(content, encoding='utf-8')
@@ -28,10 +28,54 @@ def refresh_github():
     except Exception as error:
         if not path.exists(): raise
         print(f'GitHub unavailable; using saved snapshot ({type(error).__name__}).')
-def wordmark():
+def wordmark(locale):
     svg=(ROOT/'assets/art/eazylee-wordmark.svg').read_text()
     bitmap=(ROOT/'assets/data/wordmark.json').read_text()
-    return '<h1 class="wordmark" id="name"><button class="wordmark-target" type="button" aria-label="EAZYLEE — Change theme"><span class="sr-only">EAZYLEE</span>'+svg+'</button></h1><script id="wordmark-data" type="application/json">'+bitmap+'</script>'
+    action={'en':'Replay wordmark animation','zh-CN':'重播字标动效','zh-TW':'重播字標動效'}[locale]
+    return f'<h1 class="wordmark" id="name"><button class="wordmark-target" type="button" aria-label="EAZYLEE — {action}"><span class="sr-only">EAZYLEE</span>'+svg+'</button></h1><script id="wordmark-data" type="application/json">'+bitmap+'</script>'
+
+def site_menu(locale, route):
+    d=LOCALES[locale]
+    caption,label,language,themes,close,empty={'en':('Go…','Navigation','Language','Themes','Close menu','No matches'), 'zh-CN':('前往…','导航','语言','主题','关闭菜单','没有匹配项'), 'zh-TW':('前往…','導覽','語言','主題','關閉選單','沒有符合項目')}[locale]
+    search_label={'en':'Search pages, projects and articles','zh-CN':'搜索页面、项目和文章','zh-TW':'搜尋頁面、專案與文章'}[locale]
+    def link(title,url,mark,keywords='',current=False,avatar=False):
+        art='<img class="brand-avatar" src="/assets/avatar-head.png" width="24" height="24" alt="">' if avatar else icon(mark)
+        active=' aria-current="page"' if current else ''
+        return f'<a class="site-menu-row" href="{esc(url)}" data-menu-search="{esc(str(title)+" "+keywords)}"{active}>{art}<span>{esc(title)}</span></a>'
+    def branch(name,title,mark,keywords):
+        active=' aria-current="page"' if route==name+'/' else ''
+        return f'<button class="site-menu-row" type="button" data-menu-go="{name}" data-menu-search="{esc(title+" "+keywords)}" aria-controls="site-menu-{name}" aria-expanded="false"{active}>{icon(mark)}<span>{esc(title)}</span><span class="site-menu-chevron">{icon("chevron")}</span></button>'
+    def panel(name,title,rows):
+        return f'<div data-menu-panel="{name}" data-menu-label="{esc(title)}" id="site-menu-{name}" role="listbox" hidden>{rows}</div>'
+    rows=link(d['back'],d['prefix']+'/', 'grid','home homepage 首页 首頁 eazylee biotech super intelligence',route=='',True)
+    for name,mark in [('works','grid'),('writing','book'),('workout','workout')]:
+        rows+=branch(name,d[name],mark,name+' '+LOCALES['zh-CN'][name]+' '+LOCALES['zh-TW'][name])
+    rows+=f'<button class="site-menu-row" type="button" data-menu-theme data-menu-search="themes theme palette color 主题 主題">{icon("palette")}<span>{themes}</span></button>'
+    rows+=branch('language',language,'globe','language languages 语言 語言 English Chinese')
+    rows+=link('GitHub',f'https://github.com/{OWNER}','github','github repositories 仓库 倉庫')
+    overview={'en':{'works':'All works','writing':'All writing','workout':'Workout overview'},'zh-CN':{'works':'全部作品','writing':'全部文章','workout':'训练主页'},'zh-TW':{'works':'全部作品','writing':'全部文章','workout':'訓練首頁'}}[locale]
+    work_rows=link(overview['works'],d['prefix']+'/works/','grid','works projects 作品',route=='works/')
+    snapshot=ROOT/'assets/data/github.json'
+    repos={r['name']:r for r in json.loads(snapshot.read_text())['repositories']} if snapshot.exists() else {}
+    for project in sorted(PROJECTS,key=lambda p:repos.get(p['name'],{}).get('pushed_at') or '',reverse=True):
+        title=project['title'];title=title.get(locale,title.get('en')) if isinstance(title,dict) else title
+        url=project.get('visit') or f'https://github.com/{OWNER}/{project["name"]}'
+        if project['name']=='reberry':url={'en':'/reberry/','zh-CN':'/reberry/zh-CN/','zh-TW':'/reberry/zh-TW/'}[locale]
+        keywords=project['name']+' '+' '.join(project['description'].values())
+        work_rows+=link(title,url,'grid',keywords)
+    writing_rows=link(overview['writing'],d['prefix']+'/writing/','book','writing articles 文章',route=='writing/')
+    reberry_title={'en':'reberry — The keyboard remembers','zh-CN':'reberry — 键盘还记得','zh-TW':'reberry — 鍵盤還記得'}[locale]
+    reberry_url={'en':'/reberry/','zh-CN':'/reberry/zh-CN/','zh-TW':'/reberry/zh-TW/'}[locale]
+    writing_rows+=link(reberry_title,reberry_url,'book','blackberry classic reberry 黑莓')
+    for slug,key in [('cliproxy-design','article1'),('nas-stack','article2')]:
+        writing_rows+=link(d[key],f'{d["prefix"]}/archive/{slug}.html','book',slug+' '+' '.join(v[key] for v in LOCALES.values()))
+    workout_rows=link(overview['workout'],d['prefix']+'/workout/','workout','workout training exercise fitness 训练 訓練 健身',route=='workout/')
+    workout_rows+=link('Whooper','https://whooper.ccwu.cc','workout','WHOOP recovery sleep training 恢复 恢復 睡眠 训练 訓練')
+    workout_rows+=link('Luck Ring',f'https://github.com/{OWNER}/luck-ring','workout','smart ring sleep activity 智能戒指 睡眠')
+    language_rows=''.join(link({'en':'English','zh-CN':'简体中文','zh-TW':'繁體中文'}[k],v['prefix']+'/'+route,'globe','language languages '+k,k==locale) for k,v in LOCALES.items())
+    panels=panel('works',d['works'],work_rows)+panel('writing',d['writing'],writing_rows)+panel('workout',d['workout'],workout_rows)+panel('language',language,language_rows)
+    return f'<dialog class="site-menu" id="site-menu" aria-label="{label}" data-menu-empty="{empty}"><div class="site-menu-head"><button class="site-menu-back" type="button" data-menu-back aria-label="{ {'en':'Back','zh-CN':'返回','zh-TW':'返回'}[locale] }" tabindex="-1" hidden>{icon("arrow-left")}</button><input class="site-menu-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="{caption}" data-root-placeholder="{caption}" aria-label="{search_label}" aria-controls="site-menu-main" autocomplete="off" spellcheck="false" enterkeyhint="go"></div><span class="sr-only" data-menu-status aria-live="polite"></span><div class="site-menu-body"><div data-menu-panel="main" data-menu-label="" id="site-menu-main" role="listbox">{rows}</div>{panels}<div data-menu-panel="results" id="site-menu-results" role="listbox" hidden></div></div></dialog>'
+
 def header(locale, route=''):
     d=LOCALES[locale]
     links=''.join(f'<a href="{v["prefix"]}/{route}" lang="{k}" hreflang="{k}"'+(' aria-current="page"' if k==locale else '')+'>'+label+'</a>' for k,v,label in [(k,v,{'en':'EN','zh-CN':'简','zh-TW':'繁'}[k]) for k,v in LOCALES.items()])
@@ -41,12 +85,12 @@ def header(locale, route=''):
     toggle = f'<button class="mobile-nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-drawer" aria-label="{menu_label}" data-label-open="{menu_label}" data-label-close="{close_label}"><span class="mnav-bars" aria-hidden="true"><span></span><span></span><span></span></span></button>'
     sheet = f'<aside class="mobile-drawer" id="mobile-drawer" aria-label="{menu_label}"><nav class="drawer-nav" aria-label="{menu_label}">{navigation}</nav><div class="drawer-tools"><button class="drawer-row" type="button" data-open-theme>{icon("palette")}<span>{theme_label}</span><kbd>T</kbd></button><div class="drawer-row drawer-lang"><span>{d["lang"]}</span><nav aria-label="{d["lang"]}">{links}</nav></div><a class="drawer-row" href="https://github.com/{OWNER}">{icon("github")}<span>GitHub</span></a></div></aside>'
     scrim = '<div class="nav-scrim" data-nav-close></div>'
-    return f'<header class="site-header"><div class="header-inner"><a class="brand-name" href="{d["prefix"]}/" aria-label="EazyLee {esc(d["back"])}"><img class="brand-avatar" src="/assets/avatar-head.png" width="44" height="44" alt="EazyLee"></a><nav class="page-nav" aria-label="{menu_label}">{navigation}</nav><div class="header-actions"><div data-theme-control></div><details class="language-control"><summary aria-label="Language">{globe}</summary><nav class="language-options" aria-label="Language">{links}</nav></details><a class="header-github" href="https://github.com/{OWNER}" aria-label="GitHub">{icon("github")}</a>{toggle}</div>{sheet}</header>' + scrim
+    return f'<header class="site-header"><div class="header-inner"><button class="brand-name" type="button" data-site-menu aria-haspopup="dialog" aria-controls="site-menu" aria-expanded="false" aria-label="EazyLee · {menu_label}"><img class="brand-avatar" src="/assets/avatar-head.png" width="44" height="44" alt=""></button><nav class="page-nav" aria-label="{menu_label}">{navigation}</nav><div class="header-actions"><div data-theme-control></div><details class="language-control"><summary aria-label="Language">{globe}</summary><nav class="language-options" aria-label="Language">{links}</nav></details><a class="header-github" href="https://github.com/{OWNER}" aria-label="GitHub">{icon("github")}</a>{toggle}</div>{sheet}</div></header>' + scrim + site_menu(locale,route)
 
 def page(locale,body,route='',journal=False,title='EazyLee'):
     d=LOCALES[locale];head_filter='<svg width="0" height="0" class="avatar-filters" aria-hidden="true"><defs><filter id="header-avatar-ink" color-interpolation-filters="sRGB"><feColorMatrix type="luminanceToAlpha" result="shade"/><feComponentTransfer in="shade" result="line"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer><feComposite in="line" in2="SourceAlpha" operator="in" result="glyph"/><feFlood class="portrait-tint" result="ink"/><feComposite in="ink" in2="glyph" operator="in"/></filter></defs></svg>';alts=''.join(f'<link rel="alternate" hreflang="{k}" href="https://eazylee.xyz{v["prefix"]}/{route}">' for k,v in LOCALES.items())
     return f'''<!DOCTYPE html>
-<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title><meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012g"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261012f"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
+<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title><meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012h"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script defer src="/assets/js/site-menu.js?v=20261012k"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261012k"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
 <body class="{'journal-page' if journal else 'home-page'}"><a class="skip-link" href="#main-content">{d['skip']}</a>{head_filter}{header(locale,route)}{body}</body></html>'''
 def device():
     keys=''.join(f'<rect x="{154+c*19}" y="{154+r*14}" width="15" height="9" rx="2"/>' for r in range(4) for c in range(7))
@@ -97,7 +141,7 @@ def home(locale,entries,repos):
     articlep=p
     body=f'''<div id="loading-screen" class="loading-screen" hidden aria-hidden="true"><div class="terminal"><div class="terminal-title">eazylee</div><div class="terminal-output"></div><div class="progress-bar"><div class="progress-bar-fill"></div></div><div class="progress-text">0%</div></div></div>
 <svg width="0" height="0" aria-hidden="true" class="avatar-filters"><defs><filter id="avatar-ink-light" color-interpolation-filters="sRGB"><feColorMatrix type="luminanceToAlpha" result="shade"/><feComponentTransfer in="shade" result="inverse"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer><feComposite in="inverse" in2="SourceAlpha" operator="in" result="contours"/><feFlood class="portrait-tint" result="ink"/><feComposite in="ink" in2="contours" operator="in"/></filter><filter id="avatar-ink-dark" color-interpolation-filters="sRGB"><feColorMatrix type="luminanceToAlpha" result="shade"/><feComposite in="shade" in2="SourceAlpha" operator="in" result="highlights"/><feFlood class="portrait-tint" result="ink"/><feComposite in="ink" in2="highlights" operator="in"/></filter></defs></svg>
-<main id="main-content"><section class="hero"><div class="site-shell hero-inner">{wordmark()}<div class="hero-intro"><h2>{d['title']}</h2><p>{d['subtitle']}</p><div class="hero-actions"><a class="button button-primary" href="{p}/journal/">{icon('book')}{d['journal']}</a><a class="button" href="{git}">{icon('github')}GitHub</a></div></div></div></section>
+<main id="main-content"><section class="hero"><div class="site-shell hero-inner">{wordmark(locale)}<div class="hero-intro"><h2>{d['title']}</h2><p>{d['subtitle']}</p><div class="hero-actions"><a class="button button-primary" href="{p}/journal/">{icon('book')}{d['journal']}</a><a class="button" href="{git}">{icon('github')}GitHub</a></div></div></div></section>
 <section class="about-section"><div class="site-shell about-grid"><div class="about-copy reveal"><h2 class="type-title">{d['about']}</h2><p>{d['bio']}</p><a class="inline-link" href="mailto:0xeazylee@gmail.com">0xeazylee@gmail.com {arrow()}</a></div><div class="portrait reveal"><canvas class="avatar-turn" role="img" aria-label="{d['portrait']}"></canvas><div class="portrait-scan" aria-hidden="true"></div><svg class="avatar-image" viewBox="134 12 152 406" role="img" aria-label="{d['portrait']}"><image href="/assets/art/eazylee-turnaround-v3.png" width="1254" height="1254"/></svg></div></div></section>
 <div class="site-shell"><section class="section"><div class="section-heading reveal"><h2 class="type-title">{d['works']}</h2></div><div class="portfolio-grid">{''.join(cards)}</div><div class="other-works reveal">{others}</div></section>
 <section class="section activity-section"><div class="section-heading reveal"><h2 class="type-title">{d['recent']}</h2><a class="inline-link" href="{git}?tab=repositories">{d['more']} {arrow()}</a></div><div data-github-activity class="activity-list">{rows}</div><p class="activity-note" data-github-status>{d['updated']} <time>{esc(json.loads((ROOT/'assets/data/github.json').read_text())['fetched_at'][:10])}</time></p></section>
