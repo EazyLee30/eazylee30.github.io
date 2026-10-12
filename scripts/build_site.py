@@ -87,10 +87,27 @@ def header(locale, route=''):
     scrim = '<div class="nav-scrim" data-nav-close></div>'
     return f'<header class="site-header"><div class="header-inner"><button class="brand-name" type="button" data-site-menu aria-haspopup="dialog" aria-controls="site-menu" aria-expanded="false" aria-label="EazyLee · {menu_label}"><img class="brand-avatar" src="/assets/avatar-head.png" width="44" height="44" alt=""></button><nav class="page-nav" aria-label="{menu_label}">{navigation}</nav><div class="header-actions"><div data-theme-control></div><details class="language-control"><summary aria-label="Language">{globe}</summary><nav class="language-options" aria-label="Language">{links}</nav></details><a class="header-github" href="https://github.com/{OWNER}" aria-label="GitHub">{icon("github")}</a>{toggle}</div>{sheet}</div></header>' + scrim + site_menu(locale,route)
 
+def share_metadata(locale, route='', title='EazyLee'):
+    d=LOCALES[locale]; section=route.split('/')[0]
+    social_title='EazyLee' if not section else f'{d.get(section, title.split(" · ")[0])} · EazyLee'
+    description=d.get({'works':'worksNote','workout':'workoutNote'}.get(section,''),d['subtitle'])
+    if section=='workout':description={'en':'Today on WHOOP. Nudge EazyLee to train if no workout is recorded.','zh-CN':'今天练了吗？查看 WHOOP 训练状态，催 EazyLee 练薄肌。','zh-TW':'今天練了嗎？查看 WHOOP 訓練狀態，催 EazyLee 練薄肌。'}[locale]
+    canonical=f'https://eazylee.xyz{d["prefix"]}/{route}'
+    square='https://eazylee.xyz/assets/brand/share-avatar-v1.png'
+    cover='https://eazylee.xyz/assets/brand/share-cover-v1.png'
+    alt={'en':"EazyLee’s Notion-style avatar",'zh-CN':'EazyLee 的 Notion 风格头像','zh-TW':'EazyLee 的 Notion 風格頭像'}[locale]
+    og_locale={'en':'en_US','zh-CN':'zh_CN','zh-TW':'zh_TW'}[locale]
+    tags=[('og:type','website'),('og:site_name','EazyLee'),('og:locale',og_locale),('og:title',social_title),('og:description',description),('og:url',canonical),('og:image',square),('og:image:secure_url',square),('og:image:type','image/png'),('og:image:width','600'),('og:image:height','600'),('og:image:alt',alt)]
+    out=''.join(f'<meta property="{name}" content="{esc(value)}">' for name,value in tags)
+    out+=''.join(f'<meta name="{name}" content="{esc(value)}">' for name,value in [('twitter:card','summary_large_image'),('twitter:title',social_title),('twitter:description',description),('twitter:image',cover),('twitter:image:alt',alt+' · EAZYLEE')])
+    out+='<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32-v1.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/favicon-192-v1.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/apple-touch-icon-v1.png">'
+    out+=f'<link rel="image_src" href="{square}">'
+    return out
+
 def page(locale,body,route='',journal=False,title='EazyLee'):
     d=LOCALES[locale];head_filter='<svg width="0" height="0" class="avatar-filters" aria-hidden="true"><defs><filter id="header-avatar-ink" color-interpolation-filters="sRGB"><feColorMatrix type="luminanceToAlpha" result="shade"/><feComponentTransfer in="shade" result="line"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer><feComposite in="line" in2="SourceAlpha" operator="in" result="glyph"/><feFlood class="portrait-tint" result="ink"/><feComposite in="ink" in2="glyph" operator="in"/></filter></defs></svg>';alts=''.join(f'<link rel="alternate" hreflang="{k}" href="https://eazylee.xyz{v["prefix"]}/{route}">' for k,v in LOCALES.items())
     return f'''<!DOCTYPE html>
-<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title><meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012h"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script defer src="/assets/js/site-menu.js?v=20261012k"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261012m"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
+<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title>{share_metadata(locale,route,title)}<meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012h"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script defer src="/assets/js/site-menu.js?v=20261012k"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261012m"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
 <body class="{'journal-page' if journal else 'home-page'}"><a class="skip-link" href="#main-content">{d['skip']}</a>{head_filter}{header(locale,route)}{body}</body></html>'''
 def device():
     keys=''.join(f'<rect x="{154+c*19}" y="{154+r*14}" width="15" height="9" rx="2"/>' for r in range(4) for c in range(7))
