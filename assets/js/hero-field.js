@@ -40,7 +40,7 @@
     const dpr=Math.min(devicePixelRatio||1,2),w=Math.round(box.width*dpr),h=Math.round(box.height*dpr);
     if(canvas.width!==w)canvas.width=w;if(canvas.height!==h)canvas.height=h;
     geom={w,h,dpr,x:(word.left-box.left)*dpr,y:(word.top-box.top)*dpr,cw:word.width*dpr/glyph.width,ch:word.height*dpr/glyph.height};
-    quiet=[...host.querySelectorAll('.hero-intro h2,.hero-intro p,.hero-actions')].map(e=>e.getBoundingClientRect()).map(b=>({l:(b.left-box.left)*dpr,r:(b.right-box.left)*dpr,t:(b.top-box.top)*dpr,b:(b.bottom-box.top)*dpr}));
+    quiet=[...host.querySelectorAll('.hero-intro h2,.hero-intro p,.hero-actions')].map(e=>{const b=e.getBoundingClientRect();return {l:(b.left-box.left)*dpr,r:(b.right-box.left)*dpr,t:(b.top-box.top)*dpr,b:(b.bottom-box.top)*dpr,pad:(e.matches('.hero-actions')?28:65)*dpr};});
   }
   function paint(now){
     if(!geom)return;const {w,h,dpr,x,y,cw,ch}=geom;const t=motion.matches?0:now/1000;
@@ -56,12 +56,16 @@
     for(let row=row0;row<row1;row++)for(let col=col0;col<col1;col++){
       if(row>=0&&row<glyph.height&&col>=0&&col<glyph.width&&glyph.rows[row][col]==='1')continue;
       const cx=x+(col+.5)*cw,cy=y+(row+.5)*ch;
-      let clear=1;for(const q of quiet){const dist=Math.hypot(Math.max(q.l-cx,0,cx-q.r),Math.max(q.t-cy,0,cy-q.b));clear=Math.min(clear,Math.min(1,Math.pow(dist/(65*dpr),3)));}
-      const nx=cx/w*2-1,ny=cy/h*2-1,edge=Math.min(1,Math.max(0,(Math.hypot(nx,ny*.8)-.35)/.7));
+      let clear=1;for(const q of quiet){const dist=Math.hypot(Math.max(q.l-cx,0,cx-q.r),Math.max(q.t-cy,0,cy-q.b));clear=Math.min(clear,Math.min(1,Math.pow(dist/q.pad,3)));}
+      const nx=cx/w*2-1,py=cy/h,side=Math.pow(Math.abs(nx),4);
       const drift=sample(col/16+t*.15,row/16-t*.07),light=glow(cx,cy);
-      const brightness=clear*(edge*edge*(.045+.26*drift*drift)+light*.9);
+      // Denser edges settle into a slowly shifting pixel bank along the bottom.
+      const shoreline=.77+.075*Math.sin(nx*5.5+t*.1)+.06*(drift-.5);
+      const bank=Math.pow(Math.max(0,Math.min(1,(py-shoreline)/(1-shoreline))),.8);
+      const brightness=clear*Math.min(.74,.007+side*(.11+.33*drift)+bank*(.48+.23*drift)+light*.9);
       const threshold=.8*(bayer[(row&7)*8+(col&7)]+.5)/64+.2*hash((row&63)*64+(col&63));if(brightness<threshold)continue;
-      ctx.fillStyle=palette.bands[light>.3?2:light>.08?3:4];
+      const brighter=light>.08||(bank>.55&&hash((row&63)*64+(col&63))>.58);
+      ctx.fillStyle=palette.bands[light>.3?2:brighter?3:4];
       const xx=Math.round(x+col*cw),yy=Math.round(y+row*ch);ctx.fillRect(xx,yy,Math.round(x+(col+1)*cw)-xx,Math.round(y+(row+1)*ch)-yy);
     }
     // The entry renderer and the finished word share one spatial color field.
