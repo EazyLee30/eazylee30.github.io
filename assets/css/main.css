@@ -244,14 +244,6 @@ html { scrollbar-gutter: stable; }
 ::view-transition-new(root) { animation: paletteIn .22s ease both; }
 @keyframes paletteOut { to { opacity: 0; } }
 @keyframes paletteIn { from { opacity: 0; } }
-.loading-screen { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 99; padding: 24px; }
-.loading-screen[hidden] { display: none; }
-.terminal { width: min(430px,100%); padding: 28px; border: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-size: 12px; }
-.terminal-title { margin-bottom: 20px; }
-.terminal-output { min-height: 78px; }
-.progress-bar { height: 4px; background: var(--border); margin: 20px 0 8px; }
-.progress-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
-.progress-text { text-align: right; font-size: 10px; }
 
 /* Shared reading and contact pages. */
 .reading-toolbar { width: min(1080px, calc(100% - 64px)); margin: 0 auto; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--border); }

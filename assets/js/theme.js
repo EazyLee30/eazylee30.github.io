@@ -86,21 +86,6 @@
     document.addEventListener('pointerdown',e=>{document.querySelectorAll('.language-control[open]').forEach(el=>{if(!el.contains(e.target))el.open=false;});});
     document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.language-control[open]').forEach(el=>{el.open=false;el.querySelector('summary').focus();});});
     const status=document.createElement('span');status.id='theme-status';status.className='sr-only';status.setAttribute('role','status');document.body.append(status);
-    const loader = document.getElementById('loading-screen');
-    let booted = false;
-    if (loader) { try { booted = sessionStorage.getItem('eazylee-booted') === '1'; sessionStorage.setItem('eazylee-booted','1'); } catch (_) {} }
-    if (loader && !booted && !motion.matches) {
-      loader.hidden = false;
-      const messages = traditional ? ['> 載入頁面...', '> 同步主題...', '> 就緒。'] : zh ? ['> 载入页面...', '> 同步主题...', '> 就绪。'] : ['> Loading page...', '> Applying theme...', '> Ready.'];
-      let i = 0;
-      const step = () => {
-        const line = document.createElement('div'); line.textContent = messages[i]; loader.querySelector('.terminal-output').append(line);
-        i += 1; const progress = Math.round(i / messages.length * 100);
-        loader.querySelector('.progress-bar-fill').style.width = `${progress}%`;
-        loader.querySelector('.progress-text').textContent = `${progress}%`;
-        if (i < messages.length) setTimeout(step, 180); else setTimeout(()=>{ loader.hidden = true; },180);
-      }; step();
-    }
     // Reveals progressively enhance the document; unsupported browsers keep everything visible.
     if ('IntersectionObserver' in window && !motion.matches) {
       const observer = new IntersectionObserver(entries => {
