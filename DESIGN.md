@@ -39,3 +39,5 @@ Drag rotates in either direction with inertia. Hovering over the torso switches 
 `scripts/build_avatar_motion.py` regenerates numerical motion metadata when the source atlases change. Its optional authoring dependencies are Pillow, NumPy and OpenCV. Pages deploys the prebuilt binary and does not need those dependencies.
 
 GitHub's official Invertocat and the other service icons are bundled locally in the shared SVG sprite. UI uses small SVG marks.
+
+Workout uses Whooper's opt-in public `/api/public/workout` endpoint. Shanghai calendar days determine the status and count; only the workout-recorded boolean and freshness are exposed, with no sleep/recovery/body data. A successful WHOOP read with zero workouts enables the daily nudge; unknown/error states never assert a missed workout. The server persists browser-deduplicated daily nudges, and the three locales share that count. Refresh on page visibility and every minute, with an explicit retry state. Visitors are anonymous browser UUIDs, not verified people; there is no outbound notification.
