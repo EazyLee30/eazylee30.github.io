@@ -101,7 +101,7 @@ html[data-nav-open="true"] { overflow: hidden; }
 html[data-nav-open="true"] .nav-scrim { opacity: 1; visibility: visible; }
 html[data-nav-open="true"] .mobile-drawer { transform: none; opacity: 1; visibility: visible; }
 .brand-name { padding: 0; cursor: pointer; flex-shrink: 0; }
-.brand-name:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+.brand-name:focus, .brand-name:focus-visible { outline: none; }
 html { scrollbar-gutter: stable; }
 .site-menu { position: fixed; inset: 0; width: min(340px, calc(100vw - 32px)); max-width: none; max-height: 70dvh; margin: auto; padding: 18px; background: var(--bg); color: var(--text); border: 2px solid color-mix(in srgb, var(--text) 35%, var(--bg)); border-radius: 0; font-family: JetBrains, monospace; overflow: hidden; overscroll-behavior: contain; }
 .site-menu::backdrop { background: color-mix(in srgb, var(--bg) 60%, transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
