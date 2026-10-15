@@ -1,11 +1,34 @@
 /* Workout detail figures.
    Frames come from bryllim/workout-guide (CC BY-SA 4.0, credited on the
-   page) via jsDelivr; they are recolored to currentColor at runtime so the
-   figures follow the active site theme. Cycles frames while visible;
-   honors prefers-reduced-motion; degrades to a static mark offline. */
+   page). They are fetched as SVG, recolored #fff -> currentColor at runtime
+   so the figures follow the active site theme, inlined, then cycled.
+   Resilient loading: each frame is retried and falls back from jsDelivr to
+   raw.githubusercontent.com before the figure gives up to a static mark. */
 (() => {
-  const CDN = 'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@main/packages/workout-guide/assets';
+  const CDNS = [
+    'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@main/packages/workout-guide/assets',
+    'https://raw.githubusercontent.com/bryllim/workout-guide/main/packages/workout-guide/assets',
+  ];
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  async function fetchFrame(slug, n) {
+    let lastError = null;
+    for (const base of CDNS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const res = await fetch(`${base}/${slug}/frame-${n}.svg`);
+          if (!res.ok) throw new Error(`http ${res.status}`);
+          const text = await res.text();
+          if (!text.includes('<svg')) throw new Error('not svg');
+          return text;
+        } catch (err) {
+          lastError = err;
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError || new Error('frame failed');
+  }
 
   function inlineFrame(svgText, on) {
     const inner = svgText
@@ -20,11 +43,8 @@
     const slug = fig.dataset.art;
     if (!slug) return;
     try {
-      const texts = await Promise.all([1, 2, 3].map(async (n) => {
-        const res = await fetch(`${CDN}/${slug}/frame-${n}.svg`);
-        if (!res.ok) throw new Error('frame');
-        return res.text();
-      }));
+      const texts = [];
+      for (const n of [1, 2, 3]) texts.push(await fetchFrame(slug, n));
       fig.innerHTML = texts.map((t, i) => inlineFrame(t, i === 0)).join('');
       const frames = fig.querySelectorAll('.wframe');
       if (frames.length < 2 || reduce) return;
