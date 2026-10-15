@@ -92,6 +92,10 @@ def share_metadata(locale, route='', title='EazyLee'):
     social_title='EazyLee' if not section else f'{d.get(section, title.split(" · ")[0])} · EazyLee'
     description=d.get({'works':'worksNote','workout':'workoutNote'}.get(section,''),d['subtitle'])
     if section=='workout':description={'en':'Today on WHOOP. Nudge EazyLee to train if no workout is recorded.','zh-CN':'今天练了吗？查看 WHOOP 训练状态，催 EazyLee 练薄肌。','zh-TW':'今天練了嗎？查看 WHOOP 訓練狀態，催 EazyLee 練薄肌。'}[locale]
+    if route.startswith('workout/share/'):
+        social_title=title
+        date=route.split('/')[2]
+        description={'en':f"EazyLee's WHOOP training record · {date}",'zh-CN':f'EazyLee 的 WHOOP 训练记录 · {date}','zh-TW':f'EazyLee 的 WHOOP 訓練記錄 · {date}'}[locale]
     canonical=f'https://eazylee.xyz{d["prefix"]}/{route}'
     square='https://eazylee.xyz/assets/brand/share-avatar-v1.png'
     cover='https://eazylee.xyz/assets/brand/share-cover-v1.png'
@@ -261,6 +265,37 @@ def _wnum(value):
         return text or '0'
     return str(value)
 
+def sheet(w):
+    groups=[]
+    for ex in w.get('exercises',[]):
+        for record in ex.get('sets',[]):
+            key=(ex.get('name',''),record.get('weight',0),record.get('units','kg'),record.get('reps','—'))
+            if groups and groups[-1][0]==key: groups[-1][1]+=1
+            else: groups.append([key,1])
+    sheets=[]
+    # The source photograph is displayed byte-for-byte unchanged. New data is
+    # positioned in its blank cells; additional records continue on another sheet.
+    positions=[30.80,37.05,43.30,49.55,55.80,62.00,68.00,73.85,79.60,86.05]
+    for offset in range(0,max(1,len(groups)),10):
+        rows=[]
+        for i,((name,weight,unit,reps),count) in enumerate(groups[offset:offset+10]):
+            pounds=weight*2.2046226218 if unit.lower()=='kg' else weight
+            load='B.W.' if not weight else f'{pounds:.1f}'.rstrip('0').rstrip('.')
+            rows.append(f'<div class="sheet-entry" style="top:{positions[i]}%"><span>{esc(name)}</span><span>{count}</span><span>{esc(load)}</span><span>{esc(str(reps))}</span><span>{esc(name)}</span></div>')
+        date=datetime.date.fromisoformat(w['date']).strftime('%b %d, %Y').upper()
+        sheets.append(f'''<figure class="training-sheet" aria-label="EazyLee · {esc(w['date'])} · Exercise list"><img class="sheet-original" src="/assets/art/workout/exercise-list-original.png" width="1086" height="1448" alt="克強健力學院 Exercise List. Original training sheet, handwritten EAZY LEE, sex M."><time class="sheet-date hand" datetime="{esc(w['date'])}">{date}</time><div class="sheet-entries hand">{''.join(rows)}</div></figure>''')
+    return '<div class="training-sheets">'+''.join(sheets)+'</div>'
+
+
+def workout_source(w, paper=True):
+    units='<small>WEIGHT IN LBS · B.W. = BODYWEIGHT</small>' if paper else ''
+    return f'<div class="workout-paper-source"><div><span>{esc(str(w.get("duration_min","—")))} MIN</span><span>{esc(str(w.get("strain","—")))} STRAIN</span><span>{esc(str(w.get("total_volume_kg","—")))} KG VOLUME</span>{units}</div><div class="whoop-credit"><small>DATA FROM</small><img src="/assets/brand/whoop/wordmark-black.svg" width="90" height="24" alt="WHOOP"></div></div>'
+
+
+def labels(locale):
+    return {'en':('Training log','Handwritten','Movement','Swipe to change view','Share session','Copy link','Print / Save PDF','Link copied','Sharing unavailable. Copy the link instead.','Back to workout','Training on','Save image'), 'zh-CN':('训练记录','手写训练单','动作演示','左右滑动，切换视图','分享本次训练','复制链接','打印 / 存为 PDF','链接已复制','暂时无法分享，请复制链接。','返回训练','训练日期','保存图片'), 'zh-TW':('訓練記錄','手寫訓練單','動作示範','左右滑動，切換視圖','分享本次訓練','複製連結','列印 / 存為 PDF','連結已複製','暫時無法分享，請複製連結。','返回訓練','訓練日期','儲存圖片')}[locale]
+
+
 def workout_detail(locale):
     d=LOCALES[locale]
     src=ROOT/'assets/data/workout-detail.json'
@@ -290,7 +325,18 @@ def workout_detail(locale):
             cards.append(f'<article class="wcard"><div class="wcard-head"><h3>{esc(ex.get("name",""))}</h3>{tag}</div>{fig}<div class="wsets">{"".join(rows)}</div></article>')
         body=meta+'<div class="wgrid">' + ''.join(cards) + '</div>'
     credit=f'<p class="wcredit">{d["workoutArtCredit"]}</p>'
-    return f'<section class="wdetail" aria-label="{esc(d["workoutDetailKicker"])}">{kicker}{cmd}{body}{credit}</section><script defer src="/assets/js/workout-art.js?v=20261015a"></script>'
+    if not w.get('exercises'): return f'<section class="wdetail">{kicker}{body}</section>'
+    l=labels(locale)
+    route=f'workout/share/{w["date"]}/'
+    share_url=f'{d["prefix"]}/{route}'
+    for view,view_label in [('sheet',l[1]),('movement',l[2])]:
+        view_route=route+('movement/' if view=='movement' else '')
+        content=sheet(w)+workout_source(w) if view=='sheet' else f'<div class="movement-share-content">{body}{workout_source(w, False)}{credit}</div>'
+        other_url=f'{share_url}movement/' if view=='sheet' else share_url
+        other_label=l[2] if view=='sheet' else l[1]
+        share_body=f'<main id="main-content" class="site-shell workout-share" data-share-view="{view}"><div class="share-toolbar"><a class="inline-link" href="{d["prefix"]}/workout/">← {l[9]}</a><div><button type="button" data-share-link>{l[5]}</button><button type="button" data-share-native>{l[4]}</button><button type="button" data-share-print>{l[6]}</button><button type="button" data-share-image>{l[11]}</button></div></div><div class="share-view-label"><strong>{view_label}</strong><a class="inline-link" href="{other_url}">{other_label} ↔</a></div><p class="share-date">{l[10]} · <time datetime="{esc(w["date"])}">{esc(w["date"])}</time></p>{content}<p class="share-feedback" role="status" data-share-feedback></p><script type="application/json" id="share-copy">{json.dumps(l,ensure_ascii=False)}</script><script defer src="/assets/js/workout-art.js?v=20261015a"></script><script defer src="/assets/js/workout-views.js?v=20261015g"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261015g"></main>'
+        save(d['prefix'].lstrip('/')+('/' if d['prefix'] else '')+view_route+'index.html',page(locale,share_body,view_route,title=f'{w["date"]} · {view_label} · EazyLee'))
+    return f'''<section class="wdetail" data-workout-views aria-label="{esc(l[0])}"><div class="workout-view-heading"><div>{kicker}<h2>{l[0]}</h2></div><a class="workout-share-link" data-view-share data-sheet-url="{share_url}" data-movement-url="{share_url}movement/" href="{share_url}movement/">{l[4]} {arrow()}</a></div><div class="workout-view-controls"><div class="workout-tabs" role="tablist" aria-label="{l[0]}"><button type="button" id="motion-tab" role="tab" aria-selected="true" aria-controls="motion-view" tabindex="0">{l[2]}</button><button type="button" id="sheet-tab" role="tab" aria-selected="false" aria-controls="sheet-view" tabindex="-1">{l[1]}</button></div></div><div class="workout-top-scrollbar" tabindex="0" role="region" aria-label="{l[3]}"><div></div></div><div class="workout-view-track" tabindex="0" aria-label="{l[3]}"><div class="workout-view-panel" id="motion-view" role="tabpanel" aria-labelledby="motion-tab">{body}{workout_source(w, False)}{credit}</div><div class="workout-view-panel" id="sheet-view" role="tabpanel" aria-labelledby="sheet-tab" inert>{sheet(w)}{workout_source(w)}</div></div><div class="workout-view-progress" aria-hidden="true"><span></span></div><p class="workout-data-note">WHOOP · {esc(w['date'])} · {esc(w.get('fetched_at','')[:16].replace('T',' '))} UTC</p></section><script defer src="/assets/js/workout-art.js?v=20261015a"></script><script defer src="/assets/js/workout-views.js?v=20261015g"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261015g">'''
 
 def build_columns(locale,repos):
     d=LOCALES[locale];prefix=d['prefix'];known={r['name']:r for r in repos};cards=[]
