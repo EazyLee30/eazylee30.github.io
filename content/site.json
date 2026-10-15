@@ -56,7 +56,17 @@
     "workoutChecked": "Last checked",
     "workoutRetry": "Try again",
     "workoutError": "Couldn’t send that nudge. Try again.",
-    "workoutLimited": "Enough nudges from here for today. Come back tomorrow."
+    "workoutLimited": "Enough nudges from here for today. Come back tomorrow.",
+    "workoutDetailKicker": "Latest session",
+    "workoutDetailCmd": "whoop lift --latest",
+    "workoutMin": "min",
+    "workoutVolume": "volume",
+    "workoutSets": "sets",
+    "workoutExercises": "exercises",
+    "workoutReps": "reps",
+    "workoutBodyweight": "bodyweight",
+    "workoutEmpty": "No session data yet — check back after the next workout.",
+    "workoutArtCredit": "Exercise illustrations: <a href=\"https://github.com/bryllim/workout-guide\">Workout Guide</a> by Bryl Lim, <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a> — recolored for this site's themes."
   },
   "zh-CN": {
     "lang": "zh-CN",
@@ -115,7 +125,17 @@
     "workoutChecked": "查看于",
     "workoutRetry": "重新查看",
     "workoutError": "这次没催成功，再试一次。",
-    "workoutLimited": "今天这里已经催得够多了，明天再来。"
+    "workoutLimited": "今天这里已经催得够多了，明天再来。",
+    "workoutDetailKicker": "最近一次训练",
+    "workoutDetailCmd": "whoop lift --latest",
+    "workoutMin": "分钟",
+    "workoutVolume": "总吨数",
+    "workoutSets": "组",
+    "workoutExercises": "个动作",
+    "workoutReps": "次",
+    "workoutBodyweight": "自重",
+    "workoutEmpty": "还没有训练明细数据，下次练完再来看。",
+    "workoutArtCredit": "动作插画：Bryl Lim 的 <a href=\"https://github.com/bryllim/workout-guide\">Workout Guide</a>（<a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a>），已按本站主题重着色。"
   },
   "zh-TW": {
     "lang": "zh-TW",
@@ -174,6 +194,16 @@
     "workoutChecked": "查看於",
     "workoutRetry": "重新查看",
     "workoutError": "這次沒催成功，再試一次。",
-    "workoutLimited": "今天這裡已經催得夠多了，明天再來。"
+    "workoutLimited": "今天這裡已經催得夠多了，明天再來。",
+    "workoutDetailKicker": "最近一次訓練",
+    "workoutDetailCmd": "whoop lift --latest",
+    "workoutMin": "分鐘",
+    "workoutVolume": "總噸數",
+    "workoutSets": "組",
+    "workoutExercises": "個動作",
+    "workoutReps": "次",
+    "workoutBodyweight": "自重",
+    "workoutEmpty": "還沒有訓練明細數據，下次練完再來看。",
+    "workoutArtCredit": "動作插畫：Bryl Lim 的 <a href=\"https://github.com/bryllim/workout-guide\">Workout Guide</a>（<a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a>），已按本站主題重著色。"
   }
 }

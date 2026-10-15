@@ -107,7 +107,7 @@ def share_metadata(locale, route='', title='EazyLee'):
 def page(locale,body,route='',journal=False,title='EazyLee'):
     d=LOCALES[locale];head_filter='<svg width="0" height="0" class="avatar-filters" aria-hidden="true"><defs><filter id="header-avatar-ink" color-interpolation-filters="sRGB"><feColorMatrix type="luminanceToAlpha" result="shade"/><feComponentTransfer in="shade" result="line"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer><feComposite in="line" in2="SourceAlpha" operator="in" result="glyph"/><feFlood class="portrait-tint" result="ink"/><feComposite in="ink" in2="glyph" operator="in"/></filter></defs></svg>';alts=''.join(f'<link rel="alternate" hreflang="{k}" href="https://eazylee.xyz{v["prefix"]}/{route}">' for k,v in LOCALES.items())
     return f'''<!DOCTYPE html>
-<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title>{share_metadata(locale,route,title)}<meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012h"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script defer src="/assets/js/site-menu.js?v=20261012k"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261012m"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
+<html lang="{locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)}</title>{share_metadata(locale,route,title)}<meta name="description" content="{esc(d['subtitle'])}"><link rel="canonical" href="https://eazylee.xyz{d['prefix']}/{route}">{alts}<link rel="alternate" hreflang="x-default" href="https://eazylee.xyz/{route}"><script src="/assets/js/theme.js?v=20261012e"></script><script defer src="/assets/js/portfolio.js?v=20261012e"></script><script defer src="/assets/js/hero-field.js?v=20261012h"></script><script defer src="/assets/js/mobile-nav.js?v=20261012e"></script><script defer src="/assets/js/site-menu.js?v=20261012k"></script><script type="module" src="/assets/js/avatar-turn.js?v=20261012e"></script><link rel="stylesheet" href="/assets/css/main.css?v=20261015a"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"></head>
 <body class="{'journal-page' if journal else 'home-page'}"><a class="skip-link" href="#main-content">{d['skip']}</a>{head_filter}{header(locale,route)}{body}</body></html>'''
 def device():
     keys=''.join(f'<rect x="{154+c*19}" y="{154+r*14}" width="15" height="9" rx="2"/>' for r in range(4) for c in range(7))
@@ -254,6 +254,44 @@ def project_media(project):
         visual=f'<img src="/assets/projects/{media}" alt="{title}" loading="lazy" decoding="async">'
     return f'<a class="work-media work-media-{cover}" href="{url}" aria-label="{title} — GitHub">{visual}</a>'
 
+
+def _wnum(value):
+    if isinstance(value,float):
+        text=('%.1f'%value).rstrip('0').rstrip('.')
+        return text or '0'
+    return str(value)
+
+def workout_detail(locale):
+    d=LOCALES[locale]
+    src=ROOT/'assets/data/workout-detail.json'
+    if not src.exists(): return ''
+    try: w=json.loads(src.read_text())
+    except Exception: return ''
+    kicker=f'<div class="wdetail-kicker">{esc(d["workoutDetailKicker"])}</div>'
+    cmd=f'<div class="wdetail-term"><span class="wprompt">$</span> {esc(d["workoutDetailCmd"])}</div>'
+    if not w.get('exercises'):
+        body=f'<p class="wdetail-empty">{esc(d["workoutEmpty"])}</p>'
+    else:
+        meta=f'<div class="wdetail-meta"><span>{esc(str(w.get("date","")).replace("-","."))}</span><span>{esc(_wnum(w.get("duration_min","—")))} {esc(d["workoutMin"])} · strain {esc(_wnum(w.get("strain","—")))}</span><span>{esc(_wnum(w.get("total_volume_kg","—")))} kg {esc(d["workoutVolume"])} · {esc(_wnum(w.get("set_count","—")))} {esc(d["workoutSets"])} · {esc(_wnum(w.get("exercise_count","—")))} {esc(d["workoutExercises"])}</span></div>'
+        cards=[]
+        for ex in w['exercises']:
+            slug=ex.get('art')
+            if slug:
+                fig=f'<div class="wfig" data-art="{esc(slug)}" role="img" aria-label="{esc(ex.get("name",""))}"><span class="wfig-loading" aria-hidden="true">…</span></div>'
+            else:
+                fig='<div class="wfig wfig-none" aria-hidden="true"><span>./</span></div>'
+            rows=[]
+            for i,s in enumerate(ex.get('sets') or [],1):
+                wt=s.get('weight',0)
+                wlabel=esc(d['workoutBodyweight']) if not wt else esc(_wnum(wt)+' kg')
+                rows.append(f'<div class="wset"><span class="wset-n">SET {i:02d}</span><span class="wset-r">{esc(_wnum(s.get("reps","—")))} {esc(d["workoutReps"])}</span><span class="wset-w">{wlabel}</span></div>')
+            muscles=' '.join(ex.get('muscles') or [])
+            tag=f'<span class="wtag">{esc(muscles)}</span>' if muscles else ''
+            cards.append(f'<article class="wcard"><div class="wcard-head"><h3>{esc(ex.get("name",""))}</h3>{tag}</div>{fig}<div class="wsets">{"".join(rows)}</div></article>')
+        body=meta+'<div class="wgrid">' + ''.join(cards) + '</div>'
+    credit=f'<p class="wcredit">{d["workoutArtCredit"]}</p>'
+    return f'<section class="wdetail" aria-label="{esc(d["workoutDetailKicker"])}">{kicker}{cmd}{body}{credit}</section><script defer src="/assets/js/workout-art.js?v=20261015a"></script>'
+
 def build_columns(locale,repos):
     d=LOCALES[locale];prefix=d['prefix'];known={r['name']:r for r in repos};cards=[]
     ordered=sorted((p for p in PROJECTS if p['name'] in known and not known[p['name']].get('fork') and not known[p['name']].get('archived')),key=lambda p:known[p['name']].get('pushed_at') or '',reverse=True)
@@ -277,7 +315,7 @@ def build_columns(locale,repos):
     workout_today={'en':'TODAY','zh-CN':'今天','zh-TW':'今天'}[locale]
     workout_copy={key.removeprefix('workout'):value for key,value in d.items() if key.startswith('workout')}
     copy_json=json.dumps(workout_copy,ensure_ascii=False).replace('<','\\u003c')
-    body=f'<main id="main-content" class="site-shell column-page workout-page">{column_masthead(locale,"workout")}<div class="column-heading"><h1>{d["workout"]}</h1><p>{d["workoutNote"]}</p></div><section class="workout-today" data-workout data-state="loading" aria-labelledby="workout-question"><div class="workout-day"><span class="workout-eyebrow">WHOOP · {workout_today}</span><time data-workout-date>—</time><span class="workout-zone">Asia/Shanghai</span><div class="workout-emblem" aria-hidden="true">{icon("workout")}<svg class="workout-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 12 4 4 10-10"/></svg></div></div><div class="workout-status"><h2 id="workout-question">{d["workoutQuestion"]}</h2><p class="workout-state" data-workout-state role="status">{d["workoutLoading"]}</p><p class="workout-complete" data-workout-complete hidden>{d["workoutDone"]}</p><button class="workout-nudge" type="button" data-workout-nudge hidden>{d["workoutNudge"]} {arrow()}</button><div class="workout-support"><strong data-workout-count>—</strong><span data-workout-rule hidden>{d["workoutRule"]}</span></div><p class="workout-feedback" data-workout-feedback aria-live="polite"></p><div class="workout-freshness"><span data-workout-checked></span><button class="inline-link" type="button" data-workout-retry hidden>{d["workoutRetry"]}</button></div></div></section><script type="application/json" id="workout-copy">{copy_json}</script><script defer src="/assets/js/workout.js?v=20261012a"></script>{foot}</main>'
+    body=f'<main id="main-content" class="site-shell column-page workout-page">{column_masthead(locale,"workout")}<div class="column-heading"><h1>{d["workout"]}</h1><p>{d["workoutNote"]}</p></div><section class="workout-today" data-workout data-state="loading" aria-labelledby="workout-question"><div class="workout-day"><span class="workout-eyebrow">WHOOP · {workout_today}</span><time data-workout-date>—</time><span class="workout-zone">Asia/Shanghai</span><div class="workout-emblem" aria-hidden="true">{icon("workout")}<svg class="workout-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 12 4 4 10-10"/></svg></div></div><div class="workout-status"><h2 id="workout-question">{d["workoutQuestion"]}</h2><p class="workout-state" data-workout-state role="status">{d["workoutLoading"]}</p><p class="workout-complete" data-workout-complete hidden>{d["workoutDone"]}</p><button class="workout-nudge" type="button" data-workout-nudge hidden>{d["workoutNudge"]} {arrow()}</button><div class="workout-support"><strong data-workout-count>—</strong><span data-workout-rule hidden>{d["workoutRule"]}</span></div><p class="workout-feedback" data-workout-feedback aria-live="polite"></p><div class="workout-freshness"><span data-workout-checked></span><button class="inline-link" type="button" data-workout-retry hidden>{d["workoutRetry"]}</button></div></div></section>{workout_detail(locale)}<script type="application/json" id="workout-copy">{copy_json}</script><script defer src="/assets/js/workout.js?v=20261012a"></script>{foot}</main>'
     save(prefix.lstrip('/')+('/' if prefix else '')+'workout/index.html',page(locale,body,'workout/',title='Workout · EazyLee'))
 
 def retire_journal_pages():

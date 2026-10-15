@@ -1,0 +1,97 @@
+{
+  "fetched_at": "2026-10-15T12:47:30.097Z",
+  "date": "2026-10-15",
+  "duration_min": 33,
+  "strain": 13.2,
+  "total_volume_kg": 6180,
+  "exercise_count": 3,
+  "set_count": 11,
+  "activity_id": "29fb562d-52ca-4e9f-8522-6d5c9318f5c3",
+  "exercises": [
+    {
+      "id": "OVERHANDGRIPPULLUPS",
+      "name": "Pull Up",
+      "art": "pull-up",
+      "muscles": [
+        "BACK"
+      ],
+      "sets": [
+        {
+          "reps": 12,
+          "weight": 0,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 0,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 0,
+          "units": "kg"
+        }
+      ]
+    },
+    {
+      "id": "SEATEDROW_PULLEYMACHINE",
+      "name": "Seated Row",
+      "art": "seated-row",
+      "muscles": [
+        "BACK"
+      ],
+      "sets": [
+        {
+          "reps": 12,
+          "weight": 80,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 80,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 80,
+          "units": "kg"
+        }
+      ]
+    },
+    {
+      "id": "LATPULLDOWNFRONT_PULLEYMACHINE",
+      "name": "Lat Pull Down - Front",
+      "art": "lat-pulldown",
+      "muscles": [
+        "BACK"
+      ],
+      "sets": [
+        {
+          "reps": 12,
+          "weight": 55,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 55,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 55,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 55,
+          "units": "kg"
+        },
+        {
+          "reps": 12,
+          "weight": 55,
+          "units": "kg"
+        }
+      ]
+    }
+  ]
+}
