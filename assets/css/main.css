@@ -436,8 +436,7 @@ body.wechat-detail-page { padding: 0 0 50px; }
 .wdetail-empty { font-family:JetBrains,monospace; font-size:13px; color:var(--muted); }
 .wcredit { margin-top:30px; font-size:11px; line-height:1.7; color:var(--muted); max-width:70ch; }
 .wcredit a { color:var(--link); }
-@media(max-width:600px) { .wgrid { grid-template-columns:1fr 1fr; gap:12px; } .wcard { padding:14px 12px 10px; } .wfig { width:92px; height:92px; } .wcard-head h3 { font-size:14px; } .wset { font-size:11.5px; gap:2px 8px; } .wset-n { min-width:46px; } .wtag { font-size:9px; padding:2px 6px; } }
-@media(max-width:380px) { .wgrid { grid-template-columns:1fr; } .wfig { width:110px; height:110px; } }
+@media(max-width:600px) { .wgrid { grid-template-columns:1fr; gap:14px; } .wcard { padding:18px 18px 14px; } .wfig { width:110px; height:110px; } }
 @media(prefers-reduced-motion:reduce) { .wframe { transition:none; } }
 .wfig-loading { font-family:JetBrains,monospace; color:var(--muted); animation:wblink 1.2s steps(2) infinite; }
 @keyframes wblink { 50% { opacity:.25; } }
