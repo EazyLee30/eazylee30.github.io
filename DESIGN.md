@@ -26,7 +26,7 @@ The EAZYLEE outline is derived from the supplied [Omarchy-Font](https://github.c
 
 Fifteen randomly selected entry effects assemble the wordmark. Clicking EAZYLEE replays a different effect without opening the theme picker. The animation and settled text share the same spatial color field and pointer lighting. A denser pixel field builds along the sides and a slowly shifting bank at the bottom, with clear space around the copy. Scanlines, subtle text flicker and a brief session boot are retained. Reduced-motion preferences suppress continuous decorative animation.
 
-Eight palettes include Flexoki Light (the default), Monochrome and Matrix. The modal theme deck supports pointer, keyboard and mobile swipes and remembers the selection. Workout remains an empty state until WHOOP publication is configured; private health data is currently unpublished.
+Eight palettes include Flexoki Light (the default), Monochrome and Matrix. The modal theme deck supports pointer, keyboard and mobile swipes and remembers the selection.
 
 ## Avatar
 
@@ -40,13 +40,13 @@ Drag rotates in either direction with inertia. Hovering over the torso switches 
 
 GitHub's official Invertocat and the other service icons are bundled locally in the shared SVG sprite. UI uses small SVG marks.
 
-Workout uses Whooper's opt-in public `/api/public/workout` endpoint. Shanghai calendar days determine the status and count; only the workout-recorded boolean and freshness are exposed, with no sleep/recovery/body data. A successful WHOOP read with zero workouts enables the daily nudge; unknown/error states never assert a missed workout. The server persists browser-deduplicated daily nudges, and the three locales share that count. Refresh on page visibility and every minute, with an explicit retry state. Visitors are anonymous browser UUIDs, not verified people; there is no outbound notification.
+Workout uses Whooper's opt-in public `/api/public/workout` endpoint. Shanghai calendar days determine the status and count; the public status response exposes daily workout flags, anonymous nudge counts and a seven-day history, with no sleep/recovery/body data. A successful WHOOP read with zero workouts enables the daily nudge; unknown/error states never assert a missed workout. The server persists browser-deduplicated daily nudges, and the three locales share that count. Refresh on page visibility and every minute, with an explicit retry state. Visitors are anonymous browser UUIDs, not verified people; there is no outbound notification.
 
 Personal pages declare explicit avatar favicon/touch icons and Open Graph metadata in the initial HTML, so crawlers do not need JavaScript. The square 600px sharing thumbnail uses the existing Notion avatar on warm paper; the 1200×630 social cover pairs it with the exact EAZYLEE wordmark. Root favicon.ico and apple-touch-icon.png provide fallback discovery. The independently branded Reberry article retains its own share artwork. `scripts/build_brand_assets.py` renders these established assets with rsvg-convert; generated files are committed, so deployment does not need that renderer.
 
 Workout session detail has two scroll-snap views: the owner's unchanged original
 exercise-sheet image with date/value overlays, and the existing animated exercise
-cards. Movement is the default. Mobile swipes, desktop trackpad/scrollbar, light text tabs and arrow keys select views;
+cards. Movement is the default. Mobile swipes, desktop trackpad, light text tabs and arrow keys select views;
 offscreen panels are inert. The image and its existing EAZY LEE / M handwriting
 are immutable. New values use bundled Kalam Regular; the original LBS heading is
 preserved and WHOOP kilograms are converted to pounds only in that column.
@@ -54,12 +54,9 @@ Consecutive identical sets are grouped; varying sets keep their order and long
 sessions continue on additional sheets. Metrics and official WHOOP branding live
 outside the photograph.
 
-`assets/data/workout-detail.json` remains the existing WHOOP strength snapshot,
-not a live strength API. Updating it and rebuilding updates both views and creates
-`/workout/share/YYYY-MM-DD/` in all three languages. Existing dated pages remain
-available on subsequent builds. The share page supports link copying, native URL
-sharing, PNG export of the original image plus its data layer, and printing/PDF.
-The separate today's-status API and its nudge behavior are unchanged.
+`assets/data/workout-detail.json` is the dated fallback used to build static pages,
+not the live source. Existing dated pages remain available across builds. The
+share page supports link copying, native URL sharing, PNG export, and printing/PDF.
 
 Both workout views have separate dated share pages (paper at the date route, animated movements at its `movement/` subroute). The main share link follows the selected view. Both support PNG exports; movement PNGs capture a still of each demonstration, while the shared page retains animation. WHOOP branding has a transparent background and uses its official black/white wordmark according to theme.
 
