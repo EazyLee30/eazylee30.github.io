@@ -22,3 +22,9 @@ No crop, retouch, filter, reconstruction or replacement of its existing handwrit
 New dates and training values are separate HTML overlays in blank areas. Kalam
 Regular is used only for newly added values; the embedded EAZY LEE / M remain pixels
 in the owner's image. Font license is bundled in `assets/fonts/training-hand/OFL.txt`.
+
+
+`guide/` bundles the three unmodified SVG frames for bicep-curl, pull-up,
+seated-row and lat-pulldown from Workout Guide (retrieved 2026-10-16). The browser
+recolors white strokes to the active theme as described above. The bicep-curl
+figure is an illustrative nudge response, not an additional logged workout.

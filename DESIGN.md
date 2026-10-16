@@ -62,3 +62,24 @@ sharing, PNG export of the original image plus its data layer, and printing/PDF.
 The separate today's-status API and its nudge behavior are unchanged.
 
 Both workout views have separate dated share pages (paper at the date route, animated movements at its `movement/` subroute). The main share link follows the selected view. Both support PNG exports; movement PNGs capture a still of each demonstration, while the shared page retains animation. WHOOP branding has a transparent background and uses its official black/white wordmark according to theme.
+
+
+Workout reads a minimized public Strength Trainer feed from Whooper 2 at
+`/api/public/workout/strength`. Latest detail refreshes on entry, visibility and
+every minute while open. Both views and exports use the same response. Dated
+share links use `/workout/share/?date=YYYY-MM-DD&workout=UUID&view=movement|sheet`;
+these resolve that workout, rather than silently changing to the newest session.
+The original image stays immutable. Unknown weights remain unknown. Read errors
+retain the dated snapshot with a visible refresh failure; parameterized shares
+never substitute another date. No login token is exposed in the public feed.
+
+The training club combines the existing deduplicated daily nudge with a seven-day
+bar chart, verified WHOOP workout status and same-day comparisons. Only completed
+calendar days with successful WHOOP reads enter the association calculation; it
+is descriptive, not a causal claim. Today is still in progress. Counts identify
+anonymous browsers, not verified people. Successful nudges briefly accelerate
+Workout Guide's bicep-curl figure and trigger theme-colored particles. Reduced
+motion preferences suppress these effects. There are no sound or replay controls.
+Guide SVGs for the current exercises are bundled locally to avoid CDN stalls.
+Artwork credit appears once at the bottom of each page. No horizontal scrollbar
+is shown; touch, trackpad and text tabs still switch views.

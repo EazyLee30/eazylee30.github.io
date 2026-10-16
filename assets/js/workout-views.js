@@ -3,11 +3,10 @@
   const root = document.querySelector('[data-workout-views]');
   if (root) {
     const track = root.querySelector('.workout-view-track');
-    const scrollbar = root.querySelector('.workout-top-scrollbar');
     const tabs = [...root.querySelectorAll('[role="tab"]')];
     const panels = [...root.querySelectorAll('[role="tabpanel"]')];
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-    let index = 0, frame, target = null, syncedScrollbarLeft = null;
+    let index = 0, frame, target = null;
     function activate(next) {
       index = next;
       tabs.forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; panels[i].inert = i !== index; });
@@ -36,19 +35,7 @@
         go(next); tabs[next].focus();
       });
     });
-    scrollbar?.addEventListener('scroll', () => {
-      if (syncedScrollbarLeft !== null && Math.abs(scrollbar.scrollLeft - syncedScrollbarLeft) < 2) { syncedScrollbarLeft = null; return; }
-      syncedScrollbarLeft = null;
-      if (Math.abs(track.scrollLeft - scrollbar.scrollLeft) > 1) {
-        target = null;
-        track.scrollLeft = scrollbar.scrollLeft;
-      }
-    }, {passive: true});
     track.addEventListener('scroll', () => {
-      if (scrollbar && Math.abs(scrollbar.scrollLeft - track.scrollLeft) > 1) {
-        syncedScrollbarLeft = track.scrollLeft;
-        scrollbar.scrollLeft = track.scrollLeft;
-      }
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (target !== null) {
@@ -79,7 +66,7 @@
   if (!copyNode) return;
   const copy = JSON.parse(copyNode.textContent);
   const feedback = document.querySelector('[data-share-feedback]');
-  const url = new URL(location.pathname, 'https://eazylee.xyz').href;
+  const url = new URL(location.pathname + location.search, 'https://eazylee.xyz').href;
   document.querySelector('[data-share-link]').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(url); feedback.textContent = copy[7]; }
     catch { feedback.textContent = url; }

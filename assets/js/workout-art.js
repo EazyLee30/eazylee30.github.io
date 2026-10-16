@@ -6,6 +6,7 @@
    raw.githubusercontent.com before the figure gives up to a static mark. */
 (() => {
   const CDNS = [
+    '/assets/art/workout/guide',
     'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@main/packages/workout-guide/assets',
     'https://raw.githubusercontent.com/bryllim/workout-guide/main/packages/workout-guide/assets',
   ];
@@ -40,6 +41,8 @@
   }
 
   async function hydrate(fig) {
+    if (fig.dataset.hydrated) return;
+    fig.dataset.hydrated = 'true';
     const slug = fig.dataset.art;
     if (!slug) return;
     try {
@@ -48,16 +51,21 @@
       fig.innerHTML = texts.map((t, i) => inlineFrame(t, i === 0)).join('');
       const frames = fig.querySelectorAll('.wframe');
       if (frames.length < 2 || reduce) return;
-      let i = 0;
+      let i = 0, lastFrame = 0;
       let timer = null;
       const io = new IntersectionObserver((entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting && timer === null) {
             timer = setInterval(() => {
+              const now=performance.now();
+              const interval=fig.closest('.nudge-sent')?180:650;
+              if(now-lastFrame<interval)return;
+              lastFrame=now;
+              if (!fig.isConnected) { clearInterval(timer); io.disconnect(); return; }
               frames[i].classList.remove('on');
               i = (i + 1) % frames.length;
               frames[i].classList.add('on');
-            }, 650);
+            }, 130);
           } else if (!e.isIntersecting && timer !== null) {
             clearInterval(timer);
             timer = null;
@@ -71,5 +79,7 @@
     }
   }
 
-  document.querySelectorAll('.wfig[data-art]').forEach(hydrate);
+  const refresh = () => document.querySelectorAll('.wfig[data-art]').forEach(hydrate);
+  document.addEventListener('workout:updated', refresh);
+  refresh();
 })();
