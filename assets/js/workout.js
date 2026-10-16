@@ -5,7 +5,7 @@
   const find = name => card.querySelector(`[data-workout-${name}]`);
   const button = find('nudge');
   const retry = find('retry');
-  const endpoint = 'https://whooper.ccwu.cc/api/public/workout';
+  const endpoint = 'https://whooper.eazylee.si/api/public/workout';
   let visitor;
   try {
     visitor = localStorage.getItem('eazylee-workout-visitor');

@@ -52,7 +52,7 @@
       const query = new URLSearchParams();
       if (requestedDate) query.set('date',requestedDate);
       if (shared && params.get('workout')) query.set('workout',params.get('workout'));
-      const response = await fetch(`https://whooper.ccwu.cc/api/public/workout/strength?${query}`,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(115000)});
+      const response = await fetch(`https://whooper.eazylee.si/api/public/workout/strength?${query}`,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(115000)});
       if(!response.ok) throw new Error(response.status===404?'empty':'unavailable');
       const {session:w}=await response.json();
       if (!w || !Array.isArray(w.exercises) || !/^\d{4}-\d{2}-\d{2}$/.test(w.date) || !/^[a-f0-9-]{36}$/i.test(w.activity_id)) throw new Error('invalid');

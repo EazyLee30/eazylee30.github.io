@@ -70,7 +70,7 @@ def site_menu(locale, route):
     for slug,key in [('cliproxy-design','article1'),('nas-stack','article2')]:
         writing_rows+=link(d[key],f'{d["prefix"]}/archive/{slug}.html','book',slug+' '+' '.join(v[key] for v in LOCALES.values()))
     workout_rows=link(overview['workout'],d['prefix']+'/workout/','workout','workout training exercise fitness 训练 訓練 健身',route=='workout/')
-    workout_rows+=link('Whooper','https://whooper.ccwu.cc','workout','WHOOP recovery sleep training 恢复 恢復 睡眠 训练 訓練')
+    workout_rows+=link('Whooper','https://whooper.eazylee.si','workout','WHOOP recovery sleep training 恢复 恢復 睡眠 训练 訓練')
     workout_rows+=link('Luck Ring',f'https://github.com/{OWNER}/luck-ring','workout','smart ring sleep activity 智能戒指 睡眠')
     language_rows=''.join(link({'en':'English','zh-CN':'简体中文','zh-TW':'繁體中文'}[k],v['prefix']+'/'+route,'globe','language languages '+k,k==locale) for k,v in LOCALES.items())
     panels=panel('works',d['works'],work_rows)+panel('writing',d['writing'],writing_rows)+panel('workout',d['workout'],workout_rows)+panel('language',language,language_rows)
@@ -150,7 +150,7 @@ def home(locale,entries,repos):
     d=LOCALES[locale];p=d['prefix'];known={r['name']:r for r in repos};git=f'https://github.com/{OWNER}'
     cards=[]
     for name,desc,art in [('reberry',d['reberry'],f'<div class="project-art reberry-art">{device()}<span class="art-label">BlackBerry Classic / Q20</span></div>'),('muse-charm',d['muse'],f'<div class="project-art muse-art"><div class="muse-screen"><img src="https://raw.githubusercontent.com/EazyLee30/muse-charm/main/docs/charm-ui.gif" alt="Muse Charm firmware UI" width="848" height="354" loading="lazy"><span class="muse-fallback" aria-hidden="true">Muse</span></div><button type="button" class="demo-switch" aria-label="{d["demo"]}" aria-pressed="false">Paper / Ink</button></div>'),('whooper-2.0',d['whooper'],'<div class="project-art whooper-art" aria-hidden="true"><div class="rhythm-lines">'+''.join(f'<i style="--bar:{height}%"></i>' for height in [18,31,40,29,55,83,65,44,72,91,68,56,77,96,79,50,64,43,25,31,47,26,12])+ '</div><span class="art-label">Whooper / Recovery · Sleep · Training</span></div>')]:
-        r=known.get(name,{});url=r.get('html_url',git+'/'+name); visit=('https://whooper.ccwu.cc' if name=='whooper-2.0' else r.get('homepage'))
+        r=known.get(name,{});url=r.get('html_url',git+'/'+name); visit=('https://whooper.eazylee.si' if name=='whooper-2.0' else r.get('homepage'))
         links=(f'<a class="inline-link" href="{esc(visit)}">{d["visit"]} {arrow()}</a>' if visit else '')+f'<a class="inline-link" href="{esc(url)}">{icon("github")}{d["source"]} {arrow()}</a>'
         display={'reberry':'reberry','muse-charm':'Muse Charm','whooper-2.0':'Whooper'}[name]
         cards.append(f'<article class="work-card reveal">{art}<div class="work-card-copy"><h3>{display}</h3><p>{desc}</p><div class="project-links">{links}</div></div></article>')
