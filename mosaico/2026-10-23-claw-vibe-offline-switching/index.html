@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>把官方 Claw 放回 Ideas：一次 Mosaico 固件切换实录 · EazyLee</title><meta name="description" content="刷了别人的作品，怎样回到官方界面？从 Claw 0.5.0 恢复，到保存本地 Idea、修复上传限制，再从设备列表启动，全程留下验证依据。">
+<link rel="canonical" href="https://eazylee.xyz/mosaico/2026-10-23-claw-vibe-offline-switching/"><meta property="og:type" content="article">
+<meta property="og:title" content="把官方 Claw 放回 Ideas：一次 Mosaico 固件切换实录"><meta property="og:description" content="刷了别人的作品，怎样回到官方界面？从 Claw 0.5.0 恢复，到保存本地 Idea、修复上传限制，再从设备列表启动，全程留下验证依据。">
+<meta property="og:url" content="https://eazylee.xyz/mosaico/2026-10-23-claw-vibe-offline-switching/"><meta property="og:image" content="https://eazylee.xyz/assets/brand/share-cover-v1.png">
+<link rel="icon" href="/favicon.ico"><script src="/assets/js/theme.js?v=20261012e"></script>
+<link rel="stylesheet" href="/assets/css/main.css?v=20261015a"><link rel="stylesheet" href="/mosaico/assets/mosaico.css?v=20261023a">
+</head><body class="mosaico-body"><a class="skip-link" href="#main">跳至正文</a>
+<header class="m-header"><a class="m-brand" href="/cn/"><img src="/assets/avatar-head.png" width="32" height="32" alt="">EazyLee</a><span class="m-slash">/</span><a href="/mosaico/" class="m-section">Mosaico</a><nav aria-label="专区导航"><a href="/mosaico/">全部文章</a><a href="/cn/writing/">博客</a></nav><span data-theme-control></span></header>
+<main id="main" class="m-article-layout"><article class="m-article"><a class="m-back" href="/mosaico/">← 全部 Mosaico 文章</a><div class="m-meta"><time datetime="2026-10-23">2026.10.23</time><span>固件与恢复</span><span>约 9 分钟</span></div><h1>把官方 Claw 放回 Ideas：一次 Mosaico 固件切换实录</h1><p class="m-deck">刷了别人的作品，怎样回到官方界面？从 Claw 0.5.0 恢复，到保存本地 Idea、修复上传限制，再从设备列表启动，全程留下验证依据。</p><div class="m-prose"><p>我最初想做的事情很简单：在 Mosaico 上保留官方界面，同时玩别人做的作品。最好还能让自己的应用像 Works、Camera、Interaction 一样，直接出现在首页。</p>
+<p>实际动手后，问题变成了：用 Vibe Mode 刷进一个第三方固件，官方界面就不见了；回到 Vibe Mode，又找不到 ESP-Claw 的安装码。难道每次想回来，都要接电脑重刷一遍出厂固件？</p>
+<p>这次我让 Codex 接着排查，最终把官方 <strong>ESP-Claw 0.5.0 保存成了设备上的本地 Idea</strong>。原有的 TickPlay 和另一个作品保留，新条目可以从 Vibe Mode 打开。完成这一步后，返回官方界面有了一个设备本地的入口。</p>
+<p><img alt="Vibe Mode 列表中的 TickPlay、Idea 200040 和 ESP-Claw 0.5.0" src="/mosaico/assets/claw-saved.png" /></p>
+<p class="caption">实机截图：三个条目同时保存在设备中。截图拍摄时，列表正在更新存储统计。</p>
+
+<blockquote>
+<p>实验日期：2026-10-23。设备为 ESP32-S31、16 MiB Flash；主固件为 Claw 0.5.0，维护固件为 Vibe Mode 0.2.0。本文描述这个版本组合的实测结果，后续版本应重新核对格式与接口。</p>
+</blockquote>
+<h2 id="_1">先把三种“应用”分清楚</h2>
+<p>这里最容易混淆的，是三个看起来都像“装 App”的需求。</p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>所在层次</th>
+<th>这次是否完成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>把内容放进 Works</td>
+<td>官方固件中的内容或应用运行入口</td>
+<td>本文未展开</td>
+</tr>
+<tr>
+<td>在 Claw 首页增加一个原生图标</td>
+<td>官方固件的原生应用与界面集成</td>
+<td>尚未实现，需要对应源码开发</td>
+</tr>
+<tr>
+<td>在官方 Claw 与第三方固件之间切换</td>
+<td>Vibe Mode 的 Ideas 固件管理</td>
+<td>已保存 Claw，并从该条目启动</td>
+</tr>
+</tbody>
+</table>
+<p>因此，这次解决的是第三个问题。它不会把一个完整的第三方固件自动变成 Claw 首页的原生 App。</p>
+<h2 id="idea">为什么能保留多个 Idea，却一次只运行一个</h2>
+<p>查看官方源码后，关键关系就清楚了：<strong>NOR 放当前运行的主固件，NAND 放可以再次安装的 Idea 副本，Vibe Mode 负责管理和切换。</strong></p>
+<p>切换时，设备读取保存的描述文件和组件，验证完整性，并按需要写入主固件区域后重启。因此多个条目可以保存在设备上，但它们不是同时运行的多个进程，也不是点一下就瞬间换过去的手机 App。</p>
+<p>此前“想回官方就必须重新连电脑刷整机”的理解过于简单。真正缺少的是一个保存在 NAND 里的 Claw 条目。对应行为可以在官方的 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_ideas/src/ideas_library.c">Ideas 库与启动逻辑</a> 和 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_ideas/src/ideas_development.c">开发固件捕获代码</a> 中找到。</p>
+<h2 id="claw">第一步：恢复官方 Claw，先让它能正常运行</h2>
+<p>前面排查时，我们尝试过 ROM 下载模式和完整镜像刷写。它能解决“官方界面回来”，但恢复本身不会自动在 Ideas 列表里留下一个可切回的副本。</p>
+<p>后续确认 Vibe Mode 可用后，流程改为通过官方工具的维护接口操作。这里有一个值得单独记下的区别：</p>
+<ul>
+<li><strong>AI + Power</strong>：进入设备上的 Vibe Mode。</li>
+<li><strong>BOOT + Power</strong>：进入芯片 ROM 下载模式。</li>
+</ul>
+<p>ROM 模式黑屏是正常现象，但黑屏并不能说明已经进入 Vibe Mode。两种模式的 USB 接口和可用工具不同，不应该混着尝试。</p>
+<p>使用的源文件来自<a href="https://mosaico.espressif.com/firmware-update/">官方固件页</a>，文件名为 <code>ESP-Mosaico-Claw_v0.5.0.bin</code>。本次下载的完整镜像 SHA-256 是：</p>
+<pre><code class="language-text">bd45c135034d50cd9d0d36cfbe5219c2e760274d27d87a0087ec4bc38206b10e
+</code></pre>
+<p>为了通过 Vibe Mode 恢复，Codex 从完整镜像中提取了四个组件，再调用官方的 system-update bundle builder 重打包。应用程序没有重新编译，组件字节也没有改动。</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th style="text-align: right;">目标偏移</th>
+<th style="text-align: right;">提取大小</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分区表</td>
+<td style="text-align: right;"><code>0x8000</code></td>
+<td style="text-align: right;">4,096 字节</td>
+</tr>
+<tr>
+<td>Claw 主程序</td>
+<td style="text-align: right;"><code>0x210000</code></td>
+<td style="text-align: right;">6,586,784 字节</td>
+</tr>
+<tr>
+<td>UI 资源</td>
+<td style="text-align: right;"><code>0x9e0000</code></td>
+<td style="text-align: right;">3,276,800 字节</td>
+</tr>
+<tr>
+<td>系统资源</td>
+<td style="text-align: right;"><code>0xd00000</code></td>
+<td style="text-align: right;">3,072,000 字节</td>
+</tr>
+</tbody>
+</table>
+<p>这次 Vibe Mode 更新包的写入范围只有上面四项；没有把 bootloader、维护固件、设备身份、NVS 或整个 NAND 打进去。这里说的是后半段维护模式的恢复包，不是把前面完整镜像刷写也描述成只写了四个组件。</p>
+<p>还有一个容易误判的现象：工具写入完成后，等待运行固件的 Iris 健康确认超时，结果显示 <code>outcome_unknown</code>。当时不能仅凭这个状态就再刷一遍。我们核对了提交记录、USB 产品名称，并由我确认屏幕已经进入官方界面。<strong>写入后的确认超时，与写入本身失败，需要分别判断。</strong></p>
+<h2 id="idea_1">第二步：补上本地 Idea，而不是再找一个安装码</h2>
+<p>恢复后，我重新进入 Vibe Mode。官方 Claw 已经可以运行，但 Ideas 里仍然只有原来的两个作品。</p>
+<p>我们先检查了 Develop 和 Manage 页面，没有找到“保存当前固件”的操作入口。再看这一版源码和工作流说明，发现后端仍有保存开发固件的能力，但界面已经移除了相应按钮。</p>
+<p>于是改用官方 ESP-Iris 文件接口，把刚才验证过的 Claw 组件按 <strong><code>mosaico-ideas/local/2</code></strong> 格式保存到 NAND。这个步骤不需要假造一个社区安装码。</p>
+<p>目录结构大致是：</p>
+<pre><code class="language-text">/nand/ideas/dxxxxx/
+  .roots
+  current/
+    manifest.json
+    firmware/
+      manifest.json
+      partition_table.bin
+      main_app.bin
+      ui_apps.bin
+      system.bin
+</code></pre>
+<p>外层 manifest 告诉 Vibe Mode 这是哪个应用、叫什么、内层清单在哪；内层 manifest 描述每个组件的偏移、大小和 SHA-256。<code>.roots</code> 绑定外层描述文件的大小和哈希，是本地提交与完整性记录，不能把它理解为官方签名。</p>
+<p>我们先只读检查了设备已有记录，确认 journal 布局与源码一致。然后创建一个新的 Claw 目录，逐个上传文件，不覆盖原有作品，最后才提交 <code>.roots</code>。这避免了文件还没传完就把一个半包当成可用条目。格式依据是官方的 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_ideas/src/ideas_package.c">包解析器</a> 与 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_ideas/src/ideas_store.c">存储实现</a>。</p>
+<h2 id="6-mb-json">中途遇到的坑：6 MB 文件被当成 JSON 请求</h2>
+<p>第一个大文件上传失败，提示：</p>
+<pre><code class="language-text">Maximum request body size 1048576 exceeded.
+</code></pre>
+<p>问题发生在电脑端 Gateway，文件尚未写入设备。对应工具版本的请求分类中间件把包含 <code>/files/</code> 的路径识别为大请求，但实际上传地址结尾是 <strong><code>/file</code></strong>。它没有命中大请求规则，因而落入普通 JSON 请求的 1 MiB 限制。</p>
+<p>修复是让 <code>/file</code> 也走既有的大请求分类，继续保留工具已有的上传大小限制。停止空闲 Gateway、重启加载修改后，6.6 MB 的主程序就能正常上传了。这是对本次使用工具版本的一处本地修正，不代表所有版本都有相同问题。代码位置见 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/ESP-Iris/components/esp_iris/tools/iris_gateway/gateway.py">Gateway 中间件</a> 和 <a href="https://github.com/esp-mosaico/esp-mosaico-utils/blob/be151ae047014e79a9c7ae0092dd203844499003/ESP-Iris/components/esp_iris/tools/iris_gateway/file_routes.py">文件路由</a>。</p>
+<p>另一个小坑是界面缓存。文件已经写入，但正在打开的 Ideas 列表没有立即刷新。源码确认这一版切换显示语言会触发重新扫描，于是临时切换后再恢复原语言，Claw 条目便出现了。平时重新进入 Vibe Mode 也可以让它重新发现本地内容。</p>
+<h2 id="_2">最后验证：必须从保存的条目打开一次</h2>
+<p>“上传成功”和“实际能切回”是两件事。最后的验证顺序是：</p>
+<ol>
+<li>核对七个新文件的提交结果，确认大小及 SHA-256 与本地记录一致。</li>
+<li>在 Manage 中看到 <code>ESP-Claw 0.5.0</code>，同时确认原来的两个 Idea 仍在。</li>
+<li>进入 Claw 详情，点击 <strong>Open</strong>。</li>
+<li>观察设备从本地副本写入主应用，等待验证和重启完成。</li>
+<li>电脑重新识别到 USB 产品 <code>ESP-Mosaico-Claw</code>。</li>
+</ol>
+<p><img alt="本地 ESP-Claw 条目的详情与 Open 按钮" src="/mosaico/assets/claw-detail.png" /></p>
+<p class="caption">这个 “On this device” 条目，就是后续离线返回官方界面的入口。</p>
+
+<p><img alt="设备从保存的 Claw 副本写入主应用，进度为 82%" src="/mosaico/assets/claw-install.png" /></p>
+<p class="caption">切换会经历校验和写入过程，需要等待设备完成，不能把它当成普通页面跳转。</p>
+
+<p>实测确认的是：<strong>保存的 Claw 条目能够被 Vibe Mode 识别，并从该条目完成本地安装与启动。</strong> 此前官方界面已经由我确认。我们没有测试所有第三方固件之间的往返组合，也没有把这次结果写成对所有版本的保证。</p>
+<h2 id="_3">现在怎么用</h2>
+<p>想回到官方界面时：关机，按住顶部 <strong>AI 键</strong>再按 <strong>Power</strong>，进入 Vibe Mode，选择 <strong>ESP-Claw → Open</strong>。</p>
+<p>想玩已保存的其他作品时，也从 Vibe Mode 选择对应 Idea。已经在设备本地保存好的包，不需要每次再找安装码或连接电脑下载。一次运行一个主固件，切换时仍要给设备留出校验、写入和重启的时间。</p>
+<p>至于我最初想要的“自己的 App 出现在 Claw 首页”，那仍是另一个开发任务：需要研究原生应用注册和界面集成，不能把这次固件切换包装成已经完成了原生 App 开发。</p>
+<h2 id="skill">把这次经验做成一个 skill</h2>
+<p>这次流程已经整理成 <strong><code>mosaico-claw-recovery</code></strong>。它包含版本检查、存储格式依据、异常处理、完成标准，以及一个只在电脑上运行的离线打包脚本。</p>
+<p><a href="/mosaico/downloads/mosaico-claw-recovery.zip">下载 skill 包</a></p>
+<p>解压后，将 <code>mosaico-claw-recovery</code> 文件夹放入 Codex 的 skills 目录。在识别到该 skill 的会话中，可以这样提出任务：</p>
+<pre><code class="language-text">使用 $mosaico-claw-recovery 检查我的 Mosaico，
+把官方 Claw 保存为本地 Idea，保留现有作品，并验证启动。
+</code></pre>
+<p>附带脚本只接受这次验证过的官方 0.5.0 镜像，拒绝不匹配的哈希，也不会覆盖已有输出目录。它不连接硬件、不自动刷机；设备端步骤仍要求代理读取当前设备状态和相应版本源码。</p>
+<p>我曾提出“不行就用 REA 逆向”。最终没有走到那一步：官方源码已经足以解释存储格式和接口。此次的关键工作，是把源码、实际 USB 状态、文件校验和设备界面串起来，补上一个能重复使用的返回入口。</p></div><div class="m-article-end"><span class="m-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p>继续记录，让下一次少走一点弯路。</p><a href="/mosaico/">返回 Mosaico 手记 →</a></div></article><aside class="m-toc" aria-label="文章目录"><span>本文目录</span><div class="toc">
+<ul>
+<li><a href="#_1">先把三种“应用”分清楚</a></li>
+<li><a href="#idea">为什么能保留多个 Idea，却一次只运行一个</a></li>
+<li><a href="#claw">第一步：恢复官方 Claw，先让它能正常运行</a></li>
+<li><a href="#idea_1">第二步：补上本地 Idea，而不是再找一个安装码</a></li>
+<li><a href="#6-mb-json">中途遇到的坑：6 MB 文件被当成 JSON 请求</a></li>
+<li><a href="#_2">最后验证：必须从保存的条目打开一次</a></li>
+<li><a href="#_3">现在怎么用</a></li>
+<li><a href="#skill">把这次经验做成一个 skill</a></li>
+</ul>
+</div>
+</aside></main><footer class="m-footer"><a href="/mosaico/">Mosaico 手记</a><span>硬件 · 固件 · 实践</span><a href="/cn/">EazyLee ↗</a></footer></body></html>

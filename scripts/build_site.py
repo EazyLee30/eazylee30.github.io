@@ -64,6 +64,7 @@ def site_menu(locale, route):
         keywords=project['name']+' '+' '.join(project['description'].values())
         work_rows+=link(title,url,'grid',keywords)
     writing_rows=link(overview['writing'],d['prefix']+'/writing/','book','writing articles 文章',route=='writing/')
+    writing_rows+=link('Mosaico 手记','/mosaico/','book','mosaico esp claw vibe 固件 开发 实验')
     reberry_title={'en':'reberry — The keyboard remembers','zh-CN':'reberry — 键盘还记得','zh-TW':'reberry — 鍵盤還記得'}[locale]
     reberry_url={'en':'/reberry/','zh-CN':'/reberry/zh-CN/','zh-TW':'/reberry/zh-TW/'}[locale]
     writing_rows+=link(reberry_title,reberry_url,'book','blackberry classic reberry 黑莓')
@@ -366,6 +367,8 @@ def build_columns(locale,repos):
     reberry_route={'en':'/reberry/','zh-CN':'/reberry/zh-CN/','zh-TW':'/reberry/zh-TW/'}[locale]
     reberry_title={'en':'reberry — The keyboard remembers','zh-CN':'reberry — 键盘还记得','zh-TW':'reberry — 鍵盤還記得'}[locale]
     rows=f'<a class="writing-row reveal" href="{reberry_route}"><time datetime="2026-10-11">2026.10.11</time><h2>{reberry_title}</h2>{arrow()}</a>'+rows
+    mosaico_title={'en':'Mosaico field notes','zh-CN':'Mosaico 手记','zh-TW':'Mosaico 手記'}[locale]
+    rows=f'<a class="writing-row reveal" href="/mosaico/"><time datetime="2026-10-23">2026.10.23</time><h2>{mosaico_title}</h2>{arrow()}</a>'+rows
     body=f'<main id="main-content" class="site-shell column-page writing-page">{column_masthead(locale,"writing")}<div class="column-heading"><h1>{d["writing"]}</h1></div><div class="writing-list">{rows}</div>{foot}</main>'
     save(prefix.lstrip('/')+('/' if prefix else '')+'writing/index.html',page(locale,body,'writing/',title='Writing · EazyLee'))
     workout_today={'en':'TODAY','zh-CN':'今天','zh-TW':'今天'}[locale]
@@ -396,5 +399,8 @@ def main():
     repos=json.loads((ROOT/'assets/data/github.json').read_text())['repositories'];entries={}
     retire_journal_pages()
     for locale in LOCALES: home(locale,entries,repos);build_columns(locale,repos)
+    from build_mosaico import build as build_mosaico
+    mosaico_count=build_mosaico(ROOT)
+    print(f'Built Mosaico section with {mosaico_count} articles.')
     print(f'Built 3 homepages and 9 column pages; {len(PROJECTS)} project covers. Journal sources are retained.')
 if __name__=='__main__': main()
