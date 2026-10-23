@@ -52,7 +52,7 @@ def shell(title, description, route, body, article=False):
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{canonical}"><meta property="og:image" content="{CANONICAL}/assets/brand/share-cover-v1.png">
 <link rel="icon" href="/favicon.ico"><script src="/assets/js/theme.js?v=20261012e"></script>
-<link rel="stylesheet" href="/assets/css/main.css?v=20261015a"><link rel="stylesheet" href="/mosaico/assets/mosaico.css?v=20261023a">
+<link rel="stylesheet" href="/assets/css/main.css?v=20261015a"><link rel="stylesheet" href="/assets/css/portfolio.css?v=20261012e"><link rel="stylesheet" href="/mosaico/assets/mosaico.css?v=20261023a">
 </head><body class="mosaico-body"><a class="skip-link" href="#main">跳至正文</a>
 <header class="m-header"><a class="m-brand" href="/cn/"><img src="/assets/avatar-head.png" width="32" height="32" alt="">EazyLee</a><span class="m-slash">/</span><a href="/mosaico/" class="m-section">Mosaico</a><nav aria-label="专区导航"><a href="/mosaico/">全部文章</a><a href="/cn/writing/">博客</a></nav><span data-theme-control></span></header>
 {body}<footer class="m-footer"><a href="/mosaico/">Mosaico 手记</a><span>硬件 · 固件 · 实践</span><a href="/cn/">EazyLee ↗</a></footer></body></html>'''
