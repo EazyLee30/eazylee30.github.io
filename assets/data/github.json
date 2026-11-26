@@ -1,13 +1,90 @@
 {
-  "fetched_at": "2026-10-11T14:09:55.682066+00:00",
+  "fetched_at": "2026-11-26T12:27:54.775828+00:00",
   "repositories": [
     {
       "name": "eazylee30.github.io",
       "description": null,
       "html_url": "https://github.com/EazyLee30/eazylee30.github.io",
       "homepage": null,
-      "pushed_at": "2026-10-11T12:09:44Z",
+      "pushed_at": "2026-11-26T09:29:53Z",
       "language": "HTML",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "EazyLee30",
+      "description": "readme",
+      "html_url": "https://github.com/EazyLee30/EazyLee30",
+      "homepage": null,
+      "pushed_at": "2026-11-26T08:25:43Z",
+      "language": null,
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "aiui-immersive-3dof",
+      "description": "A field-tested agent skill for immersive Rokid AIUI: fixed-eye 3DoF, CJK pixel typography, temple controls, synchronized demos, and release workflows.",
+      "html_url": "https://github.com/EazyLee30/aiui-immersive-3dof",
+      "homepage": null,
+      "pushed_at": "2026-11-24T02:10:19Z",
+      "language": "JavaScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 2
+    },
+    {
+      "name": "omascribe",
+      "description": "Offline meeting recorder, bilingual live transcription, and a Markdown notebook with automatic local AI minutes.",
+      "html_url": "https://github.com/EazyLee30/omascribe",
+      "homepage": "https://omascribe.eazylee.si/",
+      "pushed_at": "2026-11-06T21:24:39Z",
+      "language": "Rust",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "biotrip-fliggy-hackathon",
+      "description": "BioTrip — 让旅途，照顾好今天的你。根据身体感受调整行程的 AI 旅行伙伴。",
+      "html_url": "https://github.com/EazyLee30/biotrip-fliggy-hackathon",
+      "homepage": "https://biotrip.eazylee.si",
+      "pushed_at": "2026-10-23T02:45:50Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 0
+    },
+    {
+      "name": "omaberry",
+      "description": "Native PocketJS tiling desktop for BlackBerry Classic / Q20. BB10/QNX, BerryCore terminals and local AI agents. No browser required.",
+      "html_url": "https://github.com/EazyLee30/omaberry",
+      "homepage": null,
+      "pushed_at": "2026-10-21T13:10:39Z",
+      "language": "JavaScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 3
+    },
+    {
+      "name": "whooper-2.0",
+      "description": "Your WHOOP recovery, sleep and training coach — authenticated ChatGPT and Codex plugin",
+      "html_url": "https://github.com/EazyLee30/whooper-2.0",
+      "homepage": "https://whooper-peach.vercel.app",
+      "pushed_at": "2026-10-19T10:05:16Z",
+      "language": "TypeScript",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 108
+    },
+    {
+      "name": "berrybrowser-cjk",
+      "description": "Chinese text in Berry Browser for BlackBerry 10 — repack the official .bar with a bundled CJK font (no Chromium rebuild)",
+      "html_url": "https://github.com/EazyLee30/berrybrowser-cjk",
+      "homepage": null,
+      "pushed_at": "2026-10-15T15:41:15Z",
+      "language": "Python",
       "fork": false,
       "archived": false,
       "stargazers_count": 0
@@ -21,18 +98,7 @@
       "language": "HTML",
       "fork": false,
       "archived": false,
-      "stargazers_count": 0
-    },
-    {
-      "name": "whooper-2.0",
-      "description": "Your WHOOP recovery, sleep and training coach — authenticated ChatGPT and Codex plugin",
-      "html_url": "https://github.com/EazyLee30/whooper-2.0",
-      "homepage": "https://whooper-peach.vercel.app",
-      "pushed_at": "2026-10-10T12:37:28Z",
-      "language": "TypeScript",
-      "fork": false,
-      "archived": false,
-      "stargazers_count": 0
+      "stargazers_count": 8
     },
     {
       "name": "venue-booking-audit-skill",
@@ -54,29 +120,7 @@
       "language": "C",
       "fork": false,
       "archived": false,
-      "stargazers_count": 0
-    },
-    {
-      "name": "EazyLee30",
-      "description": "readme",
-      "html_url": "https://github.com/EazyLee30/EazyLee30",
-      "homepage": null,
-      "pushed_at": "2026-10-06T09:06:50Z",
-      "language": null,
-      "fork": false,
-      "archived": false,
-      "stargazers_count": 0
-    },
-    {
-      "name": "berrybrowser-cjk",
-      "description": "Chinese text in Berry Browser for BlackBerry 10 — repack the official .bar with a bundled CJK font (no Chromium rebuild)",
-      "html_url": "https://github.com/EazyLee30/berrybrowser-cjk",
-      "homepage": null,
-      "pushed_at": "2026-10-04T15:32:31Z",
-      "language": "Python",
-      "fork": false,
-      "archived": false,
-      "stargazers_count": 0
+      "stargazers_count": 19
     },
     {
       "name": "luck-ring",
@@ -164,7 +208,7 @@
       "language": "Python",
       "fork": false,
       "archived": false,
-      "stargazers_count": 5
+      "stargazers_count": 6
     },
     {
       "name": "xalibre-zh",

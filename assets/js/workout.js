@@ -53,7 +53,7 @@
     const insight=card.querySelector('[data-nudge-insight]');insight.replaceChildren();
     for(const [group,title] of [[trained,words.trainedAvg],[rest,words.restAvg]]){
       const item=document.createElement('div');item.className='nudge-insight-item';
-      const label=document.createElement('span');label.textContent=`${title} · ${group.length}${en?' days':'天'}`;
+      const label=document.createElement('span');label.textContent=`${title} · ${group.length}${en?(group.length===1?' day':' days'):'天'}`;
       const value=document.createElement('strong');value.textContent=group.length?(group.reduce((n,d)=>n+d.nudges,0)/group.length).toFixed(1):'—';
       const unit=document.createElement('span');unit.textContent=words.average;item.append(label,value,unit);insight.append(item);
     }

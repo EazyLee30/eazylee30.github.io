@@ -2,10 +2,14 @@
 
 The gallery uses public repository artwork from EazyLee30. Cards link to their
 repositories; project descriptions come from the corresponding README files.
-Reviewed on 2026-10-11.
+Reviewed on 2026-11-26.
 
 | Local asset | Source |
 | --- | --- |
+| aiui-immersive-3dof.png | [aiui-immersive-3dof/docs/assets/banner.png](https://github.com/EazyLee30/aiui-immersive-3dof/blob/main/docs/assets/banner.png) |
+| omascribe.svg | [omascribe/assets/banner.svg](https://github.com/EazyLee30/omascribe/blob/main/assets/banner.svg) |
+| biotrip.webp | [biotrip-fliggy-hackathon/public/brand/readme-banner.webp](https://github.com/EazyLee30/biotrip-fliggy-hackathon/blob/main/public/brand/readme-banner.webp) |
+| omaberry.png | [omaberry/docs/banner.png](https://github.com/EazyLee30/omaberry/blob/main/docs/banner.png) |
 | whooper.png | [whooper-2.0 README](https://github.com/EazyLee30/whooper-2.0) |
 | muse.png | [muse-charm README](https://github.com/EazyLee30/muse-charm) |
 | luck-ring.jpg | [luck-ring README](https://github.com/EazyLee30/luck-ring) |

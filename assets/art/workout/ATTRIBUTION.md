@@ -24,7 +24,4 @@ Regular is used only for newly added values; the embedded EAZY LEE / M remain pi
 in the owner's image. Font license is bundled in `assets/fonts/training-hand/OFL.txt`.
 
 
-`guide/` bundles the three unmodified SVG frames for bicep-curl, pull-up,
-seated-row and lat-pulldown from Workout Guide (retrieved 2026-10-16). The browser
-recolors white strokes to the active theme as described above. The bicep-curl
-figure is an illustrative nudge response, not an additional logged workout.
+`guide/` bundles the three unmodified SVG frames from Workout Guide for common strength exercises (`barbell-row`, `bench-press`, `bicep-curl`, `cable-fly`, `close-grip-lat-pulldown`, `deadlift`, `dip`, `dumbbell-bench-press`, `face-pull`, `hammer-curl`, `incline-bench-press`, `incline-dumbbell-press`, `lat-pulldown`, `lateral-raise`, `leg-curl`, `leg-extension`, `leg-press`, `machine-chest-press`, `overhead-press`, `pec-deck`, `pull-up`, `push-up`, `romanian-deadlift`, `seated-dumbbell-press`, `seated-row`, `squat`, `tricep-pushdown`, `wide-grip-lat-pulldown`). Other Workout Guide exercises load at runtime from jsDelivr / GitHub. The browser recolors white strokes to the active theme as described above. The bicep-curl figure is an illustrative nudge response, not an additional logged workout.

@@ -59,6 +59,7 @@
       track.scrollTo({left: index * track.clientWidth, behavior: 'instant'});
     }).observe(panels[0]);
     new ResizeObserver(() => { track.style.height = `${panels[index].scrollHeight}px`; }).observe(panels[1]);
+    document.addEventListener('workout:updated', () => activate(index));
     document.fonts.ready.then(() => activate(index));
     activate(0);
   }
@@ -95,8 +96,9 @@
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = color('--bg'); ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textBaseline = 'top';
-    const text = (value, x, y, size, ink = color('--text')) => {
-      ctx.fillStyle = ink; ctx.font = `${size}px JetBrains, monospace`; ctx.fillText(value, x, y);
+    const text = (value, x, y, size, ink = color('--text'), maxWidth) => {
+      ctx.fillStyle = ink; ctx.font = `${size}px JetBrains, monospace`;
+      if (maxWidth) ctx.fillText(value, x, y, maxWidth); else ctx.fillText(value, x, y);
     };
     const date = document.querySelector('.share-date time').dateTime;
     text('EAZYLEE / WORKOUT', 60, 55, 34);
@@ -108,18 +110,21 @@
       const h = heights[i];
       ctx.strokeStyle = color('--border'); ctx.lineWidth = 2; ctx.strokeRect(60, y, 960, h);
       const title = card.querySelector('h3').textContent;
-      text(title, 86, y + 24, 28);
+      text(title, 86, y + 24, 28, color('--text'), 908);
       const frame = card.querySelector('.wframe.on') || card.querySelector('.wframe');
       if (frame) {
         const svg = new XMLSerializer().serializeToString(frame).replace(/currentColor/g, color('--accent'));
         const img = new Image(); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
         await img.decode(); ctx.drawImage(img, 86, y + 78, 180, 180);
       }
+      const colN = frame ? 310 : 86;
+      const colR = frame ? 535 : 360;
+      const colW = frame ? 790 : 790;
       for (const [j, row] of [...card.querySelectorAll('.wset')].entries()) {
         const top = y + 84 + j * 46;
-        text(row.querySelector('.wset-n').textContent, 310, top, 20, color('--muted'));
-        text(row.querySelector('.wset-r').textContent, 535, top, 22);
-        text(row.querySelector('.wset-w').textContent, 790, top, 22, color('--accent'));
+        text(row.querySelector('.wset-n').textContent, colN, top, 20, color('--muted'));
+        text(row.querySelector('.wset-r').textContent, colR, top, 22);
+        text(row.querySelector('.wset-w').textContent, colW, top, 22, color('--accent'));
       }
       y += h + 24;
     }

@@ -10,13 +10,13 @@ Install `requirements-site.txt`, then run `python3 scripts/build_site.py`. Previ
 
 ## Works
 
-The gallery includes fourteen substantive public repositories. Eleven use real README artwork or project logos; three use locally authored diagrams of documented functions. [Artwork provenance](assets/projects/SOURCES.md) records the sources. Every card has a single 16:9 media stage, with complete banners contained inside it. Cards take their natural height, preventing an extra photo or device demo from leaving an empty neighboring card.
+The gallery includes eighteen substantive public repositories. Fifteen use real README artwork or project logos; three use locally authored diagrams of documented functions. [Artwork provenance](assets/projects/SOURCES.md) records the sources. Every card has a single 16:9 media stage, with complete banners contained inside it. Cards take their natural height, preventing an extra photo or device demo from leaving an empty neighboring card.
 
 The browser refreshes public repository metadata on entry, on returning to the page and every five minutes while visible. It updates dates and language and sorts cards by the actual last push. API failures retain the saved public snapshot. New repositories can be added to `content/projects.json` with suitable artwork. The contribution calendar uses GitHub's actual dated contribution cells and counts, refreshed during deployment.
 
 ## Navigation
 
-Clicking the header avatar opens a command menu in all three languages. Its geometry and keyboard behavior follow Omarchy's published SearchPalette: a 340px panel, 13px monospace search, 40px rows, persistent input focus, highlighted selection, and a back arrow beside the current submenu's placeholder. Works lists the fourteen projects; Writing lists the three published articles; Workout links its overview, Whooper and Luck Ring. Root search covers these items; submenu search filters that submenu. Escape clears the query, returns to the root menu, then closes. Arrow keys select or enter branches, Enter opens the selection, and Cmd/Ctrl K or / opens the menu.
+Clicking the header avatar opens a command menu in all three languages. Its geometry and keyboard behavior follow Omarchy's published SearchPalette: a 340px panel, 13px monospace search, 40px rows, persistent input focus, highlighted selection, and a back arrow beside the current submenu's placeholder. Works lists the curated projects; Writing lists the published articles; Workout links its overview, Whooper and Luck Ring. Root search covers these items; submenu search filters that submenu. Escape clears the query, returns to the root menu, then closes. Arrow keys select or enter branches, Enter opens the selection, and Cmd/Ctrl K or / opens the menu.
 
 The document scrollbar stays visible during command navigation, so opening the menu does not resize the hero or redraw the logo's layout. The mobile drawer header shares its solid theme background, with no shadow bleeding into it. The three desktop section dividers around the header, hero and introduction are removed.
 

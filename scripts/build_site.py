@@ -96,7 +96,8 @@ def share_metadata(locale, route='', title='EazyLee'):
     if route.startswith('workout/share/'):
         social_title=title
         date=route.split('/')[2]
-        description={'en':f"EazyLee's WHOOP training record · {date}",'zh-CN':f'EazyLee 的 WHOOP 训练记录 · {date}','zh-TW':f'EazyLee 的 WHOOP 訓練記錄 · {date}'}[locale]
+        suffix=f' · {date}' if date else ''
+        description={'en':f"EazyLee's WHOOP training record{suffix}",'zh-CN':f'EazyLee 的 WHOOP 训练记录{suffix}','zh-TW':f'EazyLee 的 WHOOP 訓練記錄{suffix}'}[locale]
     canonical=f'https://eazylee.xyz{d["prefix"]}/{route}'
     square='https://eazylee.xyz/assets/brand/share-avatar-v1.png'
     cover='https://eazylee.xyz/assets/brand/share-cover-v1.png'
@@ -266,6 +267,9 @@ def _wnum(value):
         return text or '0'
     return str(value)
 
+def _sheet_name_size(name):
+    return f'{max(1.65, min(3.25, (145 / max(len(str(name or "")), 1)) ** 0.5)):.2f}'
+
 def sheet(w):
     groups=[]
     for ex in w.get('exercises',[]):
@@ -282,7 +286,8 @@ def sheet(w):
         for i,((name,weight,unit,reps),count) in enumerate(groups[offset:offset+10]):
             pounds=weight*2.2046226218 if unit.lower()=='kg' else weight
             load='B.W.' if not weight else f'{pounds:.1f}'.rstrip('0').rstrip('.')
-            rows.append(f'<div class="sheet-entry" style="top:{positions[i]}%"><span>{esc(name)}</span><span>{count}</span><span>{esc(load)}</span><span>{esc(str(reps))}</span><span>{esc(name)}</span></div>')
+            size=_sheet_name_size(name)
+            rows.append(f'<div class="sheet-entry" style="top:{positions[i]}%"><span style="font-size:{size}cqw">{esc(name)}</span><span>{count}</span><span>{esc(load)}</span><span>{esc(str(reps))}</span><span style="font-size:{size}cqw">{esc(name)}</span></div>')
         date=datetime.date.fromisoformat(w['date']).strftime('%b %d, %Y').upper()
         sheets.append(f'''<figure class="training-sheet" aria-label="EazyLee · {esc(w['date'])} · Exercise list"><img class="sheet-original" src="/assets/art/workout/exercise-list-original.png" width="1086" height="1448" alt="克強健力學院 Exercise List. Original training sheet, handwritten EAZY LEE, sex M."><time class="sheet-date hand" datetime="{esc(w['date'])}">{date}</time><div class="sheet-entries hand">{''.join(rows)}</div></figure>''')
     return '<div class="training-sheets">'+''.join(sheets)+'</div>'
@@ -315,7 +320,7 @@ def workout_detail(locale):
             if slug:
                 fig=f'<div class="wfig" data-art="{esc(slug)}" role="img" aria-label="{esc(ex.get("name",""))}"><span class="wfig-loading" aria-hidden="true">…</span></div>'
             else:
-                fig='<div class="wfig wfig-none" aria-hidden="true"><span>./</span></div>'
+                fig=''
             rows=[]
             for i,s in enumerate(ex.get('sets') or [],1):
                 wt=s.get('weight',0)
@@ -323,7 +328,8 @@ def workout_detail(locale):
                 rows.append(f'<div class="wset"><span class="wset-n">SET {i:02d}</span><span class="wset-r">{esc(_wnum(s.get("reps","—")))} {esc(d["workoutReps"])}</span><span class="wset-w">{wlabel}</span></div>')
             muscles=' '.join(ex.get('muscles') or [])
             tag=f'<span class="wtag">{esc(muscles)}</span>' if muscles else ''
-            cards.append(f'<article class="wcard"><div class="wcard-head"><h3>{esc(ex.get("name",""))}</h3>{tag}</div>{fig}<div class="wsets">{"".join(rows)}</div></article>')
+            card_cls='wcard' if slug else 'wcard wcard-no-art'
+            cards.append(f'<article class="{card_cls}"><div class="wcard-head"><h3>{esc(ex.get("name",""))}</h3>{tag}</div>{fig}<div class="wsets">{"".join(rows)}</div></article>')
         body=meta+'<div class="wgrid">' + ''.join(cards) + '</div>'
     credit='<p class="wcredit"><a href="https://github.com/bryllim/workout-guide">Workout Guide</a> · Bryl Lim / Everkinetic · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></p>'
     if not w.get('exercises'): return f'<section class="wdetail">{kicker}{body}</section>'
@@ -335,11 +341,11 @@ def workout_detail(locale):
         content=sheet(w)+workout_source(w) if view=='sheet' else f'<div class="movement-share-content">{body}{workout_source(w, False)}</div>'
         other_url=f'{share_url}movement/' if view=='sheet' else share_url
         other_label=l[2] if view=='sheet' else l[1]
-        share_body=f'<main id="main-content" class="site-shell workout-share" data-session-date="{w['date']}" data-share-view="{view}"><div class="share-toolbar"><a class="inline-link" href="{d["prefix"]}/workout/">← {l[9]}</a><div><button type="button" data-share-link>{l[5]}</button><button type="button" data-share-native>{l[4]}</button><button type="button" data-share-print>{l[6]}</button><button type="button" data-share-image>{l[11]}</button></div></div><div class="share-view-label"><strong>{view_label}</strong><a class="inline-link" href="{other_url}">{other_label} ↔</a></div><p class="share-date">{l[10]} · <time datetime="{esc(w["date"])}">{esc(w["date"])}</time></p><div data-share-content>{content}</div><p class="share-feedback" role="status" data-share-feedback></p>{credit}<script type="application/json" id="share-copy">{json.dumps(l,ensure_ascii=False)}</script><script defer src="/assets/js/workout-live.js?v=20261016c"></script><script defer src="/assets/js/workout-art.js?v=20261016b"></script><script defer src="/assets/js/workout-views.js?v=20261016b"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261016b"></main>'
+        share_body=f'<main id="main-content" class="site-shell workout-share" data-session-date="{w['date']}" data-share-view="{view}"><div class="share-toolbar"><a class="inline-link" href="{d["prefix"]}/workout/">← {l[9]}</a><div><button type="button" data-share-link>{l[5]}</button><button type="button" data-share-native>{l[4]}</button><button type="button" data-share-print>{l[6]}</button><button type="button" data-share-image>{l[11]}</button></div></div><div class="share-view-label"><strong>{view_label}</strong><a class="inline-link" href="{other_url}">{other_label} ↔</a></div><p class="share-date">{l[10]} · <time datetime="{esc(w["date"])}">{esc(w["date"])}</time></p><div data-share-content>{content}</div><p class="share-feedback" role="status" data-share-feedback></p>{credit}<script type="application/json" id="share-copy">{json.dumps(l,ensure_ascii=False)}</script><script defer src="/assets/js/workout-live.js?v=20261126a"></script><script defer src="/assets/js/workout-art.js?v=20261126a"></script><script defer src="/assets/js/workout-views.js?v=20261126a"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261126a"></main>'
         save(d['prefix'].lstrip('/')+('/' if d['prefix'] else '')+view_route+'index.html',page(locale,share_body,view_route,title=f'{w["date"]} · {view_label} · EazyLee'))
     generic=share_body.replace('data-share-view="movement"', 'data-live-share data-share-view="movement" data-loading="true"')
     save(d['prefix'].lstrip('/')+('/' if d['prefix'] else '')+'workout/share/index.html',page(locale,generic,'workout/share/',title=f'Workout · EazyLee'))
-    return f'''<section class="wdetail" data-session-date="{w['date']}" data-workout-views aria-label="{esc(l[0])}"><div class="workout-view-heading"><div>{kicker}<h2>{l[0]}</h2></div><a class="workout-share-link" data-view-share data-sheet-url="{share_url}" data-movement-url="{share_url}movement/" href="{share_url}movement/">{l[4]} {arrow()}</a></div><div class="workout-view-controls"><div class="workout-tabs" role="tablist" aria-label="{l[0]}"><button type="button" id="motion-tab" role="tab" aria-selected="true" aria-controls="motion-view" tabindex="0">{l[2]}</button><button type="button" id="sheet-tab" role="tab" aria-selected="false" aria-controls="sheet-view" tabindex="-1">{l[1]}</button></div></div><div class="workout-view-track" tabindex="0" aria-label="{l[3]}"><div class="workout-view-panel" id="motion-view" role="tabpanel" aria-labelledby="motion-tab">{body}{workout_source(w, False)}</div><div class="workout-view-panel" id="sheet-view" role="tabpanel" aria-labelledby="sheet-tab" inert>{sheet(w)}{workout_source(w)}</div></div><div class="workout-view-progress" aria-hidden="true"><span></span></div><p class="workout-data-note">WHOOP · {esc(w['date'])} · {esc(w.get('fetched_at','')[:16].replace('T',' '))} UTC</p></section>{credit}<script defer src="/assets/js/workout-live.js?v=20261016c"></script><script defer src="/assets/js/workout-art.js?v=20261016b"></script><script defer src="/assets/js/workout-views.js?v=20261016b"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261016b">'''
+    return f'''<section class="wdetail" data-session-date="{w['date']}" data-workout-views aria-label="{esc(l[0])}"><div class="workout-view-heading"><div>{kicker}<h2>{l[0]}</h2></div><a class="workout-share-link" data-view-share data-sheet-url="{share_url}" data-movement-url="{share_url}movement/" href="{share_url}movement/">{l[4]} {arrow()}</a></div><div class="workout-view-controls"><div class="workout-tabs" role="tablist" aria-label="{l[0]}"><button type="button" id="motion-tab" role="tab" aria-selected="true" aria-controls="motion-view" tabindex="0">{l[2]}</button><button type="button" id="sheet-tab" role="tab" aria-selected="false" aria-controls="sheet-view" tabindex="-1">{l[1]}</button></div></div><div class="workout-view-track" tabindex="0" aria-label="{l[3]}"><div class="workout-view-panel" id="motion-view" role="tabpanel" aria-labelledby="motion-tab">{body}{workout_source(w, False)}</div><div class="workout-view-panel" id="sheet-view" role="tabpanel" aria-labelledby="sheet-tab" inert>{sheet(w)}{workout_source(w)}</div></div><div class="workout-view-progress" aria-hidden="true"><span></span></div><p class="workout-data-note">WHOOP · {esc(w['date'])} · {esc(w.get('fetched_at','')[:16].replace('T',' '))} UTC</p></section>{credit}<script defer src="/assets/js/workout-live.js?v=20261126a"></script><script defer src="/assets/js/workout-art.js?v=20261126a"></script><script defer src="/assets/js/workout-views.js?v=20261126a"></script><link rel="stylesheet" href="/assets/css/workout-sheet.css?v=20261126a">'''
 
 def accountability(locale):
     d=LOCALES[locale]
@@ -374,7 +380,7 @@ def build_columns(locale,repos):
     workout_today={'en':'TODAY','zh-CN':'今天','zh-TW':'今天'}[locale]
     workout_copy={key.removeprefix('workout'):value for key,value in d.items() if key.startswith('workout')}
     copy_json=json.dumps(workout_copy,ensure_ascii=False).replace('<','\\u003c')
-    body=f'<main id="main-content" class="site-shell column-page workout-page">{column_masthead(locale,"workout")}<div class="column-heading"><h1>{d["workout"]}</h1><p>{d["workoutNote"]}</p></div>{accountability(locale)}{workout_detail(locale)}<script type="application/json" id="workout-copy">{copy_json}</script><script defer src="/assets/js/workout.js?v=20261016c"></script>{foot}</main>'
+    body=f'<main id="main-content" class="site-shell column-page workout-page">{column_masthead(locale,"workout")}<div class="column-heading"><h1>{d["workout"]}</h1><p>{d["workoutNote"]}</p></div>{accountability(locale)}{workout_detail(locale)}<script type="application/json" id="workout-copy">{copy_json}</script><script defer src="/assets/js/workout.js?v=20261126a"></script>{foot}</main>'
     save(prefix.lstrip('/')+('/' if prefix else '')+'workout/index.html',page(locale,body,'workout/',title='Workout · EazyLee'))
 
 def retire_journal_pages():

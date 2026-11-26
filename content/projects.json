@@ -1,5 +1,47 @@
 [
   {
+    "name": "aiui-immersive-3dof",
+    "title": "AIUI Immersive 3DoF",
+    "media": "aiui-immersive-3dof.png",
+    "description": {
+      "en": "A field-tested agent skill for immersive Rokid AIUI: fixed-eye 3DoF, CJK pixel typography, temple controls, synchronized demos and release workflows.",
+      "zh-CN": "面向 Rokid AIUI 的沉浸式 3DoF Agent Skill：世界锚定、中文像素字体、镜腿交互、有声演示与平台交付流程。",
+      "zh-TW": "面向 Rokid AIUI 的沉浸式 3DoF Agent Skill：世界錨定、中文像素字型、鏡腿互動、有聲示範與平台交付流程。"
+    }
+  },
+  {
+    "name": "omascribe",
+    "title": "OmaScribe",
+    "media": "omascribe.svg",
+    "visit": "https://omascribe.eazylee.si/",
+    "description": {
+      "en": "An offline desktop meeting recorder, bilingual live transcriber and Markdown notebook with automatic local AI minutes.",
+      "zh-CN": "面向桌面的离线录音、中英转写与 Markdown 会议笔记应用，随手记关键词即可在本地自动生成带出处的会议纪要。",
+      "zh-TW": "面向桌面的離線錄音、中英轉寫與 Markdown 會議筆記應用，隨手記關鍵詞即可在本地自動產生帶出處的會議紀要。"
+    }
+  },
+  {
+    "name": "biotrip-fliggy-hackathon",
+    "title": "BioTrip",
+    "media": "biotrip.webp",
+    "visit": "https://biotrip.eazylee.si",
+    "description": {
+      "en": "An AI travel companion that adapts your itinerary to how you feel, combining preferences, check-ins and authorized WHOOP recovery data.",
+      "zh-CN": "根据身体感受调整行程的 AI 旅行伙伴，结合偏好、自评与经授权的 WHOOP 恢复数据，让旅途照顾好今天的你。",
+      "zh-TW": "根據身體感受調整行程的 AI 旅行夥伴，結合偏好、自評與經授權的 WHOOP 恢復資料，讓旅途照顧好今天的你。"
+    }
+  },
+  {
+    "name": "omaberry",
+    "title": "OmaBerry",
+    "media": "omaberry.png",
+    "description": {
+      "en": "A native PocketJS tiling desktop for BlackBerry Classic / Q20 with BerryCore terminals, embedded WebKit and on-device AI agents.",
+      "zh-CN": "黑莓 Classic / Q20 的 PocketJS 原生平铺桌面，集成 BerryCore 终端、内嵌浏览器与端侧 AI Agent。",
+      "zh-TW": "黑莓 Classic / Q20 的 PocketJS 原生平鋪桌面，整合 BerryCore 終端機、內嵌瀏覽器與端側 AI Agent。"
+    }
+  },
+  {
     "name": "muse-charm",
     "title": "Muse Charm",
     "media": "muse.png",
